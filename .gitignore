@@ -28,3 +28,9 @@ coverage
 *.sw?
 
 *.tsbuildinfo
+
+# Static directories and files
+/public/static/Cesium/Assets/
+/public/static/Cesium/Workers/
+/public/static/Cesium/ThirdParty/
+/public/static/Cesium/Widgets/

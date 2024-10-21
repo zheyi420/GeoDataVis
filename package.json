@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "copy-cesium-assets": "node copy-cesium-assets.js",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
@@ -11,6 +12,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "cesium": "^1.122.0",
     "pinia": "^2.2.4",
     "vue": "^3.5.12",
     "vue-router": "^4.4.5"
@@ -21,6 +23,7 @@
     "@vue/eslint-config-prettier": "^10.0.0",
     "eslint": "^9.12.0",
     "eslint-plugin-vue": "^9.29.0",
+    "ncp": "^2.0.0",
     "prettier": "^3.3.3",
     "vite": "^5.4.8",
     "vite-plugin-vue-devtools": "^7.4.6"
