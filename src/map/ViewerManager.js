@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2024-10-23 01:01:54
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-10-24 00:32:55
+ * @LastEditTime: 2024-10-29 00:35:49
  * @FilePath: \GeoDataVis\src\map\ViewerManager.js
  * @Description: Viewer 初始化
  *
@@ -30,25 +30,33 @@ class ViewerManager {
    * @returns { Object } Viewer
    */
   createViewer(container, options) {
-    // 设置椭球体
-    /* const obj = [6378137.0, 6378137.0, 6356752.3142451793]
-    window.Cesium.Ellipsoid.WGS84 = new window.Cesium.Ellipsoid(
-      obj[0],
-      obj[1],
-      obj[2],
-    ) */
     this.viewerContainer = container
-    this.viewer = new window.Cesium.Viewer(container, {
+    // 默认的部件设定策略
+    const defaultWidgetConfig = {
+      animation: false,
+      baseLayerPicker: true, // false,
+      fullscreenButton: false,
+      geocoder: false,
+      homeButton: false,
+      sceneModePicker: false,
+      selectionIndicator: false,
+      timeline: false,
+      navigationHelpButton: false,
       infoBox: false,
+      scene3DOnly: true,
+      shouldAnimate: false,
+    }
+    this.viewer = new window.Cesium.Viewer(container, {
+      ...defaultWidgetConfig,
       ...options,
     })
-    // this.viewer._cesiumWidget._creditContainer.style.display = 'none'
-    /* let control = this.viewer.scene.screenSpaceCameraController
+    this.viewer.cesiumWidget.creditContainer.style.display = 'none'
+
+    // 修改鼠标控制策略
+    const control = this.viewer.scene.screenSpaceCameraController
     control.tiltEventTypes = window.Cesium.CameraEventType.RIGHT_DRAG
-    control.zoomEventTypes = [
-      window.Cesium.CameraEventType.WHEEL,
-      window.Cesium.CameraEventType.PINCH,
-    ] */
+    control.zoomEventTypes = window.Cesium.CameraEventType.WHEEL
+
     return this.viewer
   }
 }
