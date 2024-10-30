@@ -3,17 +3,17 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
-import ViewerManager from '@/map/ViewerManager';
+import { onMounted, ref } from 'vue'
+import ViewerManager from '@/map/ViewerManager'
 
-const mapContainer = ref(null);
-const viewerManager = new ViewerManager();
+const mapContainer = ref(null)
+const viewerManager = new ViewerManager()
 
 onMounted(() => {
   window.viewer = viewerManager.createViewer(mapContainer.value, {
-    // TODO Add your viewer options here
-  });
-});
+    // Add your viewer options here
+  })
+})
 </script>
 
 <style scoped>
