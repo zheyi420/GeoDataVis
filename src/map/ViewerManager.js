@@ -71,7 +71,7 @@ class ViewerManager {
     // TODO 需要将鼠标事件管理起来。
     const handler = new window.Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas)
     handler.setInputAction(() => {
-      // TODO 这种写法会导致画面抖动，且鼠标移动就会触发，需要优化
+      // FIXME 这种写法会导致画面抖动，且鼠标移动就会触发，需要优化
 
       console.log('Camera roll (radian): ', this.viewer.scene.camera.roll)
       // 输出roll的值，单位为度
