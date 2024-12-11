@@ -2,12 +2,12 @@
 // import { RouterLink, RouterView } from 'vue-router'
 // import HelloWorld from './components/HelloWorld.vue'
 import MapContainer from './views/MapContainer.vue';
-import MapIndicatorDataPanel from '@/views/panels/MapIndicatorDataPanel.vue'
+import MapParamsPanel from '@/views/panels/MapParamsPanel.vue'
 </script>
 
 <template>
   <MapContainer />
-  <MapIndicatorDataPanel />
+  <MapParamsPanel />
   <!-- <header>
     <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
 
