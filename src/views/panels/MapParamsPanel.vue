@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2024-11-19 00:31:44
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-12-12 00:41:07
+ * @LastEditTime: 2024-12-13 01:02:54
  * @FilePath: \GeoDataVis\src\views\panels\MapParamsPanel.vue
  * @Description: 显示相机、鼠标等信息
  * 
@@ -56,9 +56,14 @@ function updateCameraParams() {
     cameraParams.longitude = window.Cesium.Math.toDegrees(cartographic.longitude).toFixed(5); // 保留五位小数
     cameraParams.latitude = window.Cesium.Math.toDegrees(cartographic.latitude).toFixed(5); // 保留五位小数
     cameraParams.altitude = cartographic.height.toFixed(2); // 保留两位小数
-    cameraParams.heading = window.Cesium.Math.toDegrees(viewer.camera.heading).toFixed(2); // 保留两位小数
+
+    const heading = window.Cesium.Math.toDegrees(viewer.camera.heading).toFixed(2); // 保留两位小数
+    cameraParams.heading = heading == 360 ? 0 : heading;
+
     cameraParams.pitch = window.Cesium.Math.toDegrees(viewer.camera.pitch).toFixed(2); // 保留两位小数
-    cameraParams.roll = window.Cesium.Math.toDegrees(viewer.camera.roll).toFixed(2); // 保留两位小数
+    
+    const roll = window.Cesium.Math.toDegrees(viewer.camera.roll).toFixed(2); // 保留两位小数
+    cameraParams.roll = roll == 360 ? 0 : roll;
   }
 }
 
@@ -78,8 +83,8 @@ onMounted(() => {
   if (viewer) {
     console.log('viewer is defined');
     
-    viewer.camera.percentageChanged = 0.001; // 设置更高的灵敏度
-    viewer.camera.changed.addEventListener(updateCameraParams);
+    
+    const removeCallBack4UpdateCameraParams = viewer.camera.changed.addEventListener(updateCameraParams);
     updateCameraParams(); // 初始化时调用一次
 
     const handler = new window.Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);

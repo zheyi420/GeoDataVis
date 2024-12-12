@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2024-10-23 01:01:54
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-11-18 00:48:38
+ * @LastEditTime: 2024-12-13 00:54:45
  * @FilePath: \GeoDataVis\src\map\ViewerManager.js
  * @Description: Viewer 初始化
  *
@@ -40,24 +40,24 @@ class ViewerManager {
     this.viewerContainer = container
     // 默认的部件设定策略
     const defaultWidgetConfig = {
-      animation: false,
-      baseLayerPicker: true, // false,
-      fullscreenButton: false,
-      geocoder: false,
-      homeButton: true, // false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      timeline: false,
-      navigationHelpButton: false,
-      infoBox: false,
-      scene3DOnly: true,
-      shouldAnimate: false,
+      animation: false, // Animation widget
+      baseLayerPicker: true, // 底图选择器
+      fullscreenButton: false, // 全屏按钮
+      geocoder: false, // Geocoder widget
+      homeButton: true, // 主视图按钮
+      sceneModePicker: false, // 场景模式选择器
+      selectionIndicator: false, // 选择指示器
+      timeline: false, // 时间轴
+      navigationHelpButton: false, // 导航帮助按钮
+      infoBox: false, // 信息框
+      scene3DOnly: true, // 仅3D场景
+      shouldAnimate: false, // 时钟事件模拟
     }
     this.viewer = new window.Cesium.Viewer(container, {
       ...defaultWidgetConfig,
       ...options,
     })
-    this.viewer.cesiumWidget.creditContainer.style.display = 'none'
+    this.viewer.cesiumWidget.creditContainer.style.display = 'none' // 隐藏版权信息
 
     // 修改鼠标控制策略
     const control = this.viewer.scene.screenSpaceCameraController
@@ -66,34 +66,72 @@ class ViewerManager {
     control.lookEventTypes = window.Cesium.CameraEventType.RIGHT_DRAG
     control.zoomEventTypes = window.Cesium.CameraEventType.WHEEL
 
-    // this.viewer.camera.enableLook = false
-    // 监听事件，当 Camera 事件为 RIGHT_DRAG 时，保持 Camera 倾斜角不变。
-    // TODO 需要将鼠标事件管理起来。
-    const handler = new window.Cesium.ScreenSpaceEventHandler(this.viewer.scene.canvas)
-    handler.setInputAction(() => {
-      // FIXME 这种写法会导致画面抖动，且鼠标移动就会触发，需要优化
+    this.viewer.camera.percentageChanged = 0.001 // 设置更高的灵敏度
+    
+    // # 确保camera.roll始终为0
+    this.keepCameraRollZero(this.viewer)
 
-      console.log('Camera roll (radian): ', this.viewer.scene.camera.roll)
-      // 输出roll的值，单位为度
-      console.log('Camera roll (degrees): ', window.Cesium.Math.toDegrees(this.viewer.scene.camera.roll))
+    return this.viewer
+  }
 
-      const rollInDegree = window.Cesium.Math.toDegrees(this.viewer.scene.camera.roll)
-      const rollInDegereInRange180 = rollInDegree - 180 // 将roll的值转换到-180到180之间
-      const deviationFromTop = Math.abs(Math.abs(rollInDegereInRange180) - 180) // 与正上方向的偏离值
-      console.log('Deviation from top (degree): ', deviationFromTop)
+  /**
+   * 确保camera.roll始终为0
+   * 通过监听camera.changed事件来保持camera.roll为0
+   * @param {Object} viewer
+   * @returns {Function} removeCallBack4KeepCameraRollZero
+   */
+  keepCameraRollZero(viewer) {
+    // 监听camera.changed事件，确保camera.roll始终为0
+    const removeCallBack4KeepCameraRollZero = viewer.camera.changed.addEventListener(() => {
+      if (viewer.camera.roll === 0) return
 
-      if (deviationFromTop >= 1) {
-        this.viewer.scene.camera.setView({
+      viewer.camera.setView({
+        orientation: {
+          heading: viewer.camera.heading,
+          pitch: viewer.camera.pitch,
+          roll: 0.0,
+        },
+      })
+    })
+    return removeCallBack4KeepCameraRollZero
+  }
+
+  /**
+   * 确保camera.roll始终为0
+   * 通过监听鼠标事件来保持camera.roll为0
+   * @param {Object} viewer
+   */
+  _keepCameraRollZero(viewer) {
+    // 创建事件处理器
+    const handler = new window.Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
+    // 记录鼠标初始位置
+    let startMousePosition
+
+    // 监听右键按下事件
+    handler.setInputAction(function (movement) {
+      startMousePosition = movement.position // 记录初始位置
+    }, window.Cesium.ScreenSpaceEventType.RIGHT_DOWN)
+
+    // 监听鼠标移动事件
+    handler.setInputAction(function (movement) {
+      if (startMousePosition) {
+        // 重置roll值为0
+        // 使用setView方法设置新的视角，保持roll为0
+        viewer.camera.setView({
+          destination: viewer.camera.position, // 保持当前位置不变
           orientation: {
-            heading: this.viewer.scene.camera.heading,
-            pitch: this.viewer.scene.camera.pitch,
-            roll: 0.0,
+            heading: viewer.camera.heading,
+            pitch: viewer.camera.pitch,
+            roll: 0, // 确保roll为0
           },
         })
       }
-    }, window.Cesium.ScreenSpaceEventType.RIGHT_DOWN)
+    }, window.Cesium.ScreenSpaceEventType.MOUSE_MOVE)
 
-    return this.viewer
+    // 监听右键抬起事件以重置初始位置
+    handler.setInputAction(function () {
+      startMousePosition = undefined // 清除初始位置
+    }, window.Cesium.ScreenSpaceEventType.RIGHT_UP)
   }
 }
 
