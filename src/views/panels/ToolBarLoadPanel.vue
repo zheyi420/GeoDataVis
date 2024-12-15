@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2024-12-15 03:28:42
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-12-15 17:56:24
+ * @LastEditTime: 2024-12-15 18:15:42
  * @FilePath: \GeoDataVis\src\views\panels\ToolBarLoadPanel.vue
  * @Description: 工具栏，用于加载数据的面板，包括加载数据服务、加载本地数据文件等
  * 
@@ -14,6 +14,7 @@
     <el-dropdown
       ref="ref4ServiceLoadTypeDropdown"
       trigger="hover"
+      @visible-change="handleVisibleChange4ServiceLoadTypeDropdown"
     >
       <template v-slot:default>
         <span class="item">服务</span>
@@ -31,6 +32,7 @@
     <el-dropdown
       ref="ref4FileLoadTypeDropdown"
       trigger="hover"
+      @visible-change="handleVisibleChange4FileLoadTypeDropdown"
     >
       <template v-slot:default>
         <span class="item">文件</span>
@@ -85,6 +87,14 @@ const options4ServiceLoadType = [
   },
 ]
 
+function handleVisibleChange4ServiceLoadTypeDropdown(val) {
+  console.log('###handleVisibleChange4ServiceLoadTypeDropdown val', val);
+
+  if (!val) {
+    // 关闭下拉菜单时，清空展开节点记录
+    ref4ServiceLoadTypeCascaderPanel.value.clearCheckedNodes();
+  }
+}
 function handleChange4ServiceLoadType(value) {
   console.log('###handleChange4ServiceLoadType value', value);
 
@@ -110,6 +120,14 @@ const options4FileLoadType = [
 ]
 const props4FileLoadTypeOnCascaderPanel = {
   expandTrigger: 'hover',
+}
+function handleVisibleChange4FileLoadTypeDropdown(val) {
+  console.log('###handleVisibleChange4FileLoadTypeDropdown val', val);
+
+  if (!val) {
+    // 关闭下拉菜单时，清空展开节点记录
+    ref4FileLoadTypeCascaderPanel.value.clearCheckedNodes();
+  }
 }
 function handleChange4FileLoadType(value) {
   console.log('###handleChange4FileLoadType value', value);
