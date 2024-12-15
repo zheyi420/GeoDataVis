@@ -1,29 +1,45 @@
-<script setup>
-// import { RouterLink, RouterView } from 'vue-router'
-// import HelloWorld from './components/HelloWorld.vue'
-import MapContainer from './views/MapContainer.vue';
-import MapParamsPanel from '@/views/panels/MapParamsPanel.vue'
-</script>
+<!--
+ * @Author: zheyi420
+ * @Date: 2024-10-15 23:46:12
+ * @LastEditors: zheyi420
+ * @LastEditTime: 2024-12-15 03:44:18
+ * @FilePath: \GeoDataVis\src\App.vue
+ * @Description: 
+ * 
+-->
 
 <template>
-  <MapContainer />
-  <MapParamsPanel />
-  <!-- <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView /> -->
+  <div class="app-container">
+    <MapContainer />
+    <ToolBarLoadPanel class="toolbar-load-panel" />
+    <MapParamsPanel class="map-params-panel" />
+  </div>
 </template>
 
-<style scoped>
+<script setup>
+import MapContainer from '@/views/MapContainer.vue';
+import MapParamsPanel from '@/views/panels/MapParamsPanel.vue'
+import ToolBarLoadPanel from '@/views/panels/ToolBarLoadPanel.vue'
+</script>
+
+<style scoped lang="scss">
+.app-container {
+  position: relative;
+  
+  .toolbar-load-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 10; /* 确保在 MapContainer 上面 */
+  }
+
+  .map-params-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+  }
+}
 
 </style>

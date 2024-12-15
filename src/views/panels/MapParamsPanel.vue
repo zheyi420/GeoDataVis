@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2024-11-19 00:31:44
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-12-13 01:02:54
+ * @LastEditTime: 2024-12-15 03:43:07
  * @FilePath: \GeoDataVis\src\views\panels\MapParamsPanel.vue
  * @Description: 显示相机、鼠标等信息
  * 
@@ -100,12 +100,7 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 20px;
   padding: 0px 10px;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
   box-sizing: border-box; /* 包含内边距在内 */
-  z-index: 10;
   background-color: rgba(0, 0, 0, 0.8);
   
   span {

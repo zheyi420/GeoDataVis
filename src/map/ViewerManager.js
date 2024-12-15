@@ -62,7 +62,7 @@ class ViewerManager {
     // 修改鼠标控制策略
     const control = this.viewer.scene.screenSpaceCameraController
     control.rotateEventTypes = window.Cesium.CameraEventType.LEFT_DRAG
-    control.tiltEventTypes = window.Cesium.CameraEventType.MIDDLE_DRAG
+    control.tiltEventTypes = [window.Cesium.CameraEventType.MIDDLE_DRAG, { eventType : window.Cesium.CameraEventType.LEFT_DRAG, modifier : window.Cesium.KeyboardEventModifier.CTRL }]
     control.lookEventTypes = window.Cesium.CameraEventType.RIGHT_DRAG
     control.zoomEventTypes = window.Cesium.CameraEventType.WHEEL
 
