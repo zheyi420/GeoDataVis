@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2024-12-15 03:28:42
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-12-15 15:48:45
+ * @LastEditTime: 2024-12-15 17:56:24
  * @FilePath: \GeoDataVis\src\views\panels\ToolBarLoadPanel.vue
  * @Description: 工具栏，用于加载数据的面板，包括加载数据服务、加载本地数据文件等
  * 
@@ -10,33 +10,34 @@
 
 <template>
   <div class="toolbar-load-panel">
-
+    <!-- 加载服务 -->
     <el-dropdown
       ref="ref4ServiceLoadTypeDropdown"
-      trigger="click"
+      trigger="hover"
     >
       <template v-slot:default>
-        <span class="item">加载服务</span>
+        <span class="item">服务</span>
       </template>
       <template v-slot:dropdown>
         <el-cascader-panel
-          v-model="selectedValue4ServiceLoadType"
+          ref="ref4ServiceLoadTypeCascaderPanel"
           :options="options4ServiceLoadType"
           :props="props4ServiceLoadTypeOnCascaderPanel"
           @change="handleChange4ServiceLoadType"
         />
       </template>
     </el-dropdown>
+    <!-- 加载文件 -->
     <el-dropdown
       ref="ref4FileLoadTypeDropdown"
       trigger="hover"
     >
       <template v-slot:default>
-        <span class="item">加载文件</span>
+        <span class="item">文件</span>
       </template>
       <template v-slot:dropdown>
         <el-cascader-panel
-          v-model="selectedValue4FileLoadType"
+          ref="ref4FileLoadTypeCascaderPanel"
           :options="options4FileLoadType"
           :props="props4FileLoadTypeOnCascaderPanel"
           @change="handleChange4FileLoadType"
@@ -50,12 +51,12 @@
 import { ref } from 'vue';
 import { ElDropdown, ElCascaderPanel } from 'element-plus';
 
+/** 加载服务 */
 const ref4ServiceLoadTypeDropdown = ref(null);
-const selectedValue4ServiceLoadType = ref(null) // 用于存储选中的值;
+const ref4ServiceLoadTypeCascaderPanel = ref(null);
 const props4ServiceLoadTypeOnCascaderPanel = {
   expandTrigger: 'hover',
 }
-
 const options4ServiceLoadType = [
   {
     value: 'GeoServer',
@@ -82,26 +83,21 @@ const options4ServiceLoadType = [
       }
     ],
   },
-  {
-    value: 'DEM',
-    label: 'DEM',
-  }
 ]
 
 function handleChange4ServiceLoadType(value) {
   console.log('###handleChange4ServiceLoadType value', value);
-  console.log('###handleChange4ServiceLoadType selectedValue4ServiceLoadType', selectedValue4ServiceLoadType.value);
 
   // 关闭下拉菜单
   ref4ServiceLoadTypeDropdown.value.handleClose();
-
-  // 清除选中的值
-  selectedValue4ServiceLoadType.value = [];
+  // 清空选中的节点
+  ref4ServiceLoadTypeCascaderPanel.value.clearCheckedNodes();
 
 }
 
+/** 加载文件 */
 const ref4FileLoadTypeDropdown = ref(null);
-const selectedValue4FileLoadType = ref(null)
+const ref4FileLoadTypeCascaderPanel = ref(null);
 const options4FileLoadType = [
   {
     value: 'GeoJSON',
@@ -117,14 +113,13 @@ const props4FileLoadTypeOnCascaderPanel = {
 }
 function handleChange4FileLoadType(value) {
   console.log('###handleChange4FileLoadType value', value);
-  console.log('###handleChange4FileLoadType selectedValue4FileLoadType', selectedValue4FileLoadType.value);
 
   // 关闭下拉菜单
   ref4FileLoadTypeDropdown.value.handleClose();
-
-  // 清除选中的值
-  selectedValue4FileLoadType.value = [];
+  // 清空选中的节点
+  ref4FileLoadTypeCascaderPanel.value.clearCheckedNodes();
 }
+
 
 </script>
 
@@ -145,13 +140,30 @@ function handleChange4FileLoadType(value) {
     justify-content: center;
   }
 }
-
-
 </style>
 
-<style>
+<style lang="scss">
 .el-cascader-node__prefix {
   display: none !important;
+}
+.el-cascader-node:not(.is-disabled):focus {
+  background: unset;
+}
+.el-cascader-node:not(.is-disabled):hover {
+  background: var(--el-cascader-node-background-hover);
+}
+.el-cascader-node {
+
+  &.in-active-path {
+    background: var(--el-cascader-node-background-hover);
+  }
+
+  &.in-active-path,
+  &.is-active {
+    color: unset;
+    font-weight: unset;
+  }
+  
 }
 </style>
 
