@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2024-12-15 03:28:42
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-12-15 18:15:42
+ * @LastEditTime: 2024-12-17 01:49:12
  * @FilePath: \GeoDataVis\src\views\panels\ToolBarLoadPanel.vue
  * @Description: 工具栏，用于加载数据的面板，包括加载数据服务、加载本地数据文件等
  * 
@@ -87,12 +87,25 @@ const options4ServiceLoadType = [
   },
 ]
 
-function handleVisibleChange4ServiceLoadTypeDropdown(val) {
-  console.log('###handleVisibleChange4ServiceLoadTypeDropdown val', val);
+function handleVisibleChange4ServiceLoadTypeDropdown(visible) {
+  console.log('###服务“下拉列表visible-change', visible);
 
-  if (!val) {
+  
+  console.log('ref4ServiceLoadTypeDropdown.value', ref4ServiceLoadTypeDropdown.value);
+  console.log('ref4ServiceLoadTypeCascaderPanel.value', ref4ServiceLoadTypeCascaderPanel.value);
+  
+  if (visible) {
+    
+    // ref4ServiceLoadTypeDropdown.value.$el.classList.add('is-hover');
+  } else {
     // 关闭下拉菜单时，清空展开节点记录
     ref4ServiceLoadTypeCascaderPanel.value.clearCheckedNodes();
+    // ref4ServiceLoadTypeDropdown.value.$el.classList.remove('is-hover');
+    // ref4ServiceLoadTypeCascaderPanel.value.$el.blur();
+    // ref4ServiceLoadTypeDropdown.value.$el.blur();
+    /* setTimeout(() => {
+      ref4ServiceLoadTypeDropdown.value.$el.blur();
+    }, 0); */
   }
 }
 function handleChange4ServiceLoadType(value) {
@@ -121,12 +134,17 @@ const options4FileLoadType = [
 const props4FileLoadTypeOnCascaderPanel = {
   expandTrigger: 'hover',
 }
-function handleVisibleChange4FileLoadTypeDropdown(val) {
-  console.log('###handleVisibleChange4FileLoadTypeDropdown val', val);
+function handleVisibleChange4FileLoadTypeDropdown(visible) {
+  console.log('###文件“下拉列表visible-change', visible);
 
-  if (!val) {
+  if (visible) {
+    console.log('ref4FileLoadTypeDropdown.value', ref4FileLoadTypeDropdown.value);
+    
+    // ref4FileLoadTypeDropdown.value.classList.add('is-hover');
+  } else {
     // 关闭下拉菜单时，清空展开节点记录
     ref4FileLoadTypeCascaderPanel.value.clearCheckedNodes();
+    // ref4FileLoadTypeDropdown.value.classList.remove('is-hover');
   }
 }
 function handleChange4FileLoadType(value) {
@@ -148,6 +166,25 @@ function handleChange4FileLoadType(value) {
   height: 40px;
   width: fit-content;
 
+  .el-dropdown {
+
+    &:focus-visible {
+      outline: none;
+    }
+    
+    // &.is-hover,
+    /* &:focus-within,
+    &:hover {
+      background-color: #34495e;
+      color: #fff;
+    } */
+
+    /* &:not(:hover):not(:focus-within) {
+      background-color: #f0f0f0;
+      color: #000;
+    } */
+  }
+
   .item {
     padding: 0 7px;
     width: fit-content;
@@ -156,6 +193,15 @@ function handleChange4FileLoadType(value) {
     display: flex;
     align-items: center;
     justify-content: center;
+
+    &:focus-visible {
+      outline: none;
+    }
+
+    /* &:hover {
+      background-color: #34495e;
+      color: #fff;
+    } */
   }
 }
 </style>
@@ -164,13 +210,17 @@ function handleChange4FileLoadType(value) {
 .el-cascader-node__prefix {
   display: none !important;
 }
-.el-cascader-node:not(.is-disabled):focus {
-  background: unset;
-}
-.el-cascader-node:not(.is-disabled):hover {
-  background: var(--el-cascader-node-background-hover);
-}
 .el-cascader-node {
+  --el-cascader-node-background-hover: #34495e;
+
+  &:not(.is-disabled):focus {
+    background: unset;
+  }
+
+  &:not(.is-disabled):hover {
+    background: var(--el-cascader-node-background-hover);
+    color: #fff;
+  }
 
   &.in-active-path {
     background: var(--el-cascader-node-background-hover);
@@ -178,10 +228,9 @@ function handleChange4FileLoadType(value) {
 
   &.in-active-path,
   &.is-active {
-    color: unset;
+    color: #fff;
     font-weight: unset;
   }
-  
 }
 </style>
 
