@@ -15,17 +15,27 @@
       </div>
     </template>
     <template v-slot:default>
-      <el-form ref="ruleFormRef" :model="form" :rules="rules">
-        <el-form-item label="图层名称" :label-width="formLabelWidth" prop="layerName">
-          <el-input v-model="form.layerName" autocomplete="off" :placeholder="placeholder4Form.layerName" />
-        </el-form-item>
-        <el-form-item label="WMS服务地址URL" :label-width="formLabelWidth" prop="url" required>
-          <el-input ref="ref4InputUrl" v-model="form.url" autocomplete="off" />
-        </el-form-item>
-        <!-- URL说明 -->
-        <div ref="ref4InputUrlTip" class="form-item-tips">
-          <span>示例：</span>
-          <span>http://localhost:8090/geoserver/wms</span>
+      <el-form ref="ruleFormRef" class="form-content" :model="form" :rules="rules">
+        <div class="wms-param-a">
+          <el-form-item label="图层名称" :label-width="formLabelWidth" prop="layerName">
+            <el-input v-model="form.layerName" autocomplete="off" :placeholder="placeholder4Form.layerName" />
+          </el-form-item>
+          <el-form-item label="WMS服务地址URL" :label-width="formLabelWidth" prop="url">
+            <el-input ref="ref4InputUrl" v-model="form.url" autocomplete="off" />
+          </el-form-item>
+          <!-- URL说明 -->
+          <div ref="ref4InputUrlTip" class="form-item-tips">
+            <span>示例：</span>
+            <span>http://localhost:8090/geoserver/wms</span>
+          </div>
+        </div>
+        <div class="wms-param-b">
+          <div class="param-section-name">
+            <span>标准参数</span>
+          </div>
+          <el-form-item label="service:" class="param-item">
+            <span>WMS</span>
+          </el-form-item>
         </div>
       </el-form>
     </template>
@@ -55,12 +65,12 @@ const form = reactive({
   url: '',
 })
 const placeholder4Form = reactive({
-  layerName: '图层一',
+  layerName: '图层一', // TODO 后续改为从store中获取
 })
-const rules = {
+const rules = reactive({
   layerName: [{ validator: checkLayerName, trigger: 'blur' }],
   url: [{ validator: checkUrl, trigger: 'blur' }],
-}
+})
 const formLabelWidth = '140px'
 
 /**
@@ -79,6 +89,8 @@ function checkLayerName(rule, value, callback) {
     return callback(new Error('图层名称不能为空格'))
   }
 
+  callback()
+
 }
 
 /**
@@ -96,6 +108,8 @@ function checkUrl(rule, value, callback) {
   if (!reg.test(value)) {
     return callback(new Error('格式错误'))
   }
+
+  callback()
 }
 
 /**
@@ -113,10 +127,19 @@ function setNewWmsServiceConnection(ruleFormRef) {
   // 校验表单
   ruleFormRef
     .validate((isValid, invalidFields) => {
+      console.log('isValid', isValid);
       console.log('invalidFields', invalidFields);
       
       if (isValid) {
         console.log('form', form)
+        
+        // 如果有默认值的选项，未被设置，则在此设置默认值
+        const _form = { ...form }
+        if (!_form.layerName) {
+          _form.layerName = placeholder4Form.layerName
+        }
+
+        console.log('_form', _form)
         // 发送请求
         // 关闭对话框
         // closeDialogGeoServerWmsServiceParam()
@@ -152,10 +175,10 @@ const setFormItemTips4UrlPos = () => {
   }
 }
 function dialogOpen() {
-  console.log('dialogOpen')
+  // console.log('dialogOpen')
 }
 function dialogOpened() {
-  console.log('dialogOpened')
+  // console.log('dialogOpened')
 }
 </script>
 
@@ -164,6 +187,27 @@ function dialogOpened() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.form-content {
+
+  
+  .wms-param-a {
+
+  }
+
+  .wms-param-b {
+    padding-top: 5px;
+
+    .param-section-name {
+      margin: 20px 0px 10px 0px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .param-item {
+      width: fit-content;
+    }
+  }
 }
 .form-item-tips {
   position: absolute;
