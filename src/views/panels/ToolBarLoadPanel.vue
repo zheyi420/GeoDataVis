@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2024-12-15 03:28:42
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-12-17 01:49:12
+ * @LastEditTime: 2024-12-25 14:38:10
  * @FilePath: \GeoDataVis\src\views\panels\ToolBarLoadPanel.vue
  * @Description: 工具栏，用于加载数据的面板，包括加载数据服务、加载本地数据文件等
  * 
@@ -52,6 +52,7 @@
 <script setup>
 import { ref } from 'vue';
 import { ElDropdown, ElCascaderPanel } from 'element-plus';
+import { usePanelStatusStore } from '@/stores/panelStatus';
 
 /** 加载服务 */
 const ref4ServiceLoadTypeDropdown = ref(null);
@@ -88,11 +89,11 @@ const options4ServiceLoadType = [
 ]
 
 function handleVisibleChange4ServiceLoadTypeDropdown(visible) {
-  console.log('###服务“下拉列表visible-change', visible);
+  // console.log('###服务“下拉列表visible-change', visible);
 
   
-  console.log('ref4ServiceLoadTypeDropdown.value', ref4ServiceLoadTypeDropdown.value);
-  console.log('ref4ServiceLoadTypeCascaderPanel.value', ref4ServiceLoadTypeCascaderPanel.value);
+  // console.log('ref4ServiceLoadTypeDropdown.value', ref4ServiceLoadTypeDropdown.value);
+  // console.log('ref4ServiceLoadTypeCascaderPanel.value', ref4ServiceLoadTypeCascaderPanel.value);
   
   if (visible) {
     
@@ -109,13 +110,65 @@ function handleVisibleChange4ServiceLoadTypeDropdown(visible) {
   }
 }
 function handleChange4ServiceLoadType(value) {
-  console.log('###handleChange4ServiceLoadType value', value);
+  console.log('###handleChange4ServiceLoadType value', value, typeof value, Array.isArray(value));
 
   // 关闭下拉菜单
   ref4ServiceLoadTypeDropdown.value.handleClose();
   // 清空选中的节点
   ref4ServiceLoadTypeCascaderPanel.value.clearCheckedNodes();
 
+  
+  if (!value) return;
+
+  // 打开对应的加载服务面板
+  switch (value.length) {
+    case 1: {
+      console.log('###加载服务', value[0]);
+      break;
+    }
+    case 2: {
+      console.log('###加载服务', value[0], value[1]);
+      switch (value[0]) {
+        case 'GeoServer': {
+          _loadGeoServerService(value[1]);
+          break;
+        }
+        case '3D-Data': {
+          break;
+        }
+        default: {
+          console.log('###加载服务-未匹配2', value);
+          break;
+        }
+      }
+      break;
+    }
+    default: {
+      console.log('###加载服务-未匹配1', value);
+      break;
+    }
+  }
+}
+
+function _loadGeoServerService(value) {
+  console.log('###_loadGeoServerService value:', value);
+
+  // 打开GeoServer服务加载面板
+  switch (value) {
+    case 'WMS': {
+      console.log('###加载服务-GeoServer-WMS');
+      usePanelStatusStore().openDialogGeoServerWmsServiceParam();
+      break;
+    }
+    case 'WMTS': {
+      console.log('###加载服务-GeoServer-WMTS');
+      break;
+    }
+    default: {
+      console.log('###加载服务-GeoServer-未匹配', value);
+      break;
+    }
+  }
 }
 
 /** 加载文件 */
@@ -135,10 +188,10 @@ const props4FileLoadTypeOnCascaderPanel = {
   expandTrigger: 'hover',
 }
 function handleVisibleChange4FileLoadTypeDropdown(visible) {
-  console.log('###文件“下拉列表visible-change', visible);
+  // console.log('###文件“下拉列表visible-change', visible);
 
   if (visible) {
-    console.log('ref4FileLoadTypeDropdown.value', ref4FileLoadTypeDropdown.value);
+    // console.log('ref4FileLoadTypeDropdown.value', ref4FileLoadTypeDropdown.value);
     
     // ref4FileLoadTypeDropdown.value.classList.add('is-hover');
   } else {

@@ -13,6 +13,7 @@
     <MapContainer />
     <ToolBarLoadPanel class="toolbar-load-panel" />
     <MapParamsPanel class="map-params-panel" />
+    <DialogGeoServerWmsServiceParam />
   </div>
 </template>
 
@@ -20,6 +21,7 @@
 import MapContainer from '@/views/MapContainer.vue';
 import MapParamsPanel from '@/views/panels/MapParamsPanel.vue'
 import ToolBarLoadPanel from '@/views/panels/ToolBarLoadPanel.vue'
+import DialogGeoServerWmsServiceParam from '@/views/panels/DialogGeoServerWmsServiceParam.vue'
 </script>
 
 <style scoped lang="scss">
