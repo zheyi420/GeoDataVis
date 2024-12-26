@@ -1,11 +1,12 @@
 <template>
   <el-dialog
     v-model="visStatus4DialogGeoServerWmsServiceParam"
-    width="500"
+    width="600"
     destroy-on-close
     :align-center="false"
     :close-on-click-modal="false"
     :before-close="handleClose"
+    :top="`0vh`"
     @open="dialogOpen"
     @opened="dialogOpened"
   >
@@ -15,27 +16,68 @@
       </div>
     </template>
     <template v-slot:default>
-      <el-form ref="ruleFormRef" class="form-content" :model="form" :rules="rules">
+      <el-form ref="ruleFormRef" class="form-content" :model="form4WmsServiceParam" :rules="rules">
         <div class="wms-param-a">
           <el-form-item label="图层名称" :label-width="formLabelWidth" prop="layerName">
-            <el-input v-model="form.layerName" autocomplete="off" :placeholder="placeholder4Form.layerName" />
+            <el-input v-model="form4WmsServiceParam.layerName" autocomplete="off" :placeholder="placeholder4Form.layerName" />
           </el-form-item>
           <el-form-item label="WMS服务地址URL" :label-width="formLabelWidth" prop="url">
-            <el-input ref="ref4InputUrl" v-model="form.url" autocomplete="off" />
+            <el-input ref="ref4InputUrl" v-model="form4WmsServiceParam.url" autocomplete="off" />
           </el-form-item>
           <!-- URL说明 -->
-          <div ref="ref4InputUrlTip" class="form-item-tips">
+          <div ref="ref4InputUrlTip" class="form-item-tips form-item-tips-url">
             <span>示例：</span>
             <span>http://localhost:8090/geoserver/wms</span>
           </div>
         </div>
         <div class="wms-param-b">
           <div class="param-section-name">
-            <span>标准参数</span>
+            <el-divider content-position="center">标准参数</el-divider>
           </div>
-          <el-form-item label="service:" class="param-item">
-            <span>WMS</span>
-          </el-form-item>
+          <el-row :gutter="5">
+            <el-col :span="12">
+              <el-form-item label="service:" class="param-item">
+                <span>WMS</span>
+              </el-form-item>
+              <el-form-item label="version:" class="param-item">
+                <el-select v-model="form4WmsServiceParam.version" style="width: 80px">
+                  <el-option v-for="item of versionOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="request:" class="param-item">
+                <span>GetMap</span>
+              </el-form-item>
+              <el-form-item label="layers:" prop="layers" class="param-item">
+                <el-input v-model="form4WmsServiceParam.layers" autocomplete="off" style="width: 120px" />
+              </el-form-item>
+              <el-form-item label="styles:" prop="styles" class="param-item">
+                <el-input v-model="form4WmsServiceParam.styles" autocomplete="off" style="width: 120px" />
+              </el-form-item>
+              <!-- styles 说明 -->
+              <div class="form-item-tips" style="padding-bottom: 10px;">
+                <span>styles为空，则使用服务默认样式</span>
+              </div>
+              <el-form-item :label="label4SrsCrs" prop="srs_crs" class="param-item">
+                <el-input v-model="form4WmsServiceParam.srs_crs" autocomplete="off" style="width: 180px">
+                  <template #prepend>EPSG:</template>
+                </el-input>
+              </el-form-item>
+              <el-form-item label="width:" prop="width" class="param-item">
+                <el-input v-model="form4WmsServiceParam.width" autocomplete="off" style="width: 80px" :placeholder="placeholder4Form.width" />
+              </el-form-item>
+              <el-form-item label="height:" prop="height" class="param-item">
+                <el-input v-model="form4WmsServiceParam.height" autocomplete="off" style="width: 80px" :placeholder="placeholder4Form.height" />
+              </el-form-item>
+              <el-form-item label="format:" prop="format" class="param-item">
+                <el-select v-model="form4WmsServiceParam.format" style="width: 180px">
+                  <el-option v-for="item of formatOptions" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              
+            </el-col>
+          </el-row>
         </div>
       </el-form>
     </template>
@@ -50,8 +92,8 @@
 </template>
 
 <script setup>
-import { onMounted, ref, reactive } from 'vue'
-import { ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton } from 'element-plus'
+import { onMounted, computed, ref, reactive } from 'vue'
+import { ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElDivider } from 'element-plus'
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
 
@@ -60,16 +102,62 @@ const { visStatus4DialogGeoServerWmsServiceParam } = storeToRefs(panelStatusStor
 const { closeDialogGeoServerWmsServiceParam } = panelStatusStore
 
 const ruleFormRef = ref(null)
-const form = reactive({
+const form4WmsServiceParam = reactive({
   layerName: '',
   url: '',
+  service: 'WMS',
+  version: '1.1.0',
+  request: 'GetMap',
+  layers: '',
+  styles: '',
+  srs_crs: '',
+  width: '',
+  height: '',
+  format: 'image/png',
 })
+const label4SrsCrs = computed(() => {
+  return form4WmsServiceParam.version === '1.3.0' ? 'crs:' : 'srs:'
+})
+const versionOptions = [
+  { label: '1.0.0', value: '1.0.0' },
+  { label: '1.1.0', value: '1.1.0' },
+  { label: '1.1.1', value: '1.1.1' },
+  { label: '1.3.0', value: '1.3.0' },
+]
+const formatOptions = [
+  // TODO 还是需要通过 WMS 服务的 GetCapabilities 请求来查询支持的格式
+  { label: 'image/png', value: 'image/png' },
+  { label: 'image/png8', value: 'image/png8' },
+  { label: 'image/jpeg', value: 'image/jpeg' },
+  { label: 'image/vnd.jpeg-png', value: 'image/vnd.jpeg-png' },
+  { label: 'image/vnd.jpeg-png8', value: 'image/vnd.jpeg-png8' },
+  { label: 'image/gif', value: 'image/gif' },
+  { label: 'image/tiff', value: 'image/tiff' },
+  { label: 'image/tiff8', value: 'image/tiff8' },
+  { label: 'image/geotiff', value: 'image/geotiff' },
+  { label: 'image/geotiff8', value: 'image/geotiff8' },
+  // { label: 'image/svg', value: 'image/svg' },
+  // { label: 'application/pdf', value: 'application/pdf' },
+  // { label: 'rss', value: 'rss' },
+  // { label: 'kmz', value: 'kmz' },
+  // { label: 'text/mapml', value: 'text/mapml' },
+  // { label: '', value: '' }, // text/html; subtype=mapml
+  // { label: 'application/openlayers', value: 'application/openlayers' },
+  // { label: '', value: '' }, // format=application/json;type=utfgrid
+]
 const placeholder4Form = reactive({
   layerName: '图层一', // TODO 后续改为从store中获取
+  width: '256',
+  height: '256',
 })
 const rules = reactive({
   layerName: [{ validator: checkLayerName, trigger: 'blur' }],
   url: [{ validator: checkUrl, trigger: 'blur' }],
+  layers: [{ validator: checkLayers, trigger: 'blur' }],
+  styles: [{ validator: checkStyles, trigger: 'blur' }],
+  srs_crs: [{ validator: checkSrsCrs, trigger: 'blur' }],
+  width: [{ validator: checkWidthHeight, trigger: 'blur' }],
+  height: [{ validator: checkWidthHeight, trigger: 'blur' }],
 })
 const formLabelWidth = '140px'
 
@@ -77,8 +165,7 @@ const formLabelWidth = '140px'
  * @description 校验图层名称
  */
 function checkLayerName(rule, value, callback) {
-  
-  // 如果图层名称为空，正常
+  // 如果图层名称为空，正常，使用默认值
   if (!value) {
     return callback()
   }
@@ -86,7 +173,7 @@ function checkLayerName(rule, value, callback) {
   // 如果图层名称为空格，提示错误
   if (!value.trim()) {
     // 删除前后空格后为空字符串
-    return callback(new Error('图层名称不能为空格'))
+    return callback(new Error('不能为空格'))
   }
 
   callback()
@@ -113,6 +200,94 @@ function checkUrl(rule, value, callback) {
 }
 
 /**
+ * @description 校验图层名称
+ */
+function checkLayers(rule, value, callback) {
+  // 如果图层名称为空，提示错误
+  if (!value) {
+    return callback(new Error('请输入'))
+  }
+
+  // 如果图层名称为空格，提示错误
+  if (!value.trim()) {
+    // 删除前后空格后为空字符串
+    return callback(new Error('不能为空格'))
+  }
+
+  callback()
+}
+
+/**
+ * @description 校验图层样式
+ */
+function checkStyles(rule, value, callback) {
+  // 如果图层样式为空，正常
+  if (!value) {
+    return callback()
+  }
+
+  // 如果图层名称为空格，提示错误
+  if (!value.trim()) {
+    // 删除前后空格后为空字符串
+    return callback(new Error('不能为空格'))
+  }
+
+  callback()
+}
+
+/**
+ * @description 校验坐标系
+ */
+function checkSrsCrs(rule, value, callback) {
+  // 如果坐标系为空，提示错误
+  if (!value) {
+    return callback(new Error('请输入'))
+  }
+
+  // 如果坐标系为空格，提示错误
+  if (!value.trim()) {
+    // 删除前后空格后为空字符串
+    return callback(new Error('不能为空格'))
+  }
+
+  // 如果坐标系不符合规范，提示错误
+  // 规范：4位或5位数字
+  // 由于value是字符串，直接使用正则表达式
+  const reg = /^\d{4,5}$/
+  if (!reg.test(value)) {
+    return callback(new Error('格式错误'))
+  }
+
+  callback()
+}
+
+/**
+ * @description 校验高宽
+ */
+function checkWidthHeight(rule, value, callback) {
+  // 如果高宽为空，正常，使用默认值
+  if (!value) {
+    return callback()
+  }
+
+  // 如果高宽为空格，提示错误
+  if (!value.trim()) {
+    // 删除前后空格后为空字符串
+    return callback(new Error('不能为空格'))
+  }
+
+  // 如果高宽不符合规范，提示错误
+  // 规范：数字
+  // 由于value是字符串，直接使用正则表达式
+  const reg = /^\d+$/
+  if (!reg.test(value)) {
+    return callback(new Error('格式错误'))
+  }
+
+  callback()
+}
+
+/**
  * @description 设置新的 WMS 服务连接
  */
 function setNewWmsServiceConnection(ruleFormRef) {
@@ -131,12 +306,18 @@ function setNewWmsServiceConnection(ruleFormRef) {
       console.log('invalidFields', invalidFields);
       
       if (isValid) {
-        console.log('form', form)
+        console.log('form', form4WmsServiceParam)
         
         // 如果有默认值的选项，未被设置，则在此设置默认值
-        const _form = { ...form }
+        const _form = { ...form4WmsServiceParam }
         if (!_form.layerName) {
           _form.layerName = placeholder4Form.layerName
+        }
+        if (!_form.width) {
+          _form.width = placeholder4Form.width
+        }
+        if (!_form.height) {
+          _form.height = placeholder4Form.height
         }
 
         console.log('_form', _form)
@@ -210,11 +391,14 @@ function dialogOpened() {
   }
 }
 .form-item-tips {
-  position: absolute;
   width: fit-content;
   margin-top: -10px;
   font-size: 12px;
   color: #606266;
-  right: var(--el-dialog-padding-primary);
+
+  &.form-item-tips-url {
+    right: var(--el-dialog-padding-primary);
+    position: absolute;
+  }
 }
 </style>
