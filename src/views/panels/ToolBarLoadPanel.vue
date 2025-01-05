@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2024-12-15 03:28:42
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-12-25 14:38:10
+ * @LastEditTime: 2025-01-06 00:44:53
  * @FilePath: \GeoDataVis\src\views\panels\ToolBarLoadPanel.vue
  * @Description: 工具栏，用于加载数据的面板，包括加载数据服务、加载本地数据文件等
  * 
@@ -62,8 +62,8 @@ const props4ServiceLoadTypeOnCascaderPanel = {
 }
 const options4ServiceLoadType = [
   {
-    value: 'GeoServer',
-    label: 'GeoServer',
+    value: 'Web Map',
+    label: 'Web Map',
     children: [
       {
         value: 'WMS',
@@ -129,7 +129,7 @@ function handleChange4ServiceLoadType(value) {
     case 2: {
       console.log('###加载服务', value[0], value[1]);
       switch (value[0]) {
-        case 'GeoServer': {
+        case 'Web Map': {
           _loadGeoServerService(value[1]);
           break;
         }
@@ -156,16 +156,16 @@ function _loadGeoServerService(value) {
   // 打开GeoServer服务加载面板
   switch (value) {
     case 'WMS': {
-      console.log('###加载服务-GeoServer-WMS');
+      console.log('###加载服务-Web Map-WMS');
       usePanelStatusStore().openDialogGeoServerWmsServiceParam();
       break;
     }
     case 'WMTS': {
-      console.log('###加载服务-GeoServer-WMTS');
+      console.log('###加载服务-Web Map-WMTS');
       break;
     }
     default: {
-      console.log('###加载服务-GeoServer-未匹配', value);
+      console.log('###加载服务-Web Map-未匹配', value);
       break;
     }
   }

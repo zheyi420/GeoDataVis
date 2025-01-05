@@ -7,7 +7,7 @@
 
 #### （1）数据加载
 
-- GeoServer
+- Web Map
   - [ ] WMS
     - [ ] 标准参数
     - [ ] 特定供应商参数
@@ -39,3 +39,9 @@
 ### css
 
 - [x] 使用样式表预处理器sass，使用语法SCSS
+
+
+## 三、免费服务测试
+
+- WMS
+  - https://wms.gebco.net/mapserv?request=getmap&service=wms&BBOX=-90,-180,90,360&crs=EPSG:4326&format=image/jpeg&layers=gebco_latest&width=1200&height=600&version=1.3.0

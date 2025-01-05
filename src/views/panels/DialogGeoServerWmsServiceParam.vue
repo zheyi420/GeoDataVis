@@ -21,6 +21,7 @@
           <el-form-item label="图层名称" :label-width="formLabelWidth" prop="layerName">
             <el-input v-model="form4WmsServiceParam.layerName" autocomplete="off" :placeholder="placeholder4Form.layerName" />
           </el-form-item>
+          <!-- TODO 增加对输入自动去除头尾空格 -->
           <el-form-item label="WMS服务地址URL" :label-width="formLabelWidth" prop="url">
             <el-input ref="ref4InputUrl" v-model="form4WmsServiceParam.url" autocomplete="off" />
           </el-form-item>
@@ -103,16 +104,16 @@ const { closeDialogGeoServerWmsServiceParam } = panelStatusStore
 
 const ruleFormRef = ref(null)
 const form4WmsServiceParam = reactive({
-  layerName: '',
-  url: '',
+  layerName: null,
+  url: null,
   service: 'WMS',
   version: '1.1.0',
   request: 'GetMap',
-  layers: '',
-  styles: '',
-  srs_crs: '',
-  width: '',
-  height: '',
+  layers: null,
+  styles: '', // 默认需要为空字符串
+  srs_crs: null,
+  width: null,
+  height: null,
   format: 'image/png',
 })
 const label4SrsCrs = computed(() => {
@@ -291,7 +292,7 @@ function checkWidthHeight(rule, value, callback) {
  * @description 设置新的 WMS 服务连接
  */
 function setNewWmsServiceConnection(ruleFormRef) {
-  console.log('@@@', ruleFormRef);
+  // console.log('@@@', ruleFormRef);
   
   if (!ruleFormRef) {
     console.log('ruleFormRef is null')
@@ -302,12 +303,10 @@ function setNewWmsServiceConnection(ruleFormRef) {
   // 校验表单
   ruleFormRef
     .validate((isValid, invalidFields) => {
-      console.log('isValid', isValid);
-      console.log('invalidFields', invalidFields);
+      // console.log('isValid', isValid);
+      // console.log('invalidFields', invalidFields);
       
       if (isValid) {
-        console.log('form', form4WmsServiceParam)
-        
         // 如果有默认值的选项，未被设置，则在此设置默认值
         const _form = { ...form4WmsServiceParam }
         if (!_form.layerName) {
@@ -319,19 +318,51 @@ function setNewWmsServiceConnection(ruleFormRef) {
         if (!_form.height) {
           _form.height = placeholder4Form.height
         }
+        _form.srs_crs = `EPSG:${_form.srs_crs}`
 
-        console.log('_form', _form)
+        console.log('提交表单', _form)
+
         // 发送请求
+        loadWmsImagery(_form)
         // 关闭对话框
-        // closeDialogGeoServerWmsServiceParam()
+        closeDialogGeoServerWmsServiceParam()
       } else {
         console.log('error submit!!')
         // return false
       }
     })
-    .then(() => {
-      console.log('then')
+    .then((res) => {
+      // console.log('res', res); // true
     })
+    .catch((error) => {})
+}
+
+/**
+ * @description 加载 WMS 服务
+ */
+function loadWmsImagery(form) {
+  // 处理表单数据
+  // 形成 wms 请求参数 params4GetMapOpr
+  const {layerName, srs_crs, url, layers, width, height, ...params4GetMapOpr} = form
+  // console.log('params4GetMapOpr', params4GetMapOpr);
+  
+  const constructorOptions4WebMapServiceImageryProvider = {
+    url,
+    layers,
+    parameters: {...params4GetMapOpr},
+    tileWidth: width,
+    tileHeight: height,
+  }
+  if (params4GetMapOpr.version === '1.3.0') {
+    constructorOptions4WebMapServiceImageryProvider.crs = srs_crs
+  } else {
+    constructorOptions4WebMapServiceImageryProvider.srs = srs_crs
+  }
+  // console.log('constructorOptions4WebMapServiceImageryProvider', constructorOptions4WebMapServiceImageryProvider);
+  
+  const provider = new window.Cesium.WebMapServiceImageryProvider(constructorOptions4WebMapServiceImageryProvider);
+  const imageryLayer = new window.Cesium.ImageryLayer(provider);
+  window.viewer.imageryLayers.add(imageryLayer);
 }
 
 /**
@@ -392,13 +423,14 @@ function dialogOpened() {
 }
 .form-item-tips {
   width: fit-content;
-  margin-top: -10px;
+  // margin-top: -10px;
   font-size: 12px;
   color: #606266;
 
   &.form-item-tips-url {
     right: var(--el-dialog-padding-primary);
     position: absolute;
+    margin-top: -10px;
   }
 }
 </style>
