@@ -35,50 +35,140 @@
           <div class="param-section-name">
             <el-divider content-position="center">标准参数</el-divider>
           </div>
-          <el-row :gutter="5">
-            <el-col :span="12">
-              <el-form-item label="service:" class="param-item">
-                <span>WMS</span>
-              </el-form-item>
-              <el-form-item label="version:" class="param-item">
-                <el-select v-model="form4WmsServiceParam.version" style="width: 80px">
-                  <el-option v-for="item of versionOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
-              </el-form-item>
-              <el-form-item label="request:" class="param-item">
-                <span>GetMap</span>
-              </el-form-item>
-              <el-form-item label="layers:" prop="layers" class="param-item">
-                <el-input v-model="form4WmsServiceParam.layers" autocomplete="off" style="width: 120px" />
-              </el-form-item>
-              <el-form-item label="styles:" prop="styles" class="param-item">
-                <el-input v-model="form4WmsServiceParam.styles" autocomplete="off" style="width: 120px" />
-              </el-form-item>
-              <!-- styles 说明 -->
-              <div class="form-item-tips" style="padding-bottom: 10px;">
-                <span>styles为空，则使用服务默认样式</span>
-              </div>
-              <el-form-item :label="label4SrsCrs" prop="srs_crs" class="param-item">
-                <el-input v-model="form4WmsServiceParam.srs_crs" autocomplete="off" style="width: 180px">
-                  <template #prepend>EPSG:</template>
-                </el-input>
-              </el-form-item>
-              <el-form-item label="width:" prop="width" class="param-item">
-                <el-input v-model="form4WmsServiceParam.width" autocomplete="off" style="width: 80px" :placeholder="placeholder4Form.width" />
-              </el-form-item>
-              <el-form-item label="height:" prop="height" class="param-item">
-                <el-input v-model="form4WmsServiceParam.height" autocomplete="off" style="width: 80px" :placeholder="placeholder4Form.height" />
-              </el-form-item>
-              <el-form-item label="format:" prop="format" class="param-item">
-                <el-select v-model="form4WmsServiceParam.format" style="width: 180px">
-                  <el-option v-for="item of formatOptions" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              
-            </el-col>
-          </el-row>
+          <div class="param-section-input">
+            <el-row :gutter="2">
+              <el-col :span="3">
+                <span class="param-item">service:</span>
+              </el-col>
+              <el-col :span="9">
+                <span class="param-item">WMS</span>
+              </el-col>
+              <el-col :span="3">
+                <span class="param-item">request:</span>
+              </el-col>
+              <el-col :span="9">
+                <span class="param-item">GetMap</span>
+              </el-col>
+            </el-row>
+            <el-row :gutter="2">
+              <el-col :span="3">
+                <span class="param-item">version:</span>
+              </el-col>
+              <el-col :span="9">
+                <el-form-item class="param-item">
+                  <el-select v-model="form4WmsServiceParam.version" style="width: 80px">
+                    <el-option v-for="item of versionOptions" :key="item.value" :label="item.label" :value="item.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="3">
+                <span class="param-item">{{ label4SrsCrs }}</span>
+              </el-col>
+              <el-col :span="9">
+                <el-form-item prop="srs_crs" class="param-item">
+                  <el-input v-model="form4WmsServiceParam.srs_crs" autocomplete="off" style="width: 180px">
+                    <template #prepend>EPSG:</template>
+                  </el-input>
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="2">
+              <el-col :span="3">
+                <span class="param-item">layers:</span>
+              </el-col>
+              <el-col :span="9">
+                <el-form-item prop="layers" class="param-item">
+                  <el-input v-model="form4WmsServiceParam.layers" autocomplete="off" style="width: 120px" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="3">
+                <span class="param-item">styles:</span>
+              </el-col>
+              <el-col :span="9">
+                <el-form-item prop="styles" class="param-item">
+                  <el-input v-model="form4WmsServiceParam.styles" autocomplete="off" style="width: 120px" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <!-- styles 说明 -->
+            <!--
+            <div class="form-item-tips" style="padding-bottom: 10px;">
+              <span>styles为空，则使用服务默认样式</span>
+            </div>
+            -->
+            <el-row :gutter="2">
+              <el-col :span="3">
+                <span class="param-item">width:</span>
+              </el-col>
+              <el-col :span="9">
+                <el-form-item prop="width" class="param-item">
+                  <el-input v-model="form4WmsServiceParam.width" autocomplete="off" style="width: 80px" :placeholder="placeholder4Form.width" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="3">
+                <span class="param-item">height:</span>
+              </el-col>
+              <el-col :span="9">
+                <el-form-item prop="height" class="param-item">
+                  <el-input v-model="form4WmsServiceParam.height" autocomplete="off" style="width: 80px" :placeholder="placeholder4Form.height" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="2">
+              <el-col :span="3">
+                <span class="param-item">format:</span>
+              </el-col>
+              <el-col :span="9">
+                <el-form-item prop="format" class="param-item">
+                  <el-select v-model="form4WmsServiceParam.format" style="width: 180px">
+                    <el-option v-for="item of formatOptions" :key="item.value" :label="item.label" :value="item.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="3">
+                <span class="param-item">transparent:</span>
+              </el-col>
+              <el-col :span="9">
+                <span class="param-item" style="margin-left: 10px;">false</span>
+              </el-col>
+            </el-row>
+            <el-row :gutter="2">
+              <el-col :span="3">
+                <span class="param-item">bgcolor:</span>
+              </el-col>
+              <el-col :span="9">
+                <span class="param-item">FFFFFF</span>
+              </el-col>
+              <el-col :span="3">
+                <span class="param-item">exceptions:</span>
+              </el-col>
+              <el-col :span="9">
+                <span class="param-item" style="margin-left: 10px;">application/vnd.ogc.se_xml</span>
+              </el-col>
+            </el-row>
+            <el-row :gutter="2">
+              <el-col :span="3">
+                <span class="param-item">sld:</span>
+              </el-col>
+              <el-col :span="9">
+                <span class="param-item">XML file URL</span>
+              </el-col>
+              <el-col :span="3">
+                <span class="param-item">sld_body:</span>
+              </el-col>
+              <el-col :span="9">
+                <span class="param-item">XML document</span>
+              </el-col>
+            </el-row>
+            <el-row :gutter="2">
+              <el-col :span="3">
+                <span class="param-item">time:</span>
+              </el-col>
+              <el-col :span="9">
+                <span class="param-item">tiem</span>
+              </el-col>
+            </el-row>
+          </div>
         </div>
       </el-form>
     </template>
@@ -94,7 +184,7 @@
 
 <script setup>
 import { onMounted, computed, ref, reactive } from 'vue'
-import { ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElDivider } from 'element-plus'
+import { ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElDivider, ElRow, ElCol } from 'element-plus'
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
 
@@ -416,9 +506,32 @@ function dialogOpened() {
       font-weight: bold;
     }
 
-    .param-item {
-      width: fit-content;
+    .param-section-input {
+
+      .el-row {
+        margin-bottom: 17px;
+        height: 30px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .el-col {
+          display: flex;
+          align-items: center;
+
+          .el-form-item {
+            margin-bottom: 0px;
+          }
+        }
+      }
+
+      .param-item {
+        width: fit-content;
+        white-space: nowrap;
+      }
     }
+    
   }
 }
 .form-item-tips {
