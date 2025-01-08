@@ -19,7 +19,11 @@
       <el-form ref="ruleFormRef" class="form-content" :model="form4WmsServiceParam" :rules="rules">
         <div class="wms-param-a">
           <el-form-item label="图层名称" :label-width="formLabelWidth" prop="layerName">
-            <el-input v-model="form4WmsServiceParam.layerName" autocomplete="off" :placeholder="placeholder4Form.layerName" />
+            <el-input
+              v-model="form4WmsServiceParam.layerName"
+              autocomplete="off"
+              :placeholder="placeholder4Form.layerName"
+            />
           </el-form-item>
           <!-- TODO 增加对输入自动去除头尾空格 -->
           <el-form-item label="WMS服务地址URL" :label-width="formLabelWidth" prop="url">
@@ -36,28 +40,33 @@
             <el-divider content-position="center">标准参数</el-divider>
           </div>
           <div class="param-section-input">
-            <el-row :gutter="2">
+            <el-row :gutter="2" align="middle">
               <el-col :span="3">
                 <span class="param-item">service:</span>
               </el-col>
               <el-col :span="9">
-                <span class="param-item">WMS</span>
+                <span class="param-item">{{ form4WmsServiceParam.service }}</span>
               </el-col>
               <el-col :span="3">
                 <span class="param-item">request:</span>
               </el-col>
               <el-col :span="9">
-                <span class="param-item">GetMap</span>
+                <span class="param-item">{{ form4WmsServiceParam.request }}</span>
               </el-col>
             </el-row>
-            <el-row :gutter="2">
+            <el-row :gutter="2" align="middle">
               <el-col :span="3">
                 <span class="param-item">version:</span>
               </el-col>
               <el-col :span="9">
                 <el-form-item class="param-item">
                   <el-select v-model="form4WmsServiceParam.version" style="width: 80px">
-                    <el-option v-for="item of versionOptions" :key="item.value" :label="item.label" :value="item.value" />
+                    <el-option
+                      v-for="item of versionOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -72,37 +81,42 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-row :gutter="2">
+            <el-row :gutter="2" align="middle">
               <el-col :span="3">
                 <span class="param-item">layers:</span>
               </el-col>
               <el-col :span="9">
-                <el-form-item prop="layers" class="param-item">
-                  <el-input v-model="form4WmsServiceParam.layers" autocomplete="off" style="width: 120px" />
-                </el-form-item>
+                <el-tooltip placement="right">
+                  <template #content>值是以逗号分隔的图层名称列表<br />若单个图层，无需逗号</template>
+                  <el-form-item prop="layers" class="param-item">
+                    <el-input v-model="form4WmsServiceParam.layers" autocomplete="off" style="width: 120px" />
+                  </el-form-item>
+                </el-tooltip>
               </el-col>
               <el-col :span="3">
                 <span class="param-item">styles:</span>
               </el-col>
               <el-col :span="9">
-                <el-form-item prop="styles" class="param-item">
-                  <el-input v-model="form4WmsServiceParam.styles" autocomplete="off" style="width: 120px" />
-                </el-form-item>
+                <el-tooltip placement="right">
+                  <template #content>值是以逗号分隔的样式名称列表<br />如为空，使用服务默认样式</template>
+                  <el-form-item prop="styles" class="param-item">
+                    <el-input v-model="form4WmsServiceParam.styles" autocomplete="off" style="width: 120px" />
+                  </el-form-item>
+                </el-tooltip>
               </el-col>
             </el-row>
-            <!-- styles 说明 -->
-            <!--
-            <div class="form-item-tips" style="padding-bottom: 10px;">
-              <span>styles为空，则使用服务默认样式</span>
-            </div>
-            -->
-            <el-row :gutter="2">
+            <el-row :gutter="2" align="middle">
               <el-col :span="3">
                 <span class="param-item">width:</span>
               </el-col>
               <el-col :span="9">
                 <el-form-item prop="width" class="param-item">
-                  <el-input v-model="form4WmsServiceParam.width" autocomplete="off" style="width: 80px" :placeholder="placeholder4Form.width" />
+                  <el-input
+                    v-model="form4WmsServiceParam.width"
+                    autocomplete="off"
+                    style="width: 80px"
+                    :placeholder="placeholder4Form.width"
+                  />
                 </el-form-item>
               </el-col>
               <el-col :span="3">
@@ -110,18 +124,28 @@
               </el-col>
               <el-col :span="9">
                 <el-form-item prop="height" class="param-item">
-                  <el-input v-model="form4WmsServiceParam.height" autocomplete="off" style="width: 80px" :placeholder="placeholder4Form.height" />
+                  <el-input
+                    v-model="form4WmsServiceParam.height"
+                    autocomplete="off"
+                    style="width: 80px"
+                    :placeholder="placeholder4Form.height"
+                  />
                 </el-form-item>
               </el-col>
             </el-row>
-            <el-row :gutter="2">
+            <el-row :gutter="2" align="middle">
               <el-col :span="3">
                 <span class="param-item">format:</span>
               </el-col>
               <el-col :span="9">
                 <el-form-item prop="format" class="param-item">
                   <el-select v-model="form4WmsServiceParam.format" style="width: 180px">
-                    <el-option v-for="item of formatOptions" :key="item.value" :label="item.label" :value="item.value" />
+                    <el-option
+                      v-for="item of formatOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -129,24 +153,39 @@
                 <span class="param-item">transparent:</span>
               </el-col>
               <el-col :span="9">
-                <span class="param-item" style="margin-left: 10px;">false</span>
+                <el-tooltip content="地图背景是否应该透明" placement="right">
+                  <el-form-item prop="transparent" class="param-item">
+                    <el-switch v-model="form4WmsServiceParam.transparent" style="margin-left: 10px" />
+                  </el-form-item>
+                </el-tooltip>
               </el-col>
             </el-row>
-            <el-row :gutter="2">
+            <el-row :gutter="2" align="middle">
               <el-col :span="3">
                 <span class="param-item">bgcolor:</span>
               </el-col>
               <el-col :span="9">
-                <span class="param-item">FFFFFF</span>
+                <el-tooltip placement="right">
+                  <template #content>地图图像的背景颜色<br />值为 RRGGBB 格式</template>
+                  <el-form-item prop="bgcolor" class="param-item">
+                    <el-input
+                      v-model="form4WmsServiceParam.bgcolor"
+                      style="width: 100px"
+                      :formatter="value => `#${value}`"
+                      :parser="value => value.replace(/^#/, '')"
+                    />
+                  </el-form-item>
+                </el-tooltip>
               </el-col>
               <el-col :span="3">
                 <span class="param-item">exceptions:</span>
               </el-col>
               <el-col :span="9">
-                <span class="param-item" style="margin-left: 10px;">application/vnd.ogc.se_xml</span>
+                <span class="param-item" style="margin-left: 10px">{{ form4WmsServiceParam.exceptions }}</span>
               </el-col>
             </el-row>
-            <el-row :gutter="2">
+            <!-- TODO 后续增加
+            <el-row :gutter="2" align="middle">
               <el-col :span="3">
                 <span class="param-item">sld:</span>
               </el-col>
@@ -160,7 +199,7 @@
                 <span class="param-item">XML document</span>
               </el-col>
             </el-row>
-            <el-row :gutter="2">
+            <el-row :gutter="2" align="middle">
               <el-col :span="3">
                 <span class="param-item">time:</span>
               </el-col>
@@ -168,6 +207,7 @@
                 <span class="param-item">tiem</span>
               </el-col>
             </el-row>
+             -->
           </div>
         </div>
       </el-form>
@@ -184,7 +224,20 @@
 
 <script setup>
 import { onMounted, computed, ref, reactive } from 'vue'
-import { ElDialog, ElForm, ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElDivider, ElRow, ElCol } from 'element-plus'
+import {
+  ElDialog,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElSelect,
+  ElOption,
+  ElButton,
+  ElDivider,
+  ElRow,
+  ElCol,
+  ElTooltip,
+  ElSwitch,
+} from 'element-plus'
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
 
@@ -205,6 +258,9 @@ const form4WmsServiceParam = reactive({
   width: null,
   height: null,
   format: 'image/png',
+  transparent: false,
+  bgcolor: 'FFFFFF',
+  exceptions: 'application/vnd.ogc.se_xml',
 })
 const label4SrsCrs = computed(() => {
   return form4WmsServiceParam.version === '1.3.0' ? 'crs:' : 'srs:'
@@ -249,6 +305,7 @@ const rules = reactive({
   srs_crs: [{ validator: checkSrsCrs, trigger: 'blur' }],
   width: [{ validator: checkWidthHeight, trigger: 'blur' }],
   height: [{ validator: checkWidthHeight, trigger: 'blur' }],
+  bgcolor: [{ validator: checkBgcolor, trigger: 'blur' }],
 })
 const formLabelWidth = '140px'
 
@@ -268,7 +325,6 @@ function checkLayerName(rule, value, callback) {
   }
 
   callback()
-
 }
 
 /**
@@ -353,6 +409,33 @@ function checkSrsCrs(rule, value, callback) {
 }
 
 /**
+ * @description 校验背景颜色
+ */
+function checkBgcolor(rule, value, callback) {
+  // 如果背景颜色为空，正常，使用默认值，且重新设置为`FFFFFF`
+  if (!value) {
+    form4WmsServiceParam.bgcolor = 'FFFFFF'
+    return callback()
+  }
+
+  // 如果背景颜色为空格，提示错误
+  if (!value.trim()) {
+    // 删除前后空格后为空字符串
+    return callback(new Error('不能为空格'))
+  }
+
+  // 如果背景颜色不符合规范，提示错误
+  // 规范：6位字符，由数字和字母组成
+  // 由于value是字符串，直接使用正则表达式
+  const reg = /^[0-9a-fA-F]{6}$/
+  if (!reg.test(value)) {
+    return callback(new Error('格式错误'))
+  }
+
+  callback()
+}
+
+/**
  * @description 校验高宽
  */
 function checkWidthHeight(rule, value, callback) {
@@ -383,7 +466,7 @@ function checkWidthHeight(rule, value, callback) {
  */
 function setNewWmsServiceConnection(ruleFormRef) {
   // console.log('@@@', ruleFormRef);
-  
+
   if (!ruleFormRef) {
     console.log('ruleFormRef is null')
 
@@ -395,7 +478,8 @@ function setNewWmsServiceConnection(ruleFormRef) {
     .validate((isValid, invalidFields) => {
       // console.log('isValid', isValid);
       // console.log('invalidFields', invalidFields);
-      
+      console.log('form4WmsServiceParam', form4WmsServiceParam)
+
       if (isValid) {
         // 如果有默认值的选项，未被设置，则在此设置默认值
         const _form = { ...form4WmsServiceParam }
@@ -421,10 +505,10 @@ function setNewWmsServiceConnection(ruleFormRef) {
         // return false
       }
     })
-    .then((res) => {
+    .then(res => {
       // console.log('res', res); // true
     })
-    .catch((error) => {})
+    .catch(error => {})
 }
 
 /**
@@ -433,13 +517,13 @@ function setNewWmsServiceConnection(ruleFormRef) {
 function loadWmsImagery(form) {
   // 处理表单数据
   // 形成 wms 请求参数 params4GetMapOpr
-  const {layerName, srs_crs, url, layers, width, height, ...params4GetMapOpr} = form
+  const { layerName, srs_crs, url, layers, width, height, ...params4GetMapOpr } = form
   // console.log('params4GetMapOpr', params4GetMapOpr);
-  
+
   const constructorOptions4WebMapServiceImageryProvider = {
     url,
     layers,
-    parameters: {...params4GetMapOpr},
+    parameters: { ...params4GetMapOpr },
     tileWidth: width,
     tileHeight: height,
   }
@@ -449,10 +533,10 @@ function loadWmsImagery(form) {
     constructorOptions4WebMapServiceImageryProvider.srs = srs_crs
   }
   // console.log('constructorOptions4WebMapServiceImageryProvider', constructorOptions4WebMapServiceImageryProvider);
-  
-  const provider = new window.Cesium.WebMapServiceImageryProvider(constructorOptions4WebMapServiceImageryProvider);
-  const imageryLayer = new window.Cesium.ImageryLayer(provider);
-  window.viewer.imageryLayers.add(imageryLayer);
+
+  const provider = new window.Cesium.WebMapServiceImageryProvider(constructorOptions4WebMapServiceImageryProvider)
+  const imageryLayer = new window.Cesium.ImageryLayer(provider)
+  window.viewer.imageryLayers.add(imageryLayer)
 }
 
 /**
@@ -491,10 +575,7 @@ function dialogOpened() {
   align-items: center;
 }
 .form-content {
-
-  
   .wms-param-a {
-
   }
 
   .wms-param-b {
@@ -507,18 +588,17 @@ function dialogOpened() {
     }
 
     .param-section-input {
-
       .el-row {
         margin-bottom: 17px;
         height: 30px;
 
         &:last-child {
-          margin-bottom: 0;
+          // margin-bottom: 0;
         }
 
         .el-col {
           display: flex;
-          align-items: center;
+          justify-content: flex-start;
 
           .el-form-item {
             margin-bottom: 0px;
@@ -531,7 +611,6 @@ function dialogOpened() {
         white-space: nowrap;
       }
     }
-    
   }
 }
 .form-item-tips {
