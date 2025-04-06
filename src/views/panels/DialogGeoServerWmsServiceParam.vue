@@ -178,10 +178,14 @@
                 </el-tooltip>
               </el-col>
               <el-col :span="3">
-                <span class="param-item">exceptions:</span>
+                <!-- TODO -->
+                <el-checkbox v-model="form4WmsServiceParam.enableParamExceptions" style="margin-left: -18px" />
+                <span class="param-item" :class="{ 'param-item-disabled': !form4WmsServiceParam.enableParamExceptions }" style="margin-left: 5px">
+                  exceptions:
+                </span>
               </el-col>
               <el-col :span="9">
-                <span class="param-item" style="margin-left: 10px">{{ form4WmsServiceParam.exceptions }}</span>
+                <span class="param-item" style="margin-left: 5px" :class="{ 'param-item-disabled': !form4WmsServiceParam.enableParamExceptions }">{{ form4WmsServiceParam.exceptions }}</span>
               </el-col>
             </el-row>
             <!-- TODO 后续增加
@@ -237,6 +241,7 @@ import {
   ElCol,
   ElTooltip,
   ElSwitch,
+  ElCheckbox,
 } from 'element-plus'
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
@@ -261,6 +266,7 @@ const form4WmsServiceParam = reactive({
   transparent: false,
   bgcolor: 'FFFFFF',
   exceptions: 'application/vnd.ogc.se_xml',
+  enableParamExceptions: false,
 })
 const label4SrsCrs = computed(() => {
   return form4WmsServiceParam.version === '1.3.0' ? 'crs:' : 'srs:'
@@ -496,8 +502,28 @@ function setNewWmsServiceConnection(ruleFormRef) {
 
         console.log('提交表单', _form)
 
-        // 发送请求
-        loadWmsImagery(_form)
+        // 处理表单数据，区分 WebMapServiceImageryProvider 的 parameters 和其他参数
+        const WebMapServiceImageryProviderConstructorOptions = {
+          url: _form.url,
+          layers: _form.layers,
+          parameters: {
+            service: _form.service,
+            version: _form.version,
+            request: _form.request,
+            styles: _form.styles,
+            format: _form.format,
+            bgcolor: _form.bgcolor,
+            transparent: _form.transparent,
+          },
+          tileWidth: _form.width,
+          tileHeight: _form.height,
+          ...(_form.version === '1.3.0' ? { crs: _form.srs_crs } : { srs: _form.srs_crs })
+        }
+        if (_form.enableParamExceptions) {
+          WebMapServiceImageryProviderConstructorOptions.parameters.exceptions = _form.exceptions
+        }
+        // 调用加载 WMS 服务的方法
+        loadWmsImagery(WebMapServiceImageryProviderConstructorOptions)
         // 关闭对话框
         closeDialogGeoServerWmsServiceParam()
       } else {
@@ -513,30 +539,25 @@ function setNewWmsServiceConnection(ruleFormRef) {
 
 /**
  * @description 加载 WMS 服务
+ * // TODO 后续要抽出来，作为公共方法
  */
-function loadWmsImagery(form) {
-  // 处理表单数据
-  // 形成 wms 请求参数 params4GetMapOpr
-  const { layerName, srs_crs, url, layers, width, height, ...params4GetMapOpr } = form
-  // console.log('params4GetMapOpr', params4GetMapOpr);
+function loadWmsImagery(constructorOptions) {
 
-  const constructorOptions4WebMapServiceImageryProvider = {
-    url,
-    layers,
-    parameters: { ...params4GetMapOpr },
-    tileWidth: width,
-    tileHeight: height,
-  }
-  if (params4GetMapOpr.version === '1.3.0') {
-    constructorOptions4WebMapServiceImageryProvider.crs = srs_crs
-  } else {
-    constructorOptions4WebMapServiceImageryProvider.srs = srs_crs
-  }
-  // console.log('constructorOptions4WebMapServiceImageryProvider', constructorOptions4WebMapServiceImageryProvider);
+  try {
+    console.log('WebMapServiceImageryProviderConstructorOptions', constructorOptions)
+    const provider = new window.Cesium.WebMapServiceImageryProvider(constructorOptions)
 
-  const provider = new window.Cesium.WebMapServiceImageryProvider(constructorOptions4WebMapServiceImageryProvider)
-  const imageryLayer = new window.Cesium.ImageryLayer(provider)
-  window.viewer.imageryLayers.add(imageryLayer)
+    // 添加瓦片加载错误的事件监听
+    provider.errorEvent.addEventListener(error => {
+      console.error('WMS瓦片加载错误:', error)
+    })
+
+    const imageryLayer = new window.Cesium.ImageryLayer(provider)
+    window.viewer.imageryLayers.add(imageryLayer)
+  } catch (error) {
+    console.error('创建WMS图层失败:', error)
+    // 这里可以添加错误通知给用户
+  }
 }
 
 /**
@@ -609,6 +630,12 @@ function dialogOpened() {
       .param-item {
         width: fit-content;
         white-space: nowrap;
+        display: flex;
+        align-items: center;
+      }
+
+      .param-item-disabled {
+        color: #c0c4cc;
       }
     }
   }

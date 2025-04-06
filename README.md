@@ -44,7 +44,17 @@
 ## 三、免费服务测试
 
 - WMS
-  - https://wms.gebco.net/mapserv?request=getmap&service=wms&BBOX=-90,-180,90,360&crs=EPSG:4326&format=image/jpeg&layers=gebco_latest&width=1200&height=600&version=1.3.0
+  - 服务地址：https://wms.gebco.net/mapserv
+  - 请求参数：
+    - request=getmap
+    - service=wms
+    - BBOX=-90,-180,90,360
+    - crs=EPSG:4326
+    - format=image/jpeg
+    - layers=gebco_latest
+    - width=1200
+    - height=600
+    - version=1.3.0
 
 ## 四、项目运行
 
