@@ -178,7 +178,6 @@
                 </el-tooltip>
               </el-col>
               <el-col :span="3">
-                <!-- TODO -->
                 <el-checkbox v-model="form4WmsServiceParam.enableParamExceptions" style="margin-left: -18px" />
                 <span class="param-item" :class="{ 'param-item-disabled': !form4WmsServiceParam.enableParamExceptions }" style="margin-left: 5px">
                   exceptions:
@@ -523,7 +522,7 @@ function setNewWmsServiceConnection(ruleFormRef) {
           WebMapServiceImageryProviderConstructorOptions.parameters.exceptions = _form.exceptions
         }
         // 调用加载 WMS 服务的方法
-        loadWmsImagery(WebMapServiceImageryProviderConstructorOptions)
+        window.layerManager.addWmsLayer(_form.layerName, WebMapServiceImageryProviderConstructorOptions)
         // 关闭对话框
         closeDialogGeoServerWmsServiceParam()
       } else {
@@ -535,29 +534,6 @@ function setNewWmsServiceConnection(ruleFormRef) {
       // console.log('res', res); // true
     })
     .catch(error => {})
-}
-
-/**
- * @description 加载 WMS 服务
- * // TODO 后续要抽出来，作为公共方法
- */
-function loadWmsImagery(constructorOptions) {
-
-  try {
-    console.log('WebMapServiceImageryProviderConstructorOptions', constructorOptions)
-    const provider = new window.Cesium.WebMapServiceImageryProvider(constructorOptions)
-
-    // 添加瓦片加载错误的事件监听
-    provider.errorEvent.addEventListener(error => {
-      console.error('WMS瓦片加载错误:', error)
-    })
-
-    const imageryLayer = new window.Cesium.ImageryLayer(provider)
-    window.viewer.imageryLayers.add(imageryLayer)
-  } catch (error) {
-    console.error('创建WMS图层失败:', error)
-    // 这里可以添加错误通知给用户
-  }
 }
 
 /**

@@ -1,12 +1,9 @@
 /*
- * @Author: zheyi420
- * @Date: 2024-10-23 01:01:54
- * @LastEditors: zheyi420
- * @LastEditTime: 2024-12-13 00:54:45
- * @FilePath: \GeoDataVis\src\map\ViewerManager.js
  * @Description: Viewer 初始化
  *
  */
+
+import LayerManager from './LayerManager';
 
 class ViewerManager {
   /**
@@ -67,9 +64,13 @@ class ViewerManager {
     control.zoomEventTypes = window.Cesium.CameraEventType.WHEEL
 
     this.viewer.camera.percentageChanged = 0.001 // 设置更高的灵敏度
-    
+
     // # 确保camera.roll始终为0
     this.keepCameraRollZero(this.viewer)
+
+    // 在创建viewer后初始化
+    this.layerManager = new LayerManager(this.viewer);
+    window.layerManager = this.layerManager; // 可选：全局访问
 
     return this.viewer
   }
