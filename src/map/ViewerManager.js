@@ -1,5 +1,5 @@
 /*
- * @Description: Viewer 初始化
+ * @Description: Viewer 初始化（单例模式）
  *
  */
 
@@ -7,11 +7,32 @@ import LayerManager from './LayerManager';
 
 class ViewerManager {
   /**
-   * @name 地图视图类
+   * @name 地图视图类（单例模式）
    */
+  #viewer; // 私有属性
+  #viewerContainer; // 私有属性
+  static #instance; // 单例实例 静态私有属性
+
   constructor() {
-    this.viewer = null
-    this.viewerContainer = null
+    if (ViewerManager.#instance) {
+      return ViewerManager.#instance;
+    }
+
+    this.#viewer = null;
+    this.#viewerContainer = null;
+
+    ViewerManager.#instance = this;
+  }
+
+  /**
+   * 获取ViewerManager实例
+   * @returns {ViewerManager} ViewerManager实例
+   */
+  static getInstance() {
+    if (!ViewerManager.#instance) {
+      ViewerManager.#instance = new ViewerManager();
+    }
+    return ViewerManager.#instance;
   }
 
   /**
@@ -34,7 +55,7 @@ class ViewerManager {
     window.Cesium.Camera.DEFAULT_VIEW_FACTOR = 0 // 控制相机与指定矩形之间距离的参数
     window.Cesium.Camera.DEFAULT_VIEW_RECTANGLE = window.Cesium.Rectangle.fromDegrees(west, south, east, north)
 
-    this.viewerContainer = container
+    this.#viewerContainer = container
     // 默认的部件设定策略
     const defaultWidgetConfig = {
       animation: false, // Animation widget
@@ -50,29 +71,45 @@ class ViewerManager {
       scene3DOnly: true, // 仅3D场景
       shouldAnimate: false, // 时钟事件模拟
     }
-    this.viewer = new window.Cesium.Viewer(container, {
+    this.#viewer = new window.Cesium.Viewer(container, {
       ...defaultWidgetConfig,
       ...options,
     })
-    this.viewer.cesiumWidget.creditContainer.style.display = 'none' // 隐藏版权信息
+    this.#viewer.cesiumWidget.creditContainer.style.display = 'none' // 隐藏版权信息
 
     // 修改鼠标控制策略
-    const control = this.viewer.scene.screenSpaceCameraController
+    const control = this.#viewer.scene.screenSpaceCameraController
     control.rotateEventTypes = window.Cesium.CameraEventType.LEFT_DRAG
     control.tiltEventTypes = [window.Cesium.CameraEventType.MIDDLE_DRAG, { eventType : window.Cesium.CameraEventType.LEFT_DRAG, modifier : window.Cesium.KeyboardEventModifier.CTRL }]
     control.lookEventTypes = window.Cesium.CameraEventType.RIGHT_DRAG
     control.zoomEventTypes = window.Cesium.CameraEventType.WHEEL
 
-    this.viewer.camera.percentageChanged = 0.001 // 设置更高的灵敏度
+    this.#viewer.camera.percentageChanged = 0.001 // 设置更高的灵敏度
 
     // # 确保camera.roll始终为0
-    this.keepCameraRollZero(this.viewer)
+    this.keepCameraRollZero(this.#viewer)
 
-    // 在创建viewer后初始化
-    this.layerManager = new LayerManager(this.viewer);
-    window.layerManager = this.layerManager; // 可选：全局访问
+    // 在创建viewer后初始化 - 使用单例模式获取LayerManager实例
+    const layerManager = LayerManager.getInstance(this.#viewer);
+    window.layerManager = layerManager; // 可选：全局访问
 
-    return this.viewer
+    return this.#viewer
+  }
+
+  /**
+   * 获取viewer实例
+   * @returns {Object} viewer实例
+   */
+  get viewer() {
+    return this.#viewer;
+  }
+
+  /**
+   * 获取viewerContainer
+   * @returns {Element|string} viewerContainer
+   */
+  get viewerContainer() {
+    return this.#viewerContainer;
   }
 
   /**
@@ -133,6 +170,13 @@ class ViewerManager {
     handler.setInputAction(function () {
       startMousePosition = undefined // 清除初始位置
     }, window.Cesium.ScreenSpaceEventType.RIGHT_UP)
+  }
+
+  /**
+   * 重置单例实例（主要用于测试或重新初始化）
+   */
+  static resetInstance() {
+    ViewerManager.#instance = null;
   }
 }
 

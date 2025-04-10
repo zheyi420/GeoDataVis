@@ -7,7 +7,7 @@ import { onMounted, ref } from 'vue'
 import ViewerManager from '@/map/ViewerManager'
 
 const mapContainer = ref(null)
-const viewerManager = new ViewerManager()
+const viewerManager = ViewerManager.getInstance()
 
 onMounted(() => {
   window.viewer = viewerManager.createViewer(mapContainer.value, {

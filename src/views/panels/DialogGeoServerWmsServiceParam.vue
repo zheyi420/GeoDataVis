@@ -531,9 +531,11 @@ function setNewWmsServiceConnection(ruleFormRef) {
       }
     })
     .then(res => {
-      // console.log('res', res); // true
+      console.log('ruleFormRef.validate res', res); // true
     })
-    .catch(error => {})
+    .catch(error => {
+      console.error('ruleFormRef.validate error', error)
+    })
 }
 
 /**
