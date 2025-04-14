@@ -1,15 +1,15 @@
 <!--
  * @Author: zheyi420
- * @Date: 2024-11-19 00:31:44
+ * @Date: 2025-04-11
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-12-15 03:43:07
+ * @LastEditTime: 2025-04-15
  * @FilePath: \GeoDataVis\src\views\panels\MapParamsPanel.vue
  * @Description: 显示相机、鼠标等信息
- * 
+ *
 -->
 
 <template>
-  <div class="map-params-panel">
+  <div class="map-params-panel" ref="panelRef">
     <div class="camera-params-panel">
       <span class="panel-name">相机：</span>
       <span>经度 {{ cameraParams.longitude }}°</span>
@@ -31,6 +31,9 @@
 <script setup>
 import { ref, onMounted, reactive, watch, computed } from 'vue'
 
+const panelRef = ref(null)
+const emit = defineEmits(['heightChange'])
+
 const cameraParams = reactive({
   longitude: 0,
   latitude: 0,
@@ -46,8 +49,6 @@ const mouseParams = reactive({
   altitude: 0
 })
 
-
-
 function updateCameraParams() {
   const viewer = window.viewer;
   if (viewer) {
@@ -61,7 +62,7 @@ function updateCameraParams() {
     cameraParams.heading = heading == 360 ? 0 : heading;
 
     cameraParams.pitch = window.Cesium.Math.toDegrees(viewer.camera.pitch).toFixed(2); // 保留两位小数
-    
+
     const roll = window.Cesium.Math.toDegrees(viewer.camera.roll).toFixed(2); // 保留两位小数
     cameraParams.roll = roll == 360 ? 0 : roll;
   }
@@ -82,8 +83,12 @@ onMounted(() => {
   const viewer = window.viewer;
   if (viewer) {
     console.log('viewer is defined');
-    
-    
+
+    // 发送面板高度
+    if (panelRef.value) {
+      emit('heightChange', panelRef.value.offsetHeight)
+    }
+
     const removeCallBack4UpdateCameraParams = viewer.camera.changed.addEventListener(updateCameraParams);
     updateCameraParams(); // 初始化时调用一次
 
@@ -102,7 +107,7 @@ onMounted(() => {
   padding: 0px 10px;
   box-sizing: border-box; /* 包含内边距在内 */
   background-color: rgba(0, 0, 0, 0.8);
-  
+
   span {
     color: rgb(255, 255, 255);
     font-size: 12px;

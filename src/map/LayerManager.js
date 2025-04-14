@@ -3,6 +3,7 @@
  */
 
 import { loadWmsImagery } from './utils/ImageryLayerUtils';
+import { useLayersStore } from '@/stores/map/layers';
 
 class LayerManager {
   #viewer; // 私有属性
@@ -44,6 +45,19 @@ class LayerManager {
       this.layerMap.set(layerName, layer);
       // 确保图层被添加到viewer中
       this.#viewer.imageryLayers.add(layer);
+
+      // 添加到图层管理存储
+      const layersStore = useLayersStore();
+      layersStore.addLayer({
+        id: layerName,
+        name: layerName,
+        type: 'service',
+        sourceType: 'WMS',
+        visible: true,
+        opacity: 1,
+        layerInstance: layer,
+        metadata: options
+      });
     }
     return layer;
   }
@@ -82,6 +96,20 @@ class LayerManager {
     if (layer) {
       layer.show = visible;
     }
+  }
+
+  /**
+   * 设置图层透明度
+   * @param {String} layerName - 图层名称
+   * @param {Number} opacity - 透明度值（0-1）
+   */
+  setLayerOpacity(layerName, opacity) {
+    const layer = this.layerMap.get(layerName);
+    if (layer) {
+      layer.alpha = opacity;
+      return true;
+    }
+    return false;
   }
 
   /**
