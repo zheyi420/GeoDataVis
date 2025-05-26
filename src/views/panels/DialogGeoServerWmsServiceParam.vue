@@ -218,7 +218,7 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="closeDialogGeoServerWmsServiceParam">取消</el-button>
+        <el-button @click="cancel">取消</el-button>
         <el-button type="primary" @click="setNewWmsServiceConnection(ruleFormRef)">确认</el-button>
       </div>
     </template>
@@ -241,6 +241,7 @@ import {
   ElTooltip,
   ElSwitch,
   ElCheckbox,
+  ElMessage,
 } from 'element-plus'
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
@@ -467,6 +468,16 @@ function checkWidthHeight(rule, value, callback) {
 }
 
 /**
+ * @description 取消
+ */
+function cancel() {
+  // 重置表单
+  resetForm()
+  // 关闭对话框
+  closeDialogGeoServerWmsServiceParam()
+}
+
+/**
  * @description 设置新的 WMS 服务连接
  */
 function setNewWmsServiceConnection(ruleFormRef) {
@@ -474,7 +485,6 @@ function setNewWmsServiceConnection(ruleFormRef) {
 
   if (!ruleFormRef) {
     console.log('ruleFormRef is null')
-
     return
   }
 
@@ -522,9 +532,26 @@ function setNewWmsServiceConnection(ruleFormRef) {
           WebMapServiceImageryProviderConstructorOptions.parameters.exceptions = _form.exceptions
         }
         // 调用加载 WMS 服务的方法
-        window.layerManager.addWmsLayer(_form.layerName, WebMapServiceImageryProviderConstructorOptions)
-        // 关闭对话框
-        closeDialogGeoServerWmsServiceParam()
+        const layer = window.layerManager.addWmsLayer(_form.layerName, WebMapServiceImageryProviderConstructorOptions)
+
+        if (layer) {
+          // 图层加载成功
+          ElMessage({
+            type: 'success',
+            message: `图层 ${_form.layerName} 加载成功`
+          })
+          // 重置表单
+          resetForm()
+          // 关闭对话框
+          closeDialogGeoServerWmsServiceParam()
+        } else {
+          // 图层加载失败
+          ElMessage({
+            type: 'error',
+            message: '图层加载失败，请检查服务地址和参数'
+          })
+          // 不关闭对话框，让用户修改参数
+        }
       } else {
         console.log('error submit!!')
         // return false
@@ -539,9 +566,29 @@ function setNewWmsServiceConnection(ruleFormRef) {
 }
 
 /**
+ * @description 重置表单
+ */
+function resetForm() {
+  if (ruleFormRef.value) {
+    ruleFormRef.value.resetFields()
+    // 重置不在resetFields范围内的字段
+    form4WmsServiceParam.service = 'WMS'
+    form4WmsServiceParam.version = '1.1.0'
+    form4WmsServiceParam.request = 'GetMap'
+    form4WmsServiceParam.styles = ''
+    form4WmsServiceParam.format = 'image/png'
+    form4WmsServiceParam.transparent = false
+    form4WmsServiceParam.bgcolor = 'FFFFFF'
+    form4WmsServiceParam.exceptions = 'application/vnd.ogc.se_xml'
+    form4WmsServiceParam.enableParamExceptions = false
+  }
+}
+
+/**
  * @description 关闭对话框
  */
 function handleClose(done) {
+  resetForm()
   closeDialogGeoServerWmsServiceParam()
   done()
 }
