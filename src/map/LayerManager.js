@@ -2,7 +2,7 @@
  * @Description: 图层管理器（单例模式）
  */
 
-import { loadWmsImagery } from './utils/ImageryLayerUtils';
+import { createWmsImageryLayer } from './utils/ImageryLayerUtils';
 import { useLayersStore } from '@/stores/map/layers';
 
 class LayerManager {
@@ -15,6 +15,7 @@ class LayerManager {
     }
 
     this.#viewer = viewer;
+    // TODO 改为图层ID与图层对象的映射
     this.layerMap = new Map(); // 存储图层名称与图层对象的映射
 
     LayerManager.#instance = this;
@@ -35,31 +36,34 @@ class LayerManager {
   /**
    * 添加WMS图层
    * @param {String} layerName - 图层名称
-   * @param {Object} options - 图层选项
-   * @returns {Cesium.ImageryLayer} 图层对象
+   * @param {Object} wmsOptions - 图层选项
+   * @returns {Promise<Cesium.ImageryLayer>} 返回添加图层的Promise
    */
-  addWmsLayer(layerName, options) {
-    console.log('addWmsLayer', layerName, options);
-    const layer = loadWmsImagery(layerName, options);
-    if (layer) {
-      this.layerMap.set(layerName, layer);
-      // 确保图层被添加到viewer中
-      this.#viewer.imageryLayers.add(layer);
+  addWmsLayer(layerName, wmsOptions) {
+    console.log('addWmsLayer', layerName, wmsOptions);
+    return createWmsImageryLayer(wmsOptions)
+      .then(layer => {
+        if (layer) {
+          this.layerMap.set(layerName, layer);
+          // 确保图层被添加到viewer中
+          this.#viewer.imageryLayers.add(layer);
 
-      // 添加到图层管理存储
-      const layersStore = useLayersStore();
-      layersStore.addLayer({
-        id: layerName,
-        name: layerName,
-        type: 'service',
-        sourceType: 'WMS',
-        visible: true,
-        opacity: 1,
-        layerInstance: layer,
-        metadata: options
+          // 添加到图层管理存储
+          const layersStore = useLayersStore();
+          layersStore.addLayer({
+            id: layerName,
+            name: layerName,
+            type: 'service',
+            sourceType: 'WMS',
+            visible: true,
+            opacity: 1,
+            layerInstance: layer,
+            metadata: wmsOptions
+          });
+          return layer;
+        }
+        return null;
       });
-    }
-    return layer;
   }
 
   /**

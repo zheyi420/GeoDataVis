@@ -219,7 +219,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="cancel">取消</el-button>
-        <el-button type="primary" @click="setNewWmsServiceConnection(ruleFormRef)">确认</el-button>
+        <el-button type="primary" :loading="loading" @click="setNewWmsServiceConnection(ruleFormRef)">确认</el-button>
       </div>
     </template>
   </el-dialog>
@@ -314,6 +314,9 @@ const rules = reactive({
   bgcolor: [{ validator: checkBgcolor, trigger: 'blur' }],
 })
 const formLabelWidth = '140px'
+
+// 在<script setup>顶部定义区域添加loading状态
+const loading = ref(false);
 
 /**
  * @description 校验图层名称
@@ -481,8 +484,6 @@ function cancel() {
  * @description 设置新的 WMS 服务连接
  */
 function setNewWmsServiceConnection(ruleFormRef) {
-  // console.log('@@@', ruleFormRef);
-
   if (!ruleFormRef) {
     console.log('ruleFormRef is null')
     return
@@ -491,11 +492,12 @@ function setNewWmsServiceConnection(ruleFormRef) {
   // 校验表单
   ruleFormRef
     .validate((isValid, invalidFields) => {
-      // console.log('isValid', isValid);
-      // console.log('invalidFields', invalidFields);
       console.log('form4WmsServiceParam', form4WmsServiceParam)
 
       if (isValid) {
+        // 开始加载，设置loading状态
+        loading.value = true;
+
         // 如果有默认值的选项，未被设置，则在此设置默认值
         const _form = { ...form4WmsServiceParam }
         if (!_form.layerName) {
@@ -531,38 +533,42 @@ function setNewWmsServiceConnection(ruleFormRef) {
         if (_form.enableParamExceptions) {
           WebMapServiceImageryProviderConstructorOptions.parameters.exceptions = _form.exceptions
         }
-        // 调用加载 WMS 服务的方法
-        const layer = window.layerManager.addWmsLayer(_form.layerName, WebMapServiceImageryProviderConstructorOptions)
 
-        if (layer) {
-          // 图层加载成功
-          ElMessage({
-            type: 'success',
-            message: `图层 ${_form.layerName} 加载成功`
+        // 调用加载 WMS 服务的方法，使用Promise链处理结果
+        window.layerManager.addWmsLayer(_form.layerName, WebMapServiceImageryProviderConstructorOptions)
+          .then(layer => {
+            // 图层加载成功
+            ElMessage({
+              type: 'success',
+              message: `图层：“${_form.layerName}” 加载成功`
+            });
+            // 重置表单
+            resetForm();
+            // 关闭对话框
+            closeDialogGeoServerWmsServiceParam();
           })
-          // 重置表单
-          resetForm()
-          // 关闭对话框
-          closeDialogGeoServerWmsServiceParam()
-        } else {
-          // 图层加载失败
-          ElMessage({
-            type: 'error',
-            message: '图层加载失败，请检查服务地址和参数'
+          .catch(error => {
+            // 图层加载失败
+            ElMessage({
+              type: 'error',
+              message: error.message || '图层加载失败，请检查服务地址和参数'
+            });
+            // 不关闭对话框，让用户修改参数
           })
-          // 不关闭对话框，让用户修改参数
-        }
+          .finally(() => {
+            // 结束加载状态
+            loading.value = false;
+          });
       } else {
         console.log('error submit!!')
-        // return false
       }
     })
     .then(res => {
-      console.log('ruleFormRef.validate res', res); // true
+      console.log('ruleFormRef.validate res', res);
     })
     .catch(error => {
       console.error('ruleFormRef.validate error', error)
-    })
+    });
 }
 
 /**

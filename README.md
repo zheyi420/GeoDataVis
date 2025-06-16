@@ -73,6 +73,12 @@ npm install -g pnpm
 pnpm install
 ```
 
+### 复制Cesium资源
+
+```bash
+pnpm copy-cesium-assets
+```
+
 ### 开发模式
 
 ```bash
@@ -101,12 +107,6 @@ pnpm format
 
 ```bash
 pnpm lint
-```
-
-### 复制Cesium资源
-
-```bash
-pnpm copy-cesium-assets
 ```
 
 ### 可选：创建一个pnpm-workspace.yaml文件
