@@ -245,6 +245,7 @@ import {
 } from 'element-plus'
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
+import { useLayersStore } from '@/stores/map/layers'
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogGeoServerWmsServiceParam } = storeToRefs(panelStatusStore)
@@ -535,12 +536,14 @@ function setNewWmsServiceConnection(ruleFormRef) {
         }
 
         // 调用加载 WMS 服务的方法，使用Promise链处理结果
-        window.layerManager.addWmsLayer(_form.layerName, WebMapServiceImageryProviderConstructorOptions)
-          .then(layer => {
+        // 通过 store 添加 WMS 图层，符合新的架构设计
+        const layersStore = useLayersStore();
+        layersStore.addWmsLayer(_form.layerName, WebMapServiceImageryProviderConstructorOptions)
+          .then(layerId => {
             // 图层加载成功
             ElMessage({
               type: 'success',
-              message: `图层：“${_form.layerName}” 加载成功`
+              message: `图层："${_form.layerName}" 加载成功`
             });
             // 重置表单
             resetForm();

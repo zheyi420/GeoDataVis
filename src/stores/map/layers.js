@@ -5,6 +5,14 @@ export const useLayersStore = defineStore('layers', () => {
   // 所有图层的数据集合（包括地图服务图层和数据文件图层）
   const layers = ref([]);
 
+  /**
+   * 获取LayerManager实例
+   * @returns {LayerManager|null} LayerManager实例
+   */
+  function getLayerManager() {
+    return window.layerManager || null;
+  }
+
   // 添加新图层
   function addLayer(layer) {
     // 确保layer有必要的属性
@@ -29,16 +37,51 @@ export const useLayersStore = defineStore('layers', () => {
     return newLayer.id;
   }
 
+  /**
+   * 添加WMS图层（包含完整的创建和管理流程）
+   * @param {String} layerName - 图层名称
+   * @param {Object} wmsOptions - WMS图层选项
+   * @returns {Promise<String>} 返回图层ID的Promise
+   */
+  function addWmsLayer(layerName, wmsOptions) {
+    const layerManager = getLayerManager();
+    if (!layerManager) {
+      return Promise.reject(new Error('LayerManager 未初始化'));
+    }
+
+    return layerManager.addWmsLayer(wmsOptions)
+      .then(layerInstance => {
+        if (layerInstance) {
+          // 添加到 store 中
+          const layerId = addLayer({
+            id: layerName,
+            name: layerName,
+            type: 'service',
+            sourceType: 'WMS',
+            visible: true,
+            opacity: 1,
+            layerInstance: layerInstance,
+            metadata: wmsOptions
+          });
+          return layerId;
+        } else {
+          throw new Error('图层创建失败');
+        }
+      });
+  }
+
   // 移除指定ID的图层
   function removeLayer(layerId) {
     const index = layers.value.findIndex(layer => layer.id === layerId);
     if (index !== -1) {
-      // 如果有图层管理器实例，尝试从地图中移除
       const layer = layers.value[index];
-      if (layer.layerInstance && window.layerManager) {
-        // 根据图层类型调用不同的移除方法
-        window.layerManager.removeLayer(layerId);
+
+      // 通过 LayerManager 从 Cesium 中移除图层
+      const layerManager = getLayerManager();
+      if (layerManager && layer.layerInstance) {
+        layerManager.removeLayerFromCesium(layer.layerInstance);
       }
+
       // 从store中移除
       layers.value.splice(index, 1);
       return true;
@@ -50,12 +93,20 @@ export const useLayersStore = defineStore('layers', () => {
   function setLayerVisibility(layerId, visible) {
     const layer = layers.value.find(layer => layer.id === layerId);
     if (layer) {
-      layer.visible = visible;
-      // 更新实际图层的可见性
-      if (layer.layerInstance && window.layerManager) {
-        window.layerManager.setLayerVisibility(layerId, visible);
+      // 通过 LayerManager 更新 Cesium 图层状态
+      const layerManager = getLayerManager();
+      if (layerManager && layer.layerInstance) {
+        const success = layerManager.setLayerVisibility(layer.layerInstance, visible);
+        if (success) {
+          // 只有 Cesium 操作成功时才更新 store 状态
+          layer.visible = visible;
+          return true;
+        }
+      } else {
+        // 如果没有 LayerManager 或图层实例，只更新 store 状态
+        layer.visible = visible;
+        return true;
       }
-      return true;
     }
     return false;
   }
@@ -64,15 +115,20 @@ export const useLayersStore = defineStore('layers', () => {
   function setLayerOpacity(layerId, opacity) {
     const layer = layers.value.find(layer => layer.id === layerId);
     if (layer) {
-      layer.opacity = opacity;
-      // 更新实际图层的透明度
-      if (layer.layerInstance && window.layerManager) {
-        // 假设LayerManager中有setLayerOpacity方法
-        if (typeof window.layerManager.setLayerOpacity === 'function') {
-          window.layerManager.setLayerOpacity(layerId, opacity);
+      // 通过 LayerManager 更新 Cesium 图层状态
+      const layerManager = getLayerManager();
+      if (layerManager && layer.layerInstance) {
+        const success = layerManager.setLayerOpacity(layer.layerInstance, opacity);
+        if (success) {
+          // 只有 Cesium 操作成功时才更新 store 状态
+          layer.opacity = opacity;
+          return true;
         }
+      } else {
+        // 如果没有 LayerManager 或图层实例，只更新 store 状态
+        layer.opacity = opacity;
+        return true;
       }
-      return true;
     }
     return false;
   }
@@ -121,10 +177,17 @@ export const useLayersStore = defineStore('layers', () => {
 
   // 清空所有图层
   function clearAllLayers() {
-    // 如果有图层管理器实例，尝试从地图中移除所有图层
-    if (window.layerManager) {
-      window.layerManager.removeAllLayers();
-    }
+    const layerManager = getLayerManager();
+
+    // 逐一移除所有图层（包括从 Cesium 中移除）
+    const allLayers = [...layers.value]; // 创建副本避免遍历时修改数组
+    allLayers.forEach(layer => {
+      if (layerManager && layer.layerInstance) {
+        layerManager.removeLayerFromCesium(layer.layerInstance);
+      }
+    });
+
+    // 清空 store
     layers.value = [];
   }
 
@@ -141,6 +204,7 @@ export const useLayersStore = defineStore('layers', () => {
   return {
     layers,
     addLayer,
+    addWmsLayer,
     removeLayer,
     setLayerVisibility,
     setLayerOpacity,
