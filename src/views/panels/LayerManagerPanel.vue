@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2025-04-14
  * @LastEditors: zheyi420
- * @LastEditTime: 2025-04-15
+ * @LastEditTime: 2025-06-17
  * @FilePath: \GeoDataVis\src\views\panels\LayerManagerPanel.vue
  * @Description: 图层管理面板，显示加载的地图服务图层及地理数据文件图层
  *
@@ -163,7 +163,7 @@
 
 <script setup>
 import { ref, onMounted, watchEffect } from 'vue';
-import { useLayersStore } from '@/stores/map/layers';
+import { useLayerStore } from '@/stores/map/layerStore';
 import { ElIcon, ElButton, ElCollapse, ElCollapseItem, ElCheckbox, ElSlider, ElTable, ElTableColumn, ElPopover } from 'element-plus';
 import { ArrowUp, ArrowDown, MapLocation, Document, Setting } from '@element-plus/icons-vue';
 
@@ -173,7 +173,7 @@ const collapsed = ref(false);
 const activeCollapses = ref(['serviceLayers', 'dataLayers']);
 
 // 使用图层管理的store
-const layersStore = useLayersStore();
+const layerStore = useLayerStore();
 // 图层数据
 const serviceLayers = ref([]);
 const dataLayers = ref([]);
@@ -190,23 +190,23 @@ watchEffect(() => {
 
 // 更新图层列表
 function updateLayerLists() {
-  serviceLayers.value = layersStore.getServiceLayers();
-  dataLayers.value = layersStore.getDataLayers();
+  serviceLayers.value = layerStore.getServiceLayers();
+  dataLayers.value = layerStore.getDataLayers();
 }
 
 // 切换图层可见性
 function toggleLayerVisibility(layer) {
-  layersStore.setLayerVisibility(layer.id, layer.visible);
+  layerStore.setLayerVisibility(layer.id, layer.visible);
 }
 
 // 更新图层透明度
 function updateLayerOpacity(layer) {
-  layersStore.setLayerOpacity(layer.id, layer.opacity);
+  layerStore.setLayerOpacity(layer.id, layer.opacity);
 }
 
 // 移除图层
 function removeLayer(layer) {
-  layersStore.removeLayer(layer.id);
+  layerStore.removeLayer(layer.id);
 }
 </script>
 

@@ -1,7 +1,7 @@
-import { ref, computed } from 'vue'
+import { ref, computed, markRaw } from 'vue'
 import { defineStore } from 'pinia'
 
-export const useLayersStore = defineStore('layers', () => {
+export const useLayerStore = defineStore('layers', () => {
   // 所有图层的数据集合（包括地图服务图层和数据文件图层）
   const layers = ref([]);
 
@@ -14,7 +14,7 @@ export const useLayersStore = defineStore('layers', () => {
   }
 
   // 添加新图层
-  function addLayer(layer) {
+  function _addLayer(layer) {
     // 确保layer有必要的属性
     const newLayer = {
       id: layer.id || `layer_${Date.now()}`,
@@ -23,7 +23,7 @@ export const useLayersStore = defineStore('layers', () => {
       visible: layer.visible !== undefined ? layer.visible : true,
       opacity: layer.opacity !== undefined ? layer.opacity : 1,
       sourceType: layer.sourceType || '', // 例如：'WMS', 'GeoJSON'等
-      layerInstance: layer.layerInstance || null, // 实际图层对象的引用
+      layerInstance: markRaw(layer.layerInstance) || null, // 实际图层对象的引用
       metadata: layer.metadata || {} // 其他元数据
     };
 
@@ -53,7 +53,7 @@ export const useLayersStore = defineStore('layers', () => {
       .then(layerInstance => {
         if (layerInstance) {
           // 添加到 store 中
-          const layerId = addLayer({
+          const layerId = _addLayer({
             id: layerName,
             name: layerName,
             type: 'service',
@@ -72,20 +72,39 @@ export const useLayersStore = defineStore('layers', () => {
 
   // 移除指定ID的图层
   function removeLayer(layerId) {
+    console.log('开始移除图层:', layerId);
     const index = layers.value.findIndex(layer => layer.id === layerId);
     if (index !== -1) {
       const layer = layers.value[index];
+      console.log('找到图层:', layer);
 
       // 通过 LayerManager 从 Cesium 中移除图层
       const layerManager = getLayerManager();
+      console.log('LayerManager实例:', layerManager);
+      console.log('图层实例:', layer.layerInstance);
+      
       if (layerManager && layer.layerInstance) {
-        layerManager.removeLayerFromCesium(layer.layerInstance);
+        // 在移除前验证图层是否存在于imageryLayers中
+        const viewer = layerManager.getViewer();
+        const exists = viewer.imageryLayers.contains(layer.layerInstance);
+        console.log('图层是否存在于imageryLayers中:', exists);
+        
+        const success = layerManager.removeLayerFromCesium(layer.layerInstance);
+        console.log('从Cesium移除图层结果:', success);
+        
+        if (!success) {
+          console.warn('从Cesium移除图层失败');
+        }
+      } else {
+        console.warn('LayerManager或图层实例为空:', { layerManager, layerInstance: layer.layerInstance });
       }
 
       // 从store中移除
       layers.value.splice(index, 1);
+      console.log('从store移除图层完成');
       return true;
     }
+    console.warn('未找到指定ID的图层:', layerId);
     return false;
   }
 
@@ -203,7 +222,6 @@ export const useLayersStore = defineStore('layers', () => {
 
   return {
     layers,
-    addLayer,
     addWmsLayer,
     removeLayer,
     setLayerVisibility,

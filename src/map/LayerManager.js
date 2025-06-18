@@ -57,8 +57,8 @@ class LayerManager {
    */
   removeLayerFromCesium(layerInstance) {
     if (layerInstance) {
-      this.#viewer.imageryLayers.remove(layerInstance, true);
-      return true;
+      const result = this.#viewer.imageryLayers.remove(layerInstance, true);
+      return result
     }
     return false;
   }
