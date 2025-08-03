@@ -1,13 +1,16 @@
 /*
- * @Description: wms 服务图层工具函数
+ * @Description: 影像图层工具函数
  *
  */
 
 import { ElMessage } from "element-plus";
 
+/**
+ * @typedef {import("cesium").ImageryLayer} ImageryLayer
+ */
 
 /**
- * 加载WMS服务图层
+ * 创建WMS服务图层
  * @param {Object} wmsOptions - WebMapServiceImageryProvider构造选项
  * @param {String} wmsOptions.url - WMS服务地址
  * @param {String} wmsOptions.layers - 图层名称
@@ -16,7 +19,7 @@ import { ElMessage } from "element-plus";
  * @param {Number} [wmsOptions.tileHeight=256] - 瓦片高度
  * @param {String} [wmsOptions.srs] - 坐标系(非版本1.3.0)
  * @param {String} [wmsOptions.crs] - 坐标系(版本1.3.0)
- * @returns {Promise<Cesium.ImageryLayer>} 创建的图层对象的Promise
+ * @returns {Promise<ImageryLayer>} 创建的图层对象的Promise
  */
 export function createWmsImageryLayer(wmsOptions) {
   return new Promise((resolve, reject) => {
@@ -64,6 +67,63 @@ export function createWmsImageryLayer(wmsOptions) {
     } catch (error) {
       console.error('创建WMS图层失败:', error);
       reject(new Error(`创建WMS图层失败: ${error.message || '未知错误'}`));
+    }
+  });
+}
+
+/**
+ * 创建WMTS服务图层
+ * @param {Object} wmtsOptions - WebMapTileServiceImageryProvider构造选项
+ * @param {String} wmtsOptions.url - WMTS服务地址
+ * @param {String} wmtsOptions.layer - 图层名称
+ * @param {String} wmtsOptions.style - 样式名称
+ * @param {String} wmtsOptions.format - 图片格式
+ * @param {String} wmtsOptions.tileMatrixSetID - 瓦片矩阵集标识符
+ * @param {Object} [wmtsOptions.tileMatrixLabels] - 瓦片矩阵标签
+ * @param {Number} [wmtsOptions.maximumLevel] - 最大层级
+ * @param {Number} [wmtsOptions.tileWidth=256] - 瓦片宽度
+ * @param {Number} [wmtsOptions.tileHeight=256] - 瓦片高度
+ * @returns {Promise<ImageryLayer>} 创建的图层对象的Promise
+ */
+export function createWmtsImageryLayer(wmtsOptions) {
+  return new Promise((resolve, reject) => {
+    try {
+      console.log('createWmtsImageryLayer 参数', wmtsOptions);
+
+      // 创建WMTS图层提供者
+      const provider = new window.Cesium.WebMapTileServiceImageryProvider({
+        url: wmtsOptions.url,
+        layer: wmtsOptions.layer,
+        style: wmtsOptions.style,
+        format: wmtsOptions.format,
+        tileMatrixSetID: wmtsOptions.tileMatrixSetID,
+        tileMatrixLabels: wmtsOptions.tileMatrixLabels,
+        maximumLevel: wmtsOptions.maximumLevel || 18,
+        tileWidth: wmtsOptions.tileWidth || 256,
+        tileHeight: wmtsOptions.tileHeight || 256,
+        tilingScheme: wmtsOptions.tilingScheme || new window.Cesium.WebMercatorTilingScheme()
+      });
+
+      // 监听提供者错误事件
+      const removeCallback4ProviderErrEvt = provider.errorEvent.addEventListener((tileProviderError) => {
+        console.error('WMTS tileProviderError', tileProviderError);
+        // ElMessage.error(tileProviderError.message)
+      });
+
+      // 创建图层
+      const imageryLayer = new window.Cesium.ImageryLayer(provider);
+
+      // 监听图层错误事件
+      const removeLayerErrorCallback = imageryLayer.errorEvent.addEventListener((error) => {
+        console.error('WMTS图层错误:', error);
+        ElMessage.error(`WMTS图层错误: ${error.message || error}`);
+      });
+
+      resolve(imageryLayer);
+
+    } catch (error) {
+      console.error('创建WMTS图层失败:', error);
+      reject(new Error(`创建WMTS图层失败: ${error.message || '未知错误'}`));
     }
   });
 }

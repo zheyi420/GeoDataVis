@@ -59,7 +59,7 @@ export const useLayerStore = defineStore('layers', () => {
   }
 
   /**
-   * 添加WMS图层（包含完整的创建和管理流程）
+   * 添加WMS图层
    * @param {String} layerName - 图层名称
    * @param {Object} wmsOptions - WMS图层选项
    * @returns {Promise<String>} 返回图层ID的Promise
@@ -86,6 +86,38 @@ export const useLayerStore = defineStore('layers', () => {
           return layerId;
         } else {
           throw new Error('图层创建失败');
+        }
+      });
+  }
+
+  /**
+   * 添加WMTS图层
+   * @param {String} layerName - 图层名称
+   * @param {Object} wmtsOptions - WMTS图层选项
+   * @returns {Promise<String>} 返回图层ID的Promise
+   */
+  function addWmtsLayer(layerName, wmtsOptions) {
+    const layerManager = getLayerManager();
+    if (!layerManager) {
+      return Promise.reject(new Error('LayerManager 未初始化'));
+    }
+
+    return layerManager.addWmtsLayer(wmtsOptions)
+      .then(layerInstance => {
+        if (layerInstance) {
+          // 添加到 store 中
+          const layerId = _addLayer({
+            name: layerName,
+            type: 'service',
+            sourceType: 'WMTS',
+            visible: true,
+            opacity: 1,
+            layerInstance: layerInstance,
+            metadata: wmtsOptions
+          });
+          return layerId;
+        } else {
+          throw new Error('WMTS图层创建失败');
         }
       });
   }
@@ -243,6 +275,7 @@ export const useLayerStore = defineStore('layers', () => {
   return {
     layers,
     addWmsLayer,
+    addWmtsLayer,
     removeLayer,
     setLayerVisibility,
     setLayerOpacity,

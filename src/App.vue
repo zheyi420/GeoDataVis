@@ -15,7 +15,8 @@
     <LayerManagerPanel class="layer-manager-panel" :style="layerManagerStyle" />
     <MapParamsPanel class="map-params-panel" @height-change="handleHeightChange" />
     <!-- TODO 是否需要改为异步组件，调用时再加载 -->
-    <DialogGeoServerWmsServiceParam />
+    <DialogWmsServiceParam />
+    <DialogWmtsServiceParam />
   </div>
 </template>
 
@@ -25,7 +26,8 @@ import MapContainer from '@/views/MapContainer.vue';
 import MapParamsPanel from '@/views/panels/MapParamsPanel.vue'
 import ToolBarLoadPanel from '@/views/panels/ToolBarLoadPanel.vue'
 import LayerManagerPanel from '@/views/panels/LayerManagerPanel.vue'
-import DialogGeoServerWmsServiceParam from '@/views/panels/DialogGeoServerWmsServiceParam.vue'
+import DialogWmsServiceParam from '@/views/panels/DialogWmsServiceParam.vue'
+import DialogWmtsServiceParam from '@/views/panels/DialogWmtsServiceParam.vue'
 
 const paramsPanelHeight = ref(0) // 默认高度
 

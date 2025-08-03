@@ -3,7 +3,7 @@
  * LayerManager 专注于 Cesium 操作，不管理 store 状态
  */
 
-import { createWmsImageryLayer } from './utils/ImageryLayerUtils';
+import { createWmsImageryLayer, createWmtsImageryLayer } from './utils/ImageryLayerUtils';
 
 class LayerManager {
   #viewer; // 私有属性
@@ -32,13 +32,31 @@ class LayerManager {
   }
 
   /**
-   * 创建WMS图层（不添加到store，由调用方处理）
+   * 添加WMS图层
    * @param {Object} wmsOptions - 图层选项
    * @returns {Promise<Cesium.ImageryLayer>} 返回创建图层的Promise
    */
   addWmsLayer(wmsOptions) {
     console.log('addWmsLayer', wmsOptions);
     return createWmsImageryLayer(wmsOptions)
+      .then(layer => {
+        if (layer) {
+          // 确保图层被添加到viewer中
+          this.#viewer.imageryLayers.add(layer);
+          return layer;
+        }
+        return null;
+      });
+  }
+
+  /**
+   * 添加WMTS图层
+   * @param {Object} wmtsOptions - WMTS图层选项
+   * @returns {Promise<Cesium.ImageryLayer>} 返回创建图层的Promise
+   */
+  addWmtsLayer(wmtsOptions) {
+    console.log('addWmtsLayer', wmtsOptions);
+    return createWmtsImageryLayer(wmtsOptions)
       .then(layer => {
         if (layer) {
           // 确保图层被添加到viewer中

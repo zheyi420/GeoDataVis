@@ -5,7 +5,7 @@
  * @LastEditTime: 2025-01-06 00:44:53
  * @FilePath: \GeoDataVis\src\views\panels\ToolBarLoadPanel.vue
  * @Description: 工具栏，用于加载数据的面板，包括加载数据服务、加载本地数据文件等
- * 
+ *
 -->
 
 <template>
@@ -68,7 +68,6 @@ const options4ServiceLoadType = [
       {
         value: 'WMS',
         label: 'WMS',
-        
       },
       {
         value: 'WMTS',
@@ -91,12 +90,11 @@ const options4ServiceLoadType = [
 function handleVisibleChange4ServiceLoadTypeDropdown(visible) {
   // console.log('###服务“下拉列表visible-change', visible);
 
-  
   // console.log('ref4ServiceLoadTypeDropdown.value', ref4ServiceLoadTypeDropdown.value);
   // console.log('ref4ServiceLoadTypeCascaderPanel.value', ref4ServiceLoadTypeCascaderPanel.value);
-  
+
   if (visible) {
-    
+
     // ref4ServiceLoadTypeDropdown.value.$el.classList.add('is-hover');
   } else {
     // 关闭下拉菜单时，清空展开节点记录
@@ -117,7 +115,7 @@ function handleChange4ServiceLoadType(value) {
   // 清空选中的节点
   ref4ServiceLoadTypeCascaderPanel.value.clearCheckedNodes();
 
-  
+
   if (!value) return;
 
   // 打开对应的加载服务面板
@@ -157,11 +155,12 @@ function _loadGeoServerService(value) {
   switch (value) {
     case 'WMS': {
       console.log('###加载服务-Web Map-WMS');
-      usePanelStatusStore().openDialogGeoServerWmsServiceParam();
+      usePanelStatusStore().openDialogWmsServiceParam();
       break;
     }
     case 'WMTS': {
       console.log('###加载服务-Web Map-WMTS');
+      usePanelStatusStore().openDialogWmtsServiceParam();
       break;
     }
     default: {
@@ -192,7 +191,7 @@ function handleVisibleChange4FileLoadTypeDropdown(visible) {
 
   if (visible) {
     // console.log('ref4FileLoadTypeDropdown.value', ref4FileLoadTypeDropdown.value);
-    
+
     // ref4FileLoadTypeDropdown.value.classList.add('is-hover');
   } else {
     // 关闭下拉菜单时，清空展开节点记录
@@ -224,7 +223,7 @@ function handleChange4FileLoadType(value) {
     &:focus-visible {
       outline: none;
     }
-    
+
     // &.is-hover,
     /* &:focus-within,
     &:hover {

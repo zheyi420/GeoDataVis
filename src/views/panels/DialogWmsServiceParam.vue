@@ -17,7 +17,7 @@
     </template>
     <template v-slot:default>
       <el-form ref="ruleFormRef" class="form-content" :model="form4WmsServiceParam" :rules="rules">
-        <div class="wms-param-a">
+        <div class="form-param-a">
           <el-form-item label="图层名称" :label-width="formLabelWidth" prop="layerName">
             <el-input
               v-model="form4WmsServiceParam.layerName"
@@ -35,7 +35,7 @@
             <span>http://localhost:8090/geoserver/wms</span>
           </div>
         </div>
-        <div class="wms-param-b">
+        <div class="form-param-b">
           <div class="param-section-name">
             <el-divider content-position="center">标准参数</el-divider>
           </div>
@@ -630,10 +630,10 @@ function dialogOpened() {
   align-items: center;
 }
 .form-content {
-  .wms-param-a {
+  .form-param-a {
   }
 
-  .wms-param-b {
+  .form-param-b {
     padding-top: 5px;
 
     .param-section-name {
