@@ -536,7 +536,7 @@ function setNewWmsServiceConnection(ruleFormRef) {
         }
 
         // 调用加载 WMS 服务的方法，使用Promise链处理结果
-        // 通过 store 添加 WMS 图层，符合新的架构设计
+        // 通过 store 添加 WMS 图层
         const layerStore = useLayerStore();
         layerStore.addWmsLayer(_form.layerName, WebMapServiceImageryProviderConstructorOptions)
           .then(layerId => {

@@ -1,4 +1,4 @@
-import { ref, computed, markRaw } from 'vue'
+import { ref, markRaw } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useLayerStore = defineStore('layers', () => {
@@ -17,9 +17,8 @@ export const useLayerStore = defineStore('layers', () => {
   function _addLayer(layer) {
     // 确保layer有必要的属性
     const newLayer = {
-      id: layer.id || `layer_${Date.now()}`,
       name: layer.name || '未命名图层',
-      type: layer.type || 'unknown', // 'service' 或 'data'
+      type: layer.type || 'unknown', // 'service' 或 'file'
       visible: layer.visible !== undefined ? layer.visible : true,
       opacity: layer.opacity !== undefined ? layer.opacity : 1,
       sourceType: layer.sourceType || '', // 例如：'WMS', 'GeoJSON'等
@@ -27,14 +26,36 @@ export const useLayerStore = defineStore('layers', () => {
       metadata: layer.metadata || {} // 其他元数据
     };
 
-    // 如果是同名图层，可以添加序号
-    const similarLayers = layers.value.filter(l => l.name.startsWith(newLayer.name));
-    if (similarLayers.length > 0) {
-      newLayer.name = `${newLayer.name} (${similarLayers.length})`;
-    }
+    // 自动重命名逻辑：确保图层名称唯一
+    newLayer.name = getUniqueLayerName(newLayer.name);
+    newLayer.id = `layer_${Date.now()}`;
 
     layers.value.push(newLayer);
     return newLayer.id;
+  }
+
+  /**
+   * 获取唯一的图层名称
+   * @param {String} baseName - 基础名称
+   * @returns {String} 唯一的图层名称
+   */
+  function getUniqueLayerName(baseName) {
+    const existingNames = layers.value.map(l => l.name);
+    
+    // 如果基础名称不存在，直接返回
+    if (!existingNames.includes(baseName)) {
+      return baseName;
+    }
+    
+    // 查找可用的编号
+    let counter = 1;
+    let candidateName;
+    do {
+      candidateName = `${baseName}(${counter})`;
+      counter++;
+    } while (existingNames.includes(candidateName));
+    
+    return candidateName;
   }
 
   /**
@@ -54,7 +75,6 @@ export const useLayerStore = defineStore('layers', () => {
         if (layerInstance) {
           // 添加到 store 中
           const layerId = _addLayer({
-            id: layerName,
             name: layerName,
             type: 'service',
             sourceType: 'WMS',
@@ -82,16 +102,16 @@ export const useLayerStore = defineStore('layers', () => {
       const layerManager = getLayerManager();
       console.log('LayerManager实例:', layerManager);
       console.log('图层实例:', layer.layerInstance);
-      
+
       if (layerManager && layer.layerInstance) {
         // 在移除前验证图层是否存在于imageryLayers中
         const viewer = layerManager.getViewer();
         const exists = viewer.imageryLayers.contains(layer.layerInstance);
         console.log('图层是否存在于imageryLayers中:', exists);
-        
+
         const success = layerManager.removeLayerFromCesium(layer.layerInstance);
         console.log('从Cesium移除图层结果:', success);
-        
+
         if (!success) {
           console.warn('从Cesium移除图层失败');
         }
@@ -180,8 +200,8 @@ export const useLayerStore = defineStore('layers', () => {
   }
 
   // 获取数据文件类型图层
-  function getDataLayers() {
-    return layers.value.filter(layer => layer.type === 'data');
+  function getFileLayers() {
+    return layers.value.filter(layer => layer.type === 'file');
   }
 
   // 获取所有图层
@@ -228,7 +248,7 @@ export const useLayerStore = defineStore('layers', () => {
     setLayerOpacity,
     moveLayer,
     getServiceLayers,
-    getDataLayers,
+    getFileLayers,
     getAllLayers,
     getLayerById,
     clearAllLayers,

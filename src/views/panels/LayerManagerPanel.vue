@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2025-04-14
  * @LastEditors: zheyi420
- * @LastEditTime: 2025-06-17
+ * @LastEditTime: 2025-08-03
  * @FilePath: \GeoDataVis\src\views\panels\LayerManagerPanel.vue
  * @Description: 图层管理面板，显示加载的地图服务图层及地理数据文件图层
  *
@@ -58,6 +58,7 @@
             <el-table-column width="90">
               <template #default="scope">
                 <el-popover
+                  v-model:visible="layerPopovers[scope.row.id]"
                   placement="left"
                   :width="200"
                   trigger="click"
@@ -93,7 +94,7 @@
         </el-collapse-item>
 
         <!-- 地理数据文件图层 -->
-        <el-collapse-item title="地理数据文件图层" name="dataLayers">
+        <el-collapse-item title="地理数据文件图层" name="fileLayers">
           <template #title>
             <div class="collapse-title">
               <el-icon><Document /></el-icon>
@@ -101,13 +102,13 @@
             </div>
           </template>
 
-          <div v-if="dataLayers.length === 0" class="empty-tip">
+          <div v-if="fileLayers.length === 0" class="empty-tip">
             暂无图层，请从"文件"菜单加载
           </div>
 
           <el-table
             v-else
-            :data="dataLayers"
+            :data="fileLayers"
             size="small"
             style="width: 100%"
           >
@@ -123,6 +124,7 @@
             <el-table-column width="90">
               <template #default="scope">
                 <el-popover
+                  v-model:visible="layerPopovers[scope.row.id]"
                   placement="left"
                   :width="200"
                   trigger="click"
@@ -162,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watchEffect } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useLayerStore } from '@/stores/map/layerStore';
 import { ElIcon, ElButton, ElCollapse, ElCollapseItem, ElCheckbox, ElSlider, ElTable, ElTableColumn, ElPopover } from 'element-plus';
 import { ArrowUp, ArrowDown, MapLocation, Document, Setting } from '@element-plus/icons-vue';
@@ -170,29 +172,18 @@ import { ArrowUp, ArrowDown, MapLocation, Document, Setting } from '@element-plu
 // 控制面板折叠状态
 const collapsed = ref(false);
 // 控制图层类别折叠状态
-const activeCollapses = ref(['serviceLayers', 'dataLayers']);
+const activeCollapses = ref(['serviceLayers', 'fileLayers']);
+
+// 独立管理每个图层的弹窗状态
+const layerPopovers = ref({});
 
 // 使用图层管理的store
 const layerStore = useLayerStore();
-// 图层数据
-const serviceLayers = ref([]);
-const dataLayers = ref([]);
 
-// 初始化和监听图层变化
-onMounted(() => {
-  updateLayerLists();
-});
+const serviceLayers = computed(() => layerStore.getServiceLayers());
+const fileLayers = computed(() => layerStore.getFileLayers());
 
-// 监听图层变化
-watchEffect(() => {
-  updateLayerLists();
-});
-
-// 更新图层列表
-function updateLayerLists() {
-  serviceLayers.value = layerStore.getServiceLayers();
-  dataLayers.value = layerStore.getDataLayers();
-}
+onMounted(() => {});
 
 // 切换图层可见性
 function toggleLayerVisibility(layer) {
@@ -206,7 +197,12 @@ function updateLayerOpacity(layer) {
 
 // 移除图层
 function removeLayer(layer) {
+  // 先关闭弹框
+  layerPopovers.value[layer.id] = false;
+  // 再移除图层
   layerStore.removeLayer(layer.id);
+  // 清理弹窗状态
+  delete layerPopovers.value[layer.id];
 }
 </script>
 
