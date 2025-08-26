@@ -8,7 +8,8 @@
     "dev": "vite",
     "build:github-pages": "pnpm run copy-cesium-assets && vite build --mode production-github-pages",
     "build:local": "pnpm run copy-cesium-assets && vite build --mode production-local",
-    "preview": "vite preview",
+    "preview:github-pages": "vite preview --mode production-github-pages",
+    "preview:local": "vite preview --mode production-local",
     "lint": "eslint . --fix",
     "format": "prettier --write src/"
   },

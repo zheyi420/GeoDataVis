@@ -30,8 +30,11 @@ export default defineConfig(({ mode }) => {
     /*
      * https://vite.dev/guide/static-deploy.html#github-pages
      */
-    base: env.VITE_BASE_URL || '/',
+    base: env.VITE_BASE_URL,
     build: {
+      outDir: outDir
+    },
+    preview: {
       outDir: outDir
     },
     resolve: {
