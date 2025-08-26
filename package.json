@@ -6,7 +6,8 @@
   "scripts": {
     "copy-cesium-assets": "node copy-cesium-assets.js",
     "dev": "vite",
-    "build": "vite build",
+    "build:github-pages": "pnpm run copy-cesium-assets && vite build --mode production-github-pages",
+    "build:local": "pnpm run copy-cesium-assets && vite build --mode production-local",
     "preview": "vite preview",
     "lint": "eslint . --fix",
     "format": "prettier --write src/"
