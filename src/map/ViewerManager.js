@@ -56,26 +56,47 @@ class ViewerManager {
     window.Cesium.Camera.DEFAULT_VIEW_RECTANGLE = window.Cesium.Rectangle.fromDegrees(west, south, east, north)
 
     this.#viewerContainer = container
+
+    // 创建自定义时钟和时钟视图模型
+    /* const clock = new window.Cesium.Clock({
+      shouldAnimate: false,
+      multiplier: 1.0,
+      currentTime: window.Cesium.JulianDate.now()
+    });
+
+    const clockViewModel = new window.Cesium.ClockViewModel(clock);
+    // 立即禁用同步机制
+    clockViewModel.synchronize = function() {
+      // 空函数，防止同步导致的递归调用
+    }; */
+
     // 默认的部件设定策略
     const defaultWidgetConfig = {
-      animation: false, // Animation widget
+      animation: true, // Animation widget 动画面板
       baseLayerPicker: true, // 底图选择器
       fullscreenButton: false, // 全屏按钮
       geocoder: false, // Geocoder widget
       homeButton: true, // 主视图按钮
       sceneModePicker: false, // 场景模式选择器
       selectionIndicator: false, // 选择指示器
-      timeline: false, // 时间轴
+      timeline: true, // 时间轴面板
       navigationHelpButton: false, // 导航帮助按钮
       infoBox: false, // 信息框
       scene3DOnly: true, // 仅3D场景
-      shouldAnimate: false, // 时钟事件模拟
+      /* 不设置shouldAnimate，让clockViewModel控制 */
+      // shouldAnimate: false, // 禁用时钟动画（默认 false）
+      // clockViewModel: clockViewModel,  // 使用自定义的时钟视图模型
     }
     this.#viewer = new window.Cesium.Viewer(container, {
       ...defaultWidgetConfig,
       ...options,
     })
-    this.#viewer.cesiumWidget.creditContainer.style.display = 'none' // 隐藏版权信息
+    // 隐藏动画面板
+    this.#viewer.animation.container.style.visibility = 'hidden'
+    // 隐藏时间轴面板
+    this.#viewer.timeline.container.style.visibility = 'hidden'
+    // 隐藏版权信息
+    this.#viewer.cesiumWidget.creditContainer.style.display = 'none'
 
     // 修改鼠标控制策略
     const control = this.#viewer.scene.screenSpaceCameraController
