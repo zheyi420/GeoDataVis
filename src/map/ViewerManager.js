@@ -70,14 +70,14 @@ class ViewerManager {
 
     // 默认的部件设定策略
     const defaultWidgetConfig = {
-      animation: true, // Animation widget 动画面板
-      baseLayerPicker: true, // 底图选择器
+      // animation: true, // Animation widget 动画面板
+      // baseLayerPicker: true, // 底图选择器
       fullscreenButton: false, // 全屏按钮
       geocoder: false, // Geocoder widget
-      homeButton: true, // 主视图按钮
+      // homeButton: true, // 主视图按钮
       sceneModePicker: false, // 场景模式选择器
       selectionIndicator: false, // 选择指示器
-      timeline: true, // 时间轴面板
+      // timeline: true, // 时间轴面板
       navigationHelpButton: false, // 导航帮助按钮
       infoBox: false, // 信息框
       scene3DOnly: true, // 仅3D场景
