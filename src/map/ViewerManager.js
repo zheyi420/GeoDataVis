@@ -3,8 +3,6 @@
  *
  */
 
-import LayerManager from './LayerManager';
-
 class ViewerManager {
   /**
    * @name 地图视图类（单例模式）
@@ -98,21 +96,21 @@ class ViewerManager {
     // 隐藏版权信息
     this.#viewer.cesiumWidget.creditContainer.style.display = 'none'
 
-    // 修改鼠标控制策略
+    /* 修改鼠标控制策略 */
     const control = this.#viewer.scene.screenSpaceCameraController
+    // 左键拖拽：平移
     control.rotateEventTypes = window.Cesium.CameraEventType.LEFT_DRAG
+    // 中键拖拽：倾斜
     control.tiltEventTypes = [window.Cesium.CameraEventType.MIDDLE_DRAG, { eventType : window.Cesium.CameraEventType.LEFT_DRAG, modifier : window.Cesium.KeyboardEventModifier.CTRL }]
+    // 右键拖拽：相机位置不动，仅朝向改变
     control.lookEventTypes = window.Cesium.CameraEventType.RIGHT_DRAG
+    // 滚轮：缩放
     control.zoomEventTypes = window.Cesium.CameraEventType.WHEEL
 
     this.#viewer.camera.percentageChanged = 0.001 // 设置更高的灵敏度
 
     // # 确保camera.roll始终为0
     this.keepCameraRollZero(this.#viewer)
-
-    // 在创建viewer后初始化 - 使用单例模式获取LayerManager实例
-    const layerManager = LayerManager.getInstance(this.#viewer);
-    window.layerManager = layerManager; // 可选：全局访问
 
     return this.#viewer
   }

@@ -1,6 +1,10 @@
 import { ref, markRaw } from 'vue'
 import { defineStore } from 'pinia'
 
+/**
+ * @typedef {import('@/map/LayerManager').default} LayerManager
+ */
+
 export const useLayerStore = defineStore('layers', () => {
   // 所有图层的数据集合（包括地图服务图层和数据文件图层）
   const layers = ref([]);
@@ -41,12 +45,12 @@ export const useLayerStore = defineStore('layers', () => {
    */
   function getUniqueLayerName(baseName) {
     const existingNames = layers.value.map(l => l.name);
-    
+
     // 如果基础名称不存在，直接返回
     if (!existingNames.includes(baseName)) {
       return baseName;
     }
-    
+
     // 查找可用的编号
     let counter = 1;
     let candidateName;
@@ -54,7 +58,7 @@ export const useLayerStore = defineStore('layers', () => {
       candidateName = `${baseName}(${counter})`;
       counter++;
     } while (existingNames.includes(candidateName));
-    
+
     return candidateName;
   }
 
