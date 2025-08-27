@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2025-04-11
  * @LastEditors: zheyi420
- * @LastEditTime: 2025-04-15
+ * @LastEditTime: 2025-08-28
  * @FilePath: \GeoDataVis\src\views\panels\MapParamsPanel.vue
  * @Description: 显示相机、鼠标等信息
  *
@@ -30,6 +30,7 @@
 
 <script setup>
 import { ref, onMounted, reactive, watch, computed } from 'vue'
+import { ScreenSpaceEventHandler, ScreenSpaceEventType, Math as CesiumMath, Cartographic } from 'cesium'
 
 const panelRef = ref(null)
 const emit = defineEmits(['heightChange'])
@@ -53,17 +54,17 @@ function updateCameraParams() {
   const viewer = window.viewer;
   if (viewer) {
     const position = viewer.camera.positionWC;
-    const cartographic = window.Cesium.Cartographic.fromCartesian(position);
-    cameraParams.longitude = window.Cesium.Math.toDegrees(cartographic.longitude).toFixed(5); // 保留五位小数
-    cameraParams.latitude = window.Cesium.Math.toDegrees(cartographic.latitude).toFixed(5); // 保留五位小数
+    const cartographic = Cartographic.fromCartesian(position);
+    cameraParams.longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(5); // 保留五位小数
+    cameraParams.latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(5); // 保留五位小数
     cameraParams.altitude = cartographic.height.toFixed(2); // 保留两位小数
 
-    const heading = window.Cesium.Math.toDegrees(viewer.camera.heading).toFixed(2); // 保留两位小数
+    const heading = CesiumMath.toDegrees(viewer.camera.heading).toFixed(2); // 保留两位小数
     cameraParams.heading = heading == 360 ? 0 : heading;
 
-    cameraParams.pitch = window.Cesium.Math.toDegrees(viewer.camera.pitch).toFixed(2); // 保留两位小数
+    cameraParams.pitch = CesiumMath.toDegrees(viewer.camera.pitch).toFixed(2); // 保留两位小数
 
-    const roll = window.Cesium.Math.toDegrees(viewer.camera.roll).toFixed(2); // 保留两位小数
+    const roll = CesiumMath.toDegrees(viewer.camera.roll).toFixed(2); // 保留两位小数
     cameraParams.roll = roll == 360 ? 0 : roll;
   }
 }
@@ -72,9 +73,9 @@ function updateMouseParams(movement) {
   const ellipsoid = window.viewer.scene.globe.ellipsoid;
   const cartesian = window.viewer.scene.camera.pickEllipsoid(movement.endPosition, ellipsoid);
   if (cartesian) {
-    const cartographic = window.Cesium.Cartographic.fromCartesian(cartesian);
-    mouseParams.longitude = window.Cesium.Math.toDegrees(cartographic.longitude).toFixed(5); // 保留五位小数
-    mouseParams.latitude = window.Cesium.Math.toDegrees(cartographic.latitude).toFixed(5); // 保留五位小数
+    const cartographic = Cartographic.fromCartesian(cartesian);
+    mouseParams.longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(5); // 保留五位小数
+    mouseParams.latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(5); // 保留五位小数
     mouseParams.altitude = cartographic.height.toFixed(2); // 保留两位小数
   }
 }
@@ -92,8 +93,8 @@ onMounted(() => {
     const removeCallBack4UpdateCameraParams = viewer.camera.changed.addEventListener(updateCameraParams);
     updateCameraParams(); // 初始化时调用一次
 
-    const handler = new window.Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-    handler.setInputAction(updateMouseParams, window.Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
+    handler.setInputAction(updateMouseParams, ScreenSpaceEventType.MOUSE_MOVE);
   }
 })
 </script>

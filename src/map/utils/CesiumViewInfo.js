@@ -2,11 +2,12 @@
  * @Author: zheyi420
  * @Date: 2024-10-29 23:46:36
  * @LastEditors: zheyi420
- * @LastEditTime: 2024-10-31 01:07:04
+ * @LastEditTime: 2025-08-28
  * @FilePath: \GeoDataVis\src\map\utils\CesiumViewInfo.js
  * @Description: 工具函数，获取当前视图的的信息，如当前相机的高度，显示的地图的坐标范围等。
  *
  */
+import { Math as CesiumMath, Cartesian2 } from 'cesium'
 
 /**
  * @name 获取当前视图的坐标范围，返回的四个角的顺序为左上，右上，右下，左下
@@ -25,10 +26,10 @@ export function getCurrentViewExtent(viewer) {
   const canvasWidth = canvasRect.width
   const canvasHeight = canvasRect.height
 
-  const pickLeftTopInCartesian2 = new window.Cesium.Cartesian2(0, 0)
-  const pickRightTopInCartesian2 = new window.Cesium.Cartesian2(canvasWidth, 0)
-  const pickRightBottomInCartesian2 = new window.Cesium.Cartesian2(canvasWidth, canvasHeight)
-  const pickLeftBottomInCartesian2 = new window.Cesium.Cartesian2(0, canvasHeight)
+  const pickLeftTopInCartesian2 = new Cartesian2(0, 0)
+  const pickRightTopInCartesian2 = new Cartesian2(canvasWidth, 0)
+  const pickRightBottomInCartesian2 = new Cartesian2(canvasWidth, canvasHeight)
+  const pickLeftBottomInCartesian2 = new Cartesian2(0, canvasHeight)
 
   const pickLeftTopInCartesian3 = scene.camera.pickEllipsoid(pickLeftTopInCartesian2)
   const pickRightTopInCartesian3 = scene.camera.pickEllipsoid(pickRightTopInCartesian2)
@@ -40,14 +41,14 @@ export function getCurrentViewExtent(viewer) {
   const pickRightBottomInCartographic = ellipsoid.cartesianToCartographic(pickRightBottomInCartesian3)
   const pickLeftBottomInCartographic = ellipsoid.cartesianToCartographic(pickLeftBottomInCartesian3)
 
-  const pickLeftTopInDegreeLon = window.Cesium.Math.toDegrees(pickLeftTopInCartographic.longitude)
-  const pickLeftTopInDegreeLat = window.Cesium.Math.toDegrees(pickLeftTopInCartographic.latitude)
-  const pickRightTopInDegreeLon = window.Cesium.Math.toDegrees(pickRightTopInCartographic.longitude)
-  const pickRightTopInDegreeLat = window.Cesium.Math.toDegrees(pickRightTopInCartographic.latitude)
-  const pickRightBottomInDegreeLon = window.Cesium.Math.toDegrees(pickRightBottomInCartographic.longitude)
-  const pickRightBottomInDegreeLat = window.Cesium.Math.toDegrees(pickRightBottomInCartographic.latitude)
-  const pickLeftBottomInDegreeLon = window.Cesium.Math.toDegrees(pickLeftBottomInCartographic.longitude)
-  const pickLeftBottomInDegreeLat = window.Cesium.Math.toDegrees(pickLeftBottomInCartographic.latitude)
+  const pickLeftTopInDegreeLon = CesiumMath.toDegrees(pickLeftTopInCartographic.longitude)
+  const pickLeftTopInDegreeLat = CesiumMath.toDegrees(pickLeftTopInCartographic.latitude)
+  const pickRightTopInDegreeLon = CesiumMath.toDegrees(pickRightTopInCartographic.longitude)
+  const pickRightTopInDegreeLat = CesiumMath.toDegrees(pickRightTopInCartographic.latitude)
+  const pickRightBottomInDegreeLon = CesiumMath.toDegrees(pickRightBottomInCartographic.longitude)
+  const pickRightBottomInDegreeLat = CesiumMath.toDegrees(pickRightBottomInCartographic.latitude)
+  const pickLeftBottomInDegreeLon = CesiumMath.toDegrees(pickLeftBottomInCartographic.longitude)
+  const pickLeftBottomInDegreeLat = CesiumMath.toDegrees(pickLeftBottomInCartographic.latitude)
 
   const extent = {
     InCartesian3: {

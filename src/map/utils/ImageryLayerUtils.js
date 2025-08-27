@@ -2,7 +2,7 @@
  * @Description: 影像图层工具函数
  *
  */
-
+import { ImageryLayer, WebMapServiceImageryProvider, WebMapTileServiceImageryProvider, WebMercatorTilingScheme } from 'cesium'
 import { ElMessage } from "element-plus";
 
 /**
@@ -27,7 +27,7 @@ export function createWmsImageryLayer(wmsOptions) {
       console.log('createWmsImageryLayer 参数', wmsOptions);
 
       // 创建WMS图层提供者
-      const provider = new window.Cesium.WebMapServiceImageryProvider(wmsOptions);
+      const provider = new WebMapServiceImageryProvider(wmsOptions);
 
       // Registers a callback function to be executed whenever the event is raised.
       // An optional scope can be provided to serve as the this pointer in which the function will execute.
@@ -39,7 +39,7 @@ export function createWmsImageryLayer(wmsOptions) {
       })
 
       // 创建图层
-      const imageryLayer = new window.Cesium.ImageryLayer(provider);
+      const imageryLayer = new ImageryLayer(provider);
 
       // 监听图层错误事件
       const removeLayerErrorCallback = imageryLayer.errorEvent.addEventListener((error) => {
@@ -91,7 +91,7 @@ export function createWmtsImageryLayer(wmtsOptions) {
       console.log('createWmtsImageryLayer 参数', wmtsOptions);
 
       // 创建WMTS图层提供者
-      const provider = new window.Cesium.WebMapTileServiceImageryProvider({
+      const provider = new WebMapTileServiceImageryProvider({
         url: wmtsOptions.url,
         layer: wmtsOptions.layer,
         style: wmtsOptions.style,
@@ -101,7 +101,7 @@ export function createWmtsImageryLayer(wmtsOptions) {
         maximumLevel: wmtsOptions.maximumLevel || 18,
         tileWidth: wmtsOptions.tileWidth || 256,
         tileHeight: wmtsOptions.tileHeight || 256,
-        tilingScheme: wmtsOptions.tilingScheme || new window.Cesium.WebMercatorTilingScheme()
+        tilingScheme: wmtsOptions.tilingScheme || new WebMercatorTilingScheme()
       });
 
       // 监听提供者错误事件
@@ -111,7 +111,7 @@ export function createWmtsImageryLayer(wmtsOptions) {
       });
 
       // 创建图层
-      const imageryLayer = new window.Cesium.ImageryLayer(provider);
+      const imageryLayer = new ImageryLayer(provider);
 
       // 监听图层错误事件
       const removeLayerErrorCallback = imageryLayer.errorEvent.addEventListener((error) => {

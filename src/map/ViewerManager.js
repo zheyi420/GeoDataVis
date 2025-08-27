@@ -2,6 +2,7 @@
  * @Description: Viewer 初始化（单例模式）
  *
  */
+import { Viewer, Camera, Rectangle, ScreenSpaceEventHandler, ScreenSpaceEventType, CameraEventType, KeyboardEventModifier } from 'cesium'
 
 class ViewerManager {
   /**
@@ -50,8 +51,8 @@ class ViewerManager {
     // 又是homeButton响应后的回调函数中camera.flyHome()方法的目的地
     const [west, south, east, north] = [111.11, 21.66568, 115.861587, 23.881399]
     // The default rectangle the camera will view on creation.
-    window.Cesium.Camera.DEFAULT_VIEW_FACTOR = 0 // 控制相机与指定矩形之间距离的参数
-    window.Cesium.Camera.DEFAULT_VIEW_RECTANGLE = window.Cesium.Rectangle.fromDegrees(west, south, east, north)
+    Camera.DEFAULT_VIEW_FACTOR = 0 // 控制相机与指定矩形之间距离的参数
+    Camera.DEFAULT_VIEW_RECTANGLE = Rectangle.fromDegrees(west, south, east, north)
 
     this.#viewerContainer = container
 
@@ -70,6 +71,7 @@ class ViewerManager {
 
     // 默认的部件设定策略
     const defaultWidgetConfig = {
+      // showRenderLoopErrors: false, // 显示渲染循环错误面板
       // animation: true, // Animation widget 动画面板
       // baseLayerPicker: true, // 底图选择器
       fullscreenButton: false, // 全屏按钮
@@ -85,10 +87,15 @@ class ViewerManager {
       // shouldAnimate: false, // 禁用时钟动画（默认 false）
       // clockViewModel: clockViewModel,  // 使用自定义的时钟视图模型
     }
-    this.#viewer = new window.Cesium.Viewer(container, {
-      ...defaultWidgetConfig,
-      ...options,
-    })
+    try {
+      this.#viewer = new Viewer(container, {
+        ...defaultWidgetConfig,
+        ...options,
+      })
+    } catch (error) {
+      console.error('Initialize the viewer widget failed', error)
+    }
+
     // 隐藏动画面板
     this.#viewer.animation.container.style.visibility = 'hidden'
     // 隐藏时间轴面板
@@ -99,13 +106,13 @@ class ViewerManager {
     /* 修改鼠标控制策略 */
     const control = this.#viewer.scene.screenSpaceCameraController
     // 左键拖拽：平移
-    control.rotateEventTypes = window.Cesium.CameraEventType.LEFT_DRAG
+    control.rotateEventTypes = CameraEventType.LEFT_DRAG
     // 中键拖拽：倾斜
-    control.tiltEventTypes = [window.Cesium.CameraEventType.MIDDLE_DRAG, { eventType : window.Cesium.CameraEventType.LEFT_DRAG, modifier : window.Cesium.KeyboardEventModifier.CTRL }]
+    control.tiltEventTypes = [CameraEventType.MIDDLE_DRAG, { eventType : CameraEventType.LEFT_DRAG, modifier : KeyboardEventModifier.CTRL }]
     // 右键拖拽：相机位置不动，仅朝向改变
-    control.lookEventTypes = window.Cesium.CameraEventType.RIGHT_DRAG
+    control.lookEventTypes = CameraEventType.RIGHT_DRAG
     // 滚轮：缩放
-    control.zoomEventTypes = window.Cesium.CameraEventType.WHEEL
+    control.zoomEventTypes = CameraEventType.WHEEL
 
     this.#viewer.camera.percentageChanged = 0.001 // 设置更高的灵敏度
 
@@ -160,14 +167,14 @@ class ViewerManager {
    */
   _keepCameraRollZero(viewer) {
     // 创建事件处理器
-    const handler = new window.Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
+    const handler = new ScreenSpaceEventHandler(viewer.scene.canvas)
     // 记录鼠标初始位置
     let startMousePosition
 
     // 监听右键按下事件
     handler.setInputAction(function (movement) {
       startMousePosition = movement.position // 记录初始位置
-    }, window.Cesium.ScreenSpaceEventType.RIGHT_DOWN)
+    }, ScreenSpaceEventType.RIGHT_DOWN)
 
     // 监听鼠标移动事件
     handler.setInputAction(function (movement) {
@@ -183,12 +190,12 @@ class ViewerManager {
           },
         })
       }
-    }, window.Cesium.ScreenSpaceEventType.MOUSE_MOVE)
+    }, ScreenSpaceEventType.MOUSE_MOVE)
 
     // 监听右键抬起事件以重置初始位置
     handler.setInputAction(function () {
       startMousePosition = undefined // 清除初始位置
-    }, window.Cesium.ScreenSpaceEventType.RIGHT_UP)
+    }, ScreenSpaceEventType.RIGHT_UP)
   }
 
   /**
