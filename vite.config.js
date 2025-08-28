@@ -5,6 +5,8 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 import ElementPlus from 'unplugin-element-plus/vite'
+import { viteExternalsPlugin } from 'vite-plugin-externals'
+import { insertHtml, h } from 'vite-plugin-insert-html'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -26,6 +28,19 @@ export default defineConfig(({ mode }) => {
       ElementPlus({
         // options
       }),
+      viteExternalsPlugin({
+        cesium: 'Cesium'
+      }, {
+        disableInServe: true, // 开发模式时不外部化
+        // useWindow: true
+      }),
+      insertHtml({
+        head: [
+          h('script', {
+            src: 'static/Cesium/Cesium.js'
+          })
+        ]
+      })
     ],
     /*
      * https://vite.dev/guide/static-deploy.html#github-pages
@@ -33,10 +48,10 @@ export default defineConfig(({ mode }) => {
     base: env.VITE_BASE_URL,
     build: {
       outDir: outDir,
+      /* rollupOptions: {
+        external: ['cesium']
+      } */
     },
-    /* optimizeDeps: {
-      exclude: ['cesium'],  // ← 避免 Vite 对 Cesium 预构建
-    }, */
     preview: {
       outDir: outDir
     },
