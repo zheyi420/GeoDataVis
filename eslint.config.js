@@ -11,7 +11,7 @@ export default [
 
   {
     name: 'app/files-to-ignore',
-    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/public/static/Cesium/**'],
+    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**'],
   },
 
   js.configs.recommended,

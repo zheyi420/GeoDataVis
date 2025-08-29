@@ -6,8 +6,8 @@
   "scripts": {
     "copy-cesium-assets": "node copy-cesium-assets.js",
     "dev": "vite",
-    "build:github-pages": "pnpm run copy-cesium-assets && vite build --mode production-github-pages",
-    "build:local": "pnpm run copy-cesium-assets && vite build --mode production-local",
+    "build:github-pages": "vite build --mode production-github-pages",
+    "build:local": "vite build --mode production-local",
     "preview:github-pages": "vite preview --mode production-github-pages",
     "preview:local": "vite preview --mode production-local",
     "lint": "eslint . --fix",
@@ -36,6 +36,7 @@
     "vite": "^7.1.3",
     "vite-plugin-externals": "^0.6.2",
     "vite-plugin-insert-html": "^1.0.3",
+    "vite-plugin-static-copy": "^3.1.2",
     "vite-plugin-vue-devtools": "^8.0.0"
   }
 }

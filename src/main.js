@@ -22,7 +22,7 @@ import router from './router'
  * The window.CESIUM_BASE_URL global variable must be set before CesiumJS is imported.
  * It must point to the URL where those four directories are served.
  */
-window.CESIUM_BASE_URL = `${import.meta.env.BASE_URL}static/Cesium/`
+window.CESIUM_BASE_URL = `${import.meta.env.BASE_URL}libs/cesium/`
 
 import { Ion } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
