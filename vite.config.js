@@ -57,7 +57,15 @@ export default defineConfig(({ mode }) => {
       },
       {
         disableInServe: true, // 开发模式时不外部化
-        useWindow: false, // 默认为 true 会可全局访问 Cesium
+        /*
+         * 默认为 true , 设置 false , window 的作用域将不会加上。
+         * 注意: 如果模块名有特殊字符，例如 /，设置useWindow选项 false 将引发错误。
+         *
+         * 开发模式会生效，访问 window.Cesium 为 undefined
+         * 打包部署，不生效，依旧可访问 window.Cesium，原因如下：
+         * ➡ 在下方通过插件 insertHtml 将 libs/cesium/Cesium.js 作为脚本插入到 index.html 中会导致 Cesium 可以全局访问，即可以通过 window.Cesium 访问。
+         */
+        useWindow: false,
       },
     ),
     viteStaticCopy({
@@ -70,32 +78,30 @@ export default defineConfig(({ mode }) => {
         // 四大静态文件夹
         ...cesiumStaticSourceCopyOptions,
       ],
-    }),
-    /**
-     * 打包后的页面因为外部化 cesium 找不到 CesiumJS 库
-     * 使用插件自动在 index.html 引入 Cesium.js 库文件
-     */
-    insertHtml({
-      head: [
-        h('script', {
-          src: 'libs/cesium/Cesium.js',
-        }),
-      ],
-    }),
+    })
   ]
+  // 如果是构建，引入如下插件
+  if (mode === 'production-github-pages' || mode === 'production-local') {
+    plugins.push(
+      /**
+       * 打包后的页面因为外部化 cesium 找不到 CesiumJS 库
+       * 使用插件自动在 index.html 引入 Cesium.js 库文件
+       */
+      insertHtml({
+        head: [
+          h('script', {
+            src: 'libs/cesium/Cesium.js',
+          }),
+        ],
+      }),
+    )
+  }
   /*
    * https://vite.dev/guide/static-deploy.html#github-pages
    */
   const base = env.VITE_BASE_URL
   const build = {
     outDir: outDir,
-    /* rollupOptions: {
-        output: {
-          manualChunks: {
-            cesium: ['cesium']
-          }
-        }
-      } */
   }
   const preview = {
     outDir: outDir,
