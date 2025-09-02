@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "copy-cesium-assets": "node copy-cesium-assets.js",
+    "=== 不在使用脚本做文件复制了，已改用插件 vite-plugin-static-copy ===": "node copy-cesium-assets.js",
     "dev": "vite",
     "build:github-pages": "vite build --mode production-github-pages",
     "build:local": "vite build --mode production-local",
