@@ -3,7 +3,8 @@
  * LayerManager 专注于 Cesium 操作，不管理 store 状态
  */
 
-import { createWmsImageryLayer, createWmtsImageryLayer } from './utils/ImageryLayerUtils';
+import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
+import * as Cesium from 'cesium';
 
 class LayerManager {
   #viewer; // 私有属性
@@ -67,6 +68,67 @@ class LayerManager {
       });
   }
 
+
+  /**
+   * 添加 Cesium 3DTiles 模型
+   * @param {Object} tilesOptions - 3DTiles 配置项
+   * @param {string} tilesOptions.url - tileset.json 的 URL
+   * @param {number} tilesOptions.maximumScreenSpaceError - 屏幕空间误差（默认 16）
+   * @returns {Promise<Object>} 返回 tileset 实例的 Promise
+   */
+  async add3DTilesLayer(tilesOptions) {
+    console.log('add3DTilesLayer', tilesOptions);
+    try {
+      // 1. 使用工具函数创建 3DTiles 模型
+      const tileset = await create3DTilesLayer(tilesOptions);
+
+      // 2. 添加到 Cesium viewer 的 primitives
+      this.#viewer.scene.primitives.add(tileset);
+
+      // 3. 自动聚焦 camera 到模型位置
+      this._zoomToTileset(tileset);
+
+      return tileset;
+    } catch (error) {
+      console.error('加载 3DTiles 失败:', error);
+      throw new Error(`加载 3DTiles 模型失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 聚焦 camera 到 3DTiles 模型
+   * @param {Object} tileset - Cesium 3DTiles 实例
+   */
+  _zoomToTileset(tileset) {
+    try {
+      if (tileset.boundingSphere) {
+        const boundingSphere = tileset.boundingSphere;
+        this.#viewer.camera.flyToBoundingSphere(boundingSphere, {
+          duration: 1.0,
+          offset: new Cesium.HeadingPitchRange(
+            Cesium.Math.toRadians(0),
+            Cesium.Math.toRadians(-45),
+            boundingSphere.radius * 2
+          ),
+        });
+      }
+    } catch (error) {
+      console.error('聚焦失败:', error);
+    }
+  }
+
+  /**
+   * 移除 3DTiles 模型
+   * @param {Object} tileset - Cesium 3DTiles 实例
+   * @returns {Boolean} 是否成功移除
+   */
+  remove3DTilesLayer(tileset) {
+    if (tileset) {
+      const result = this.#viewer.scene.primitives.remove(tileset);
+      return result;
+    }
+    return false;
+  }
 
   /**
    * 从 Cesium 中移除图层

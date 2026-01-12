@@ -56,6 +56,33 @@ export const usePanelStatusStore = defineStore('panelStatus', () => {
     visStatus4DialogWmtsServiceParam.value = false
   }
 
+  /**
+   * 控制"Cesium 3DTiles"服务参数对话框的可见状态
+   * @type {import('vue').Ref<boolean>}
+   */
+  const visStatus4DialogCesium3DTilesParam = ref(false)
+
+  /**
+   * 切换"Cesium 3DTiles"服务参数对话框的可见状态
+   */
+  function switchVisStatus4DialogCesium3DTilesParam() {
+    visStatus4DialogCesium3DTilesParam.value = !visStatus4DialogCesium3DTilesParam.value
+  }
+
+  /**
+   * 打开"Cesium 3DTiles"服务参数对话框
+   */
+  function openDialogCesium3DTilesParam() {
+    visStatus4DialogCesium3DTilesParam.value = true
+  }
+
+  /**
+   * 关闭"Cesium 3DTiles"服务参数对话框
+   */
+  function closeDialogCesium3DTilesParam() {
+    visStatus4DialogCesium3DTilesParam.value = false
+  }
+
   return {
     visStatus4DialogGeoServerWmsServiceParam,
     switchVisStatus4DialogGeoServerWmsServiceParam,
@@ -65,5 +92,9 @@ export const usePanelStatusStore = defineStore('panelStatus', () => {
     switchVisStatus4DialogWmtsServiceParam,
     openDialogWmtsServiceParam,
     closeDialogWmtsServiceParam,
+    visStatus4DialogCesium3DTilesParam,
+    switchVisStatus4DialogCesium3DTilesParam,
+    openDialogCesium3DTilesParam,
+    closeDialogCesium3DTilesParam,
   }
 })

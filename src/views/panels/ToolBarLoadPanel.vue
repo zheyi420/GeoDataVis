@@ -132,6 +132,7 @@ function handleChange4ServiceLoadType(value) {
           break;
         }
         case '3D-Data': {
+          _load3DDataService(value[1]);
           break;
         }
         default: {
@@ -165,6 +166,26 @@ function _loadGeoServerService(value) {
     }
     default: {
       console.log('###加载服务-Web Map-未匹配', value);
+      break;
+    }
+  }
+}
+
+/**
+ * 处理 3D 数据服务加载
+ * @param {string} value - 服务类型（如 'Cesium3DTiles'）
+ */
+function _load3DDataService(value) {
+  console.log('###_load3DDataService value:', value);
+
+  switch (value) {
+    case 'Cesium3DTiles': {
+      console.log('###加载服务-3D-Data-Cesium3DTiles');
+      usePanelStatusStore().openDialogCesium3DTilesParam();
+      break;
+    }
+    default: {
+      console.log('###加载服务-3D-Data-未匹配', value);
       break;
     }
   }

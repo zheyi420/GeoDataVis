@@ -126,6 +126,38 @@ export const useLayerStore = defineStore('layers', () => {
       });
   }
 
+  /**
+   * 添加 Cesium 3DTiles 模型
+   * @param {String} layerName - 图层名称
+   * @param {Object} tilesOptions - 3DTiles 配置项
+   * @returns {Promise<String>} 返回图层ID的Promise
+   */
+  function add3DTilesLayer(layerName, tilesOptions) {
+    const layerManager = getLayerManager();
+    if (!layerManager) {
+      return Promise.reject(new Error('LayerManager 未初始化'));
+    }
+
+    return layerManager.add3DTilesLayer(tilesOptions)
+      .then(tileset => {
+        if (tileset) {
+          // 添加到 store 中
+          const layerId = _addLayer({
+            name: layerName,
+            type: 'model',
+            sourceType: 'Cesium3DTiles',
+            visible: true,
+            opacity: 1,
+            layerInstance: tileset,
+            metadata: tilesOptions
+          });
+          return layerId;
+        } else {
+          throw new Error('3DTiles 模型创建失败');
+        }
+      });
+  }
+
   // 移除指定ID的图层
   function removeLayer(layerId) {
     console.log('开始移除图层:', layerId);
@@ -280,6 +312,7 @@ export const useLayerStore = defineStore('layers', () => {
     layers,
     addWmsLayer,
     addWmtsLayer,
+    add3DTilesLayer,
     removeLayer,
     setLayerVisibility,
     setLayerOpacity,

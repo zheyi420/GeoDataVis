@@ -17,6 +17,7 @@
     <!-- TODO 是否需要改为异步组件，调用时再加载 -->
     <DialogWmsServiceParam />
     <DialogWmtsServiceParam />
+    <DialogCesium3DTilesParam />
   </div>
 </template>
 
@@ -28,6 +29,7 @@ import ToolBarLoadPanel from '@/views/panels/ToolBarLoadPanel.vue'
 import LayerManagerPanel from '@/views/panels/LayerManagerPanel.vue'
 import DialogWmsServiceParam from '@/views/panels/DialogWmsServiceParam.vue'
 import DialogWmtsServiceParam from '@/views/panels/DialogWmtsServiceParam.vue'
+import DialogCesium3DTilesParam from '@/views/panels/DialogCesium3DTilesParam.vue'
 
 const paramsPanelHeight = ref(0) // 默认高度
 

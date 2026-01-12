@@ -2,7 +2,7 @@
  * @Description: 影像图层工具函数
  *
  */
-import { ImageryLayer, WebMapServiceImageryProvider, WebMapTileServiceImageryProvider, WebMercatorTilingScheme } from 'cesium'
+import { ImageryLayer, WebMapServiceImageryProvider, WebMapTileServiceImageryProvider, WebMercatorTilingScheme, Cesium3DTileset } from 'cesium'
 import { ElMessage } from "element-plus";
 
 /**
@@ -126,4 +126,62 @@ export function createWmtsImageryLayer(wmtsOptions) {
       reject(new Error(`创建WMTS图层失败: ${error.message || '未知错误'}`));
     }
   });
+}
+
+/**
+ * 创建 Cesium 3DTiles 模型
+ * @param {Object} options - 配置项
+ * @param {string} options.url - tileset.json 的 URL
+ * @param {number} [options.maximumScreenSpaceError=16] - 屏幕空间误差
+ * @returns {Promise<Cesium3DTileset>} Cesium 3DTiles 实例的 Promise
+ */
+export async function create3DTilesLayer(options) {
+  const {
+    url,
+    maximumScreenSpaceError = 16
+  } = options
+
+  if (!url) {
+    throw new Error('tileset.json URL 不能为空')
+  }
+
+  try {
+    console.log('create3DTilesLayer 参数', options)
+
+    // 使用 Cesium3DTileset.fromUrl 加载 3DTiles
+    const tileset = await Cesium3DTileset.fromUrl(url, {
+      maximumScreenSpaceError: maximumScreenSpaceError
+    })
+
+    console.log('Cesium 3DTiles 加载成功:', tileset)
+    return tileset
+  } catch (error) {
+    console.error('创建 3DTiles 失败:', error)
+
+    // 提供更详细的错误信息
+    if (error.message.includes('404')) {
+      throw new Error('tileset.json 文件不存在（404），请检查 URL 是否正确')
+    } else if (error.message.includes('CORS')) {
+      throw new Error('跨域请求被阻止，请检查服务器 CORS 配置')
+    } else if (error.message.includes('timeout')) {
+      throw new Error('加载超时，请检查网络连接和服务器状态')
+    } else if (error.message.includes('Network')) {
+      throw new Error('网络错误，请检查服务器状态和网络连接')
+    } else {
+      throw new Error(`加载失败: ${error.message}`)
+    }
+  }
+}
+
+/**
+ * 验证 tileset.json URL 格式
+ * @param {string} url - 要验证的 URL
+ * @returns {boolean} 是否为有效的 URL 格式
+ */
+export function validateTilesetUrl(url) {
+  if (!url) return false
+
+  // 基础 URL 格式验证
+  const urlRegex = /^https?:\/\/.+\.json$/i
+  return urlRegex.test(url)
 }
