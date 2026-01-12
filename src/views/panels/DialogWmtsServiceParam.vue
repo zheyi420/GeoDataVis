@@ -50,18 +50,21 @@
                 <span class="param-item">style:</span>
               </el-col>
               <el-col :span="9">
-                <el-form-item class="param-item" prop="style">
-                  <el-input v-model="form4WmtsServiceParam.style" autocomplete="off" style="width: 180px" />
-                </el-form-item>
+                <el-tooltip placement="right">
+                  <template #content>如为空，自动设置为默认样式名 'default'</template>
+                  <el-form-item prop="style" class="param-item">
+                    <el-input v-model="form4WmtsServiceParam.style" autocomplete="off" style="width: 180px" />
+                  </el-form-item>
+                </el-tooltip>
               </el-col>
             </el-row>
             <el-row :gutter="2" align="middle">
               <el-col :span="3">
                 <span class="param-item">format:</span>
               </el-col>
-              <el-col :span="9">
+              <el-col :span="7">
                 <el-form-item class="param-item" prop="format">
-                  <el-select v-model="form4WmtsServiceParam.format" style="width: 180px">
+                  <el-select v-model="form4WmtsServiceParam.format" style="width: 130px">
                     <el-option
                       v-for="item of formatOptions"
                       :key="item.value"
@@ -71,12 +74,17 @@
                   </el-select>
                 </el-form-item>
               </el-col>
-              <el-col :span="3">
+              <el-col :span="5">
                 <span class="param-item">tileMatrixSetID:</span>
               </el-col>
               <el-col :span="9">
                 <el-form-item class="param-item" prop="tileMatrixSetID">
                   <el-input v-model="form4WmtsServiceParam.tileMatrixSetID" autocomplete="off" style="width: 180px" />
+                  <!--
+                  <el-input v-model="form4WmtsServiceParam.tileMatrixSetID" autocomplete="off" style="width: 180px">
+                    <template #prepend>EPSG:</template>
+                  </el-input>
+                  -->
                 </el-form-item>
               </el-col>
             </el-row>
@@ -136,6 +144,7 @@ import {
   ElDivider,
   ElRow,
   ElCol,
+  ElTooltip,
   ElMessage,
 } from 'element-plus'
 import { usePanelStatusStore } from '@/stores/panelStatus'
@@ -153,7 +162,7 @@ const form4WmtsServiceParam = reactive({
   layer: null,
   style: '',
   format: 'image/png',
-  tileMatrixSetID: 'GoogleMapsCompatible',
+  tileMatrixSetID: 'EPSG:3857',
   tileWidth: 256,
   tileHeight: 256,
 })
@@ -179,10 +188,10 @@ const rules = reactive({
     { validator: checkUrl, trigger: 'blur' }
   ],
   layer: [
-    { required: true, message: '请输入图层标识符', trigger: 'blur' }
+    { validator: checkLayer, trigger: 'blur' }
   ],
   style: [
-    { required: true, message: '请输入样式名称', trigger: 'blur' }
+    { validator: checkStyle, trigger: 'blur' }
   ],
   format: [
     { required: true, message: '请选择图像格式', trigger: 'change' }
@@ -224,6 +233,42 @@ function checkUrl(rule, value, callback) {
 
   if (!reg.test(value)) {
     return callback(new Error('格式错误'))
+  }
+
+  callback()
+}
+
+/**
+ * @description 校验图层名称
+ */
+ function checkLayer(rule, value, callback) {
+  // 如果图层名称为空，提示错误
+  if (!value) {
+    return callback(new Error('请输入'))
+  }
+
+  // 如果图层名称为空格，提示错误
+  if (!value.trim()) {
+    // 删除前后空格后为空字符串
+    return callback(new Error('不能为空格'))
+  }
+
+  callback()
+}
+
+/**
+ * @description 校验图层样式
+ */
+ function checkStyle(rule, value, callback) {
+  // 如果图层样式为空，正常
+  if (!value) {
+    return callback()
+  }
+
+  // 如果图层名称为空格，提示错误
+  if (!value.trim()) {
+    // 删除前后空格后为空字符串
+    return callback(new Error('不能为空格'))
   }
 
   callback()
