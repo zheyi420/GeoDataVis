@@ -1,8 +1,8 @@
 <!--
  * @Author: zheyi420
  * @Date: 2025-01-12
- * @LastEditors: zheyi420
- * @LastEditTime: 2026-01-13
+ * @LastEditors: zheyi420 37471153+zheyi420@users.noreply.github.com
+ * @LastEditTime: 2026-01-14
  * @FilePath: \GeoDataVis\src\views\panels\DialogCesium3DTilesParam.vue
  * @Description: Cesium 3DTiles 模型加载对话框
  *
@@ -54,7 +54,7 @@
         <!-- URL 说明 -->
         <div ref="ref4InputUrlTip" class="form-item-tips form-item-tips-url">
           <span>示例：</span>
-          <span>http://localhost:8002/tilesets/Seattle/tileset.json</span>
+          <span>https://pelican-public.s3.amazonaws.com/3dtiles/agi-hq/tileset.json</span>
         </div>
 
         <!-- 高级参数 -->
@@ -149,8 +149,8 @@ const form4Cesium3DTilesParam = reactive({
 })
 
 const placeholder4Form = {
-  name: '例如：agi-hq 3DTiles 模型',
-  url: 'https://pelican-public.s3.amazonaws.com/3dtiles/agi-hq/tileset.json',
+  name: '例如：XXX 3DTiles 模型',
+  url: '',
 }
 
 /**
@@ -325,14 +325,16 @@ function handleClose(done) {
   padding-right: 20px;
 
   .form-item-tips {
-    margin-top: -14px;
-    margin-bottom: 12px;
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    text-align: right;
     font-size: 12px;
     color: #909399;
+    margin-bottom: 10px;
 
     &.form-item-tips-url {
-      margin-top: -20px;
-      margin-bottom: 20px;
+      margin-top: 0px;
     }
 
     span {
