@@ -131,16 +131,25 @@ class LayerManager {
   }
 
   /**
-   * 从 Cesium 中移除图层
-   * @param {Cesium.ImageryLayer} layerInstance - 图层实例
+   * 从 Cesium 中移除图层（通用方法）
+   * @param {Cesium.ImageryLayer|Cesium3DTileset} layerInstance - 图层实例
+   * @param {String} layerType - 图层类型 ('service' 或 'model')
    * @returns {Boolean} 是否成功移除
    */
-  removeLayerFromCesium(layerInstance) {
-    if (layerInstance) {
-      const result = this.#viewer.imageryLayers.remove(layerInstance, true);
-      return result
+  removeLayerFromCesium(layerInstance, layerType) {
+    if (!layerInstance) {
+      return false;
     }
-    return false;
+
+    // 根据图层类型选择不同的移除方法
+    if (layerType === 'model') {
+      // 3DTiles 模型使用 primitives.remove
+      return this.remove3DTilesLayer(layerInstance);
+    } else {
+      // ImageryLayer 使用 imageryLayers.remove
+      const result = this.#viewer.imageryLayers.remove(layerInstance, true);
+      return result;
+    }
   }
 
   /**
@@ -166,6 +175,48 @@ class LayerManager {
   setLayerOpacity(layerInstance, opacity) {
     if (layerInstance) {
       layerInstance.alpha = opacity;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 设置 3DTiles 瓦片边界体积显示
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @param {Boolean} visible - 是否显示
+   * @returns {Boolean} 是否成功设置
+   */
+  set3DTilesBoundingVolumeVisibility(tileset, visible) {
+    if (tileset) {
+      tileset.debugShowBoundingVolume = visible;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 设置 3DTiles 内容边界体积显示
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @param {Boolean} visible - 是否显示
+   * @returns {Boolean} 是否成功设置
+   */
+  set3DTilesContentBoundingVolumeVisibility(tileset, visible) {
+    if (tileset) {
+      tileset.debugShowContentBoundingVolume = visible;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 设置 3DTiles 可见性
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @param {Boolean} visible - 是否可见
+   * @returns {Boolean} 是否成功设置
+   */
+  set3DTilesVisibility(tileset, visible) {
+    if (tileset) {
+      tileset.show = visible;
       return true;
     }
     return false;

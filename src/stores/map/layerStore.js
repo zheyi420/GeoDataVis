@@ -22,13 +22,19 @@ export const useLayerStore = defineStore('layers', () => {
     // 确保layer有必要的属性
     const newLayer = {
       name: layer.name || '未命名图层',
-      type: layer.type || 'unknown', // 'service' 或 'file'
+      type: layer.type || 'unknown', // 'service' 或 'file' 或 'model'
       visible: layer.visible !== undefined ? layer.visible : true,
       opacity: layer.opacity !== undefined ? layer.opacity : 1,
-      sourceType: layer.sourceType || '', // 例如：'WMS', 'GeoJSON'等
+      sourceType: layer.sourceType || '', // 例如：'WMS', 'GeoJSON', 'Cesium3DTiles'等
       layerInstance: markRaw(layer.layerInstance) || null, // 实际图层对象的引用
       metadata: layer.metadata || {} // 其他元数据
     };
+
+    // 为 3DTiles 图层添加调试状态
+    if (layer.sourceType === 'Cesium3DTiles') {
+      newLayer.debugShowBoundingVolume = false;
+      newLayer.debugShowContentBoundingVolume = false;
+    }
 
     // 自动重命名逻辑：确保图层名称唯一
     newLayer.name = getUniqueLayerName(newLayer.name);
@@ -170,14 +176,11 @@ export const useLayerStore = defineStore('layers', () => {
       const layerManager = getLayerManager();
       console.log('LayerManager实例:', layerManager);
       console.log('图层实例:', layer.layerInstance);
+      console.log('图层类型:', layer.type);
 
       if (layerManager && layer.layerInstance) {
-        // 在移除前验证图层是否存在于imageryLayers中
-        const viewer = layerManager.getViewer();
-        const exists = viewer.imageryLayers.contains(layer.layerInstance);
-        console.log('图层是否存在于imageryLayers中:', exists);
-
-        const success = layerManager.removeLayerFromCesium(layer.layerInstance);
+        // 传递图层类型，让 LayerManager 选择正确的移除方法
+        const success = layerManager.removeLayerFromCesium(layer.layerInstance, layer.type);
         console.log('从Cesium移除图层结果:', success);
 
         if (!success) {
@@ -203,7 +206,14 @@ export const useLayerStore = defineStore('layers', () => {
       // 通过 LayerManager 更新 Cesium 图层状态
       const layerManager = getLayerManager();
       if (layerManager && layer.layerInstance) {
-        const success = layerManager.setLayerVisibility(layer.layerInstance, visible);
+        let success = false;
+        // 根据图层类型选择不同的方法
+        if (layer.type === 'model') {
+          success = layerManager.set3DTilesVisibility(layer.layerInstance, visible);
+        } else {
+          success = layerManager.setLayerVisibility(layer.layerInstance, visible);
+        }
+
         if (success) {
           // 只有 Cesium 操作成功时才更新 store 状态
           layer.visible = visible;
@@ -264,7 +274,7 @@ export const useLayerStore = defineStore('layers', () => {
 
   // 获取服务类型图层
   function getServiceLayers() {
-    return layers.value.filter(layer => layer.type === 'service');
+    return layers.value.filter(layer => ['service', 'model'].includes(layer.type));
   }
 
   // 获取数据文件类型图层
@@ -290,7 +300,7 @@ export const useLayerStore = defineStore('layers', () => {
     const allLayers = [...layers.value]; // 创建副本避免遍历时修改数组
     allLayers.forEach(layer => {
       if (layerManager && layer.layerInstance) {
-        layerManager.removeLayerFromCesium(layer.layerInstance);
+        layerManager.removeLayerFromCesium(layer.layerInstance, layer.type);
       }
     });
 
@@ -308,6 +318,54 @@ export const useLayerStore = defineStore('layers', () => {
     return false;
   }
 
+  /**
+   * 设置 3DTiles 调试选项
+   * @param {String} layerId - 图层ID
+   * @param {Object} options - 调试选项
+   * @param {Boolean} options.showBoundingVolume - 是否显示瓦片边界体积
+   * @param {Boolean} options.showContentBoundingVolume - 是否显示内容边界体积
+   * @returns {Boolean} 是否成功设置
+   */
+  function set3DTilesDebugOptions(layerId, options) {
+    const layer = layers.value.find(layer => layer.id === layerId);
+    if (!layer || layer.sourceType !== 'Cesium3DTiles') {
+      return false;
+    }
+
+    const layerManager = getLayerManager();
+    if (!layerManager || !layer.layerInstance) {
+      return false;
+    }
+
+    let success = true;
+
+    // 设置瓦片边界体积显示
+    if (options.showBoundingVolume !== undefined) {
+      const result = layerManager.set3DTilesBoundingVolumeVisibility(
+        layer.layerInstance,
+        options.showBoundingVolume
+      );
+      if (result) {
+        layer.debugShowBoundingVolume = options.showBoundingVolume;
+      }
+      success = success && result;
+    }
+
+    // 设置内容边界体积显示
+    if (options.showContentBoundingVolume !== undefined) {
+      const result = layerManager.set3DTilesContentBoundingVolumeVisibility(
+        layer.layerInstance,
+        options.showContentBoundingVolume
+      );
+      if (result) {
+        layer.debugShowContentBoundingVolume = options.showContentBoundingVolume;
+      }
+      success = success && result;
+    }
+
+    return success;
+  }
+
   return {
     layers,
     addWmsLayer,
@@ -322,6 +380,7 @@ export const useLayerStore = defineStore('layers', () => {
     getAllLayers,
     getLayerById,
     clearAllLayers,
-    updateLayer
+    updateLayer,
+    set3DTilesDebugOptions
   }
 })

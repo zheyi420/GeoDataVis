@@ -69,16 +69,41 @@
                     </el-button>
                   </template>
                   <div class="layer-options">
-                    <div class="option-item">
-                      <span>透明度:</span>
-                      <el-slider
-                        v-model="scope.row.opacity"
-                        :min="0"
-                        :max="1"
-                        :step="0.01"
-                        @change="updateLayerOpacity(scope.row)"
-                      />
-                    </div>
+                    <!-- 3DTiles 模型专用选项 -->
+                    <template v-if="scope.row.sourceType === 'Cesium3DTiles'">
+                      <div class="option-item">
+                        <el-checkbox
+                          v-model="scope.row.debugShowBoundingVolume"
+                          @change="toggle3DTilesDebugOption(scope.row, 'boundingVolume')"
+                        >
+                          显示瓦片边界体积
+                        </el-checkbox>
+                      </div>
+                      <div class="option-item">
+                        <el-checkbox
+                          v-model="scope.row.debugShowContentBoundingVolume"
+                          @change="toggle3DTilesDebugOption(scope.row, 'contentBoundingVolume')"
+                        >
+                          显示内容边界体积
+                        </el-checkbox>
+                      </div>
+                    </template>
+
+                    <!-- 其他图层类型（WMS/WMTS）的透明度选项 -->
+                    <template v-else>
+                      <div class="option-item">
+                        <span>透明度:</span>
+                        <el-slider
+                          v-model="scope.row.opacity"
+                          :min="0"
+                          :max="1"
+                          :step="0.01"
+                          @change="updateLayerOpacity(scope.row)"
+                        />
+                      </div>
+                    </template>
+
+                    <!-- 移除按钮（所有类型通用） -->
                     <el-button
                       type="danger"
                       size="small"
@@ -203,6 +228,17 @@ function removeLayer(layer) {
   layerStore.removeLayer(layer.id);
   // 清理弹窗状态
   delete layerPopovers.value[layer.id];
+}
+
+// 切换 3DTiles 调试选项
+function toggle3DTilesDebugOption(layer, type) {
+  const options = {};
+  if (type === 'boundingVolume') {
+    options.showBoundingVolume = layer.debugShowBoundingVolume;
+  } else if (type === 'contentBoundingVolume') {
+    options.showContentBoundingVolume = layer.debugShowContentBoundingVolume;
+  }
+  layerStore.set3DTilesDebugOptions(layer.id, options);
 }
 </script>
 
