@@ -4,7 +4,7 @@
  */
 
 import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
-import * as Cesium from 'cesium';
+import { HeadingPitchRange, Math as CesiumMath } from 'cesium';
 
 class LayerManager {
   #viewer; // 私有属性
@@ -105,9 +105,9 @@ class LayerManager {
         const boundingSphere = tileset.boundingSphere;
         this.#viewer.camera.flyToBoundingSphere(boundingSphere, {
           duration: 1.0,
-          offset: new Cesium.HeadingPitchRange(
-            Cesium.Math.toRadians(0),
-            Cesium.Math.toRadians(-45),
+          offset: new HeadingPitchRange(
+            CesiumMath.toRadians(0),
+            CesiumMath.toRadians(-45),
             boundingSphere.radius * 2
           ),
         });
