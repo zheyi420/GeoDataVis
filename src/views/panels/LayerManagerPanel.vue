@@ -1,8 +1,8 @@
 <!--
  * @Author: zheyi420
  * @Date: 2025-04-14
- * @LastEditors: zheyi420
- * @LastEditTime: 2025-08-03
+ * @LastEditors: zheyi420 37471153+zheyi420@users.noreply.github.com
+ * @LastEditTime: 2026-01-16
  * @FilePath: \GeoDataVis\src\views\panels\LayerManagerPanel.vue
  * @Description: 图层管理面板，显示加载的地图服务图层及地理数据文件图层
  *
@@ -59,8 +59,8 @@
               <template #default="scope">
                 <el-popover
                   v-model:visible="layerPopovers[scope.row.id]"
-                  placement="left"
-                  :width="200"
+                  placement="right"
+                  width="fit-content"
                   trigger="click"
                 >
                   <template #reference>
@@ -74,18 +74,14 @@
                       <div class="option-item">
                         <el-checkbox
                           v-model="scope.row.debugShowBoundingVolume"
-                          @change="toggle3DTilesDebugOption(scope.row, 'boundingVolume')"
-                        >
-                          显示瓦片边界体积
-                        </el-checkbox>
+                          @change="toggle3DTilesDebugOption(scope.row, 'debugShowBoundingVolume')"
+                        >debugShowBoundingVolume</el-checkbox>
                       </div>
                       <div class="option-item">
                         <el-checkbox
                           v-model="scope.row.debugShowContentBoundingVolume"
-                          @change="toggle3DTilesDebugOption(scope.row, 'contentBoundingVolume')"
-                        >
-                          显示内容边界体积
-                        </el-checkbox>
+                          @change="toggle3DTilesDebugOption(scope.row, 'debugShowContentBoundingVolume')"
+                        >debugShowContentBoundingVolume</el-checkbox>
                       </div>
                     </template>
 
@@ -233,10 +229,10 @@ function removeLayer(layer) {
 // 切换 3DTiles 调试选项
 function toggle3DTilesDebugOption(layer, type) {
   const options = {};
-  if (type === 'boundingVolume') {
-    options.showBoundingVolume = layer.debugShowBoundingVolume;
-  } else if (type === 'contentBoundingVolume') {
-    options.showContentBoundingVolume = layer.debugShowContentBoundingVolume;
+  if (type === 'debugShowBoundingVolume') {
+    options.debugShowBoundingVolume = layer.debugShowBoundingVolume;
+  } else if (type === 'debugShowContentBoundingVolume') {
+    options.debugShowContentBoundingVolume = layer.debugShowContentBoundingVolume;
   }
   layerStore.set3DTilesDebugOptions(layer.id, options);
 }

@@ -322,8 +322,8 @@ export const useLayerStore = defineStore('layers', () => {
    * 设置 3DTiles 调试选项
    * @param {String} layerId - 图层ID
    * @param {Object} options - 调试选项
-   * @param {Boolean} options.showBoundingVolume - 是否显示瓦片边界体积
-   * @param {Boolean} options.showContentBoundingVolume - 是否显示内容边界体积
+   * @param {Boolean} options.debugShowBoundingVolume
+   * @param {Boolean} options.debugShowContentBoundingVolume
    * @returns {Boolean} 是否成功设置
    */
   function set3DTilesDebugOptions(layerId, options) {
@@ -339,26 +339,26 @@ export const useLayerStore = defineStore('layers', () => {
 
     let success = true;
 
-    // 设置瓦片边界体积显示
-    if (options.showBoundingVolume !== undefined) {
+    // 设置 debugShowBoundingVolume
+    if (options.debugShowBoundingVolume !== undefined) {
       const result = layerManager.set3DTilesBoundingVolumeVisibility(
         layer.layerInstance,
-        options.showBoundingVolume
+        options.debugShowBoundingVolume
       );
       if (result) {
-        layer.debugShowBoundingVolume = options.showBoundingVolume;
+        layer.debugShowBoundingVolume = options.debugShowBoundingVolume;
       }
       success = success && result;
     }
 
-    // 设置内容边界体积显示
-    if (options.showContentBoundingVolume !== undefined) {
+    // 设置 debugShowContentBoundingVolume
+    if (options.debugShowContentBoundingVolume !== undefined) {
       const result = layerManager.set3DTilesContentBoundingVolumeVisibility(
         layer.layerInstance,
-        options.showContentBoundingVolume
+        options.debugShowContentBoundingVolume
       );
       if (result) {
-        layer.debugShowContentBoundingVolume = options.showContentBoundingVolume;
+        layer.debugShowContentBoundingVolume = options.debugShowContentBoundingVolume;
       }
       success = success && result;
     }
