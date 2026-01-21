@@ -34,6 +34,9 @@ export const useLayerStore = defineStore('layers', () => {
     if (layer.sourceType === 'Cesium3DTiles') {
       newLayer.debugShowBoundingVolume = false;
       newLayer.debugShowContentBoundingVolume = false;
+      newLayer.showBoundingSphere = false;
+      newLayer.showOrientedBoundingBox = false;
+      newLayer.showLocalAxes = false;
     }
 
     // 自动重命名逻辑：确保图层名称唯一
@@ -366,6 +369,102 @@ export const useLayerStore = defineStore('layers', () => {
     return success;
   }
 
+  /**
+   * 设置 3DTiles 包围球显示状态
+   * @param {String} layerId - 图层ID
+   * @param {Boolean} visible - 是否显示
+   * @returns {Boolean} 是否成功设置
+   */
+  function set3DTilesBoundingSphere(layerId, visible) {
+    const layer = layers.value.find(layer => layer.id === layerId);
+    if (!layer || layer.sourceType !== 'Cesium3DTiles') {
+      return false;
+    }
+
+    const layerManager = getLayerManager();
+    if (!layerManager || !layer.layerInstance) {
+      return false;
+    }
+
+    const result = layerManager.showBoundingSphere(layer.layerInstance, visible);
+    if (result) {
+      layer.showBoundingSphere = visible;
+    }
+    return result;
+  }
+
+  /**
+   * 设置 3DTiles 包围盒显示状态
+   * @param {String} layerId - 图层ID
+   * @param {Boolean} visible - 是否显示
+   * @returns {Boolean} 是否成功设置
+   */
+  function set3DTilesOrientedBoundingBox(layerId, visible) {
+    const layer = layers.value.find(layer => layer.id === layerId);
+    if (!layer || layer.sourceType !== 'Cesium3DTiles') {
+      return false;
+    }
+
+    const layerManager = getLayerManager();
+    if (!layerManager || !layer.layerInstance) {
+      return false;
+    }
+
+    const result = layerManager.showOrientedBoundingBox(layer.layerInstance, visible);
+    if (result) {
+      layer.showOrientedBoundingBox = visible;
+    }
+    return result;
+  }
+
+  /**
+   * 设置 3DTiles 本地坐标轴显示状态
+   * @param {String} layerId - 图层ID
+   * @param {Boolean} visible - 是否显示
+   * @returns {Boolean} 是否成功设置
+   */
+  function set3DTilesLocalAxes(layerId, visible) {
+    const layer = layers.value.find(layer => layer.id === layerId);
+    if (!layer || layer.sourceType !== 'Cesium3DTiles') {
+      return false;
+    }
+
+    const layerManager = getLayerManager();
+    if (!layerManager || !layer.layerInstance) {
+      return false;
+    }
+
+    const result = layerManager.showLocalAxes(layer.layerInstance, visible);
+    if (result) {
+      layer.showLocalAxes = visible;
+    }
+    return result;
+  }
+
+  /**
+   * 设置 3DTiles 透明度
+   * @param {String} layerId - 图层ID
+   * @param {Number} opacity - 透明度值（0-1）
+   * @returns {Boolean} 是否成功设置
+   */
+  function set3DTilesOpacity(layerId, opacity) {
+    const layer = layers.value.find(layer => layer.id === layerId);
+    if (!layer || layer.sourceType !== 'Cesium3DTiles') {
+      return false;
+    }
+
+    const layerManager = getLayerManager();
+    if (!layerManager || !layer.layerInstance) {
+      return false;
+    }
+
+    const result = layerManager.set3DTilesOpacity(layer.layerInstance, opacity);
+    if (result) {
+      layer.opacity = opacity;
+    }
+    return result;
+  }
+
   return {
     layers,
     addWmsLayer,
@@ -381,6 +480,10 @@ export const useLayerStore = defineStore('layers', () => {
     getLayerById,
     clearAllLayers,
     updateLayer,
-    set3DTilesDebugOptions
+    set3DTilesDebugOptions,
+    set3DTilesBoundingSphere,
+    set3DTilesOrientedBoundingBox,
+    set3DTilesLocalAxes,
+    set3DTilesOpacity
   }
 })

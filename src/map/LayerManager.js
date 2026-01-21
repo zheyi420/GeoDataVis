@@ -4,11 +4,12 @@
  */
 
 import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
-import { HeadingPitchRange, Math as CesiumMath } from 'cesium';
+import { HeadingPitchRange, Math as CesiumMath, Color, Cartesian3, Cesium3DTileStyle, Cesium3DTileColorBlendMode, Matrix3 } from 'cesium';
 
 class LayerManager {
   #viewer; // 私有属性
   static #instance; // 单例实例 静态私有属性
+  #tilesetVisualizations; // 存储每个 tileset 的可视化实体集合
 
   constructor(viewer) {
     if (LayerManager.#instance) {
@@ -16,6 +17,7 @@ class LayerManager {
     }
 
     this.#viewer = viewer;
+    this.#tilesetVisualizations = new WeakMap(); // 使用 WeakMap 自动管理内存
 
     LayerManager.#instance = this;
   }
@@ -124,6 +126,9 @@ class LayerManager {
    */
   remove3DTilesLayer(tileset) {
     if (tileset) {
+      // 清理可视化实体
+      this.removeTilesetVisualizations(tileset);
+      // 移除 tileset
       const result = this.#viewer.scene.primitives.remove(tileset);
       return result;
     }
@@ -220,6 +225,435 @@ class LayerManager {
       return true;
     }
     return false;
+  }
+
+  /**
+   * 获取或创建 tileset 的可视化实体集合
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @returns {Object} 可视化实体集合
+   */
+  _getVisualizations(tileset) {
+    if (!this.#tilesetVisualizations.has(tileset)) {
+      this.#tilesetVisualizations.set(tileset, {
+        boundingSphere: null,
+        orientedBoundingBoxes: [],
+        localAxes: []
+      });
+    }
+    return this.#tilesetVisualizations.get(tileset);
+  }
+
+  /**
+   * 显示/隐藏包围球
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @param {Boolean} visible - 是否显示
+   * @returns {Boolean} 是否成功设置
+   */
+  showBoundingSphere(tileset, visible) {
+    if (!tileset) {
+      return false;
+    }
+
+    const visualizations = this._getVisualizations(tileset);
+
+    if (visible) {
+      // 如果已经存在，先移除
+      if (visualizations.boundingSphere) {
+        this.#viewer.entities.remove(visualizations.boundingSphere);
+      }
+
+      // 等待 tileset 加载完成
+      if (!tileset.boundingSphere) {
+        // 如果 boundingSphere 还未准备好，等待 readyPromise
+        tileset.readyPromise.then(() => {
+          this._createBoundingSphere(tileset);
+        }).catch(error => {
+          console.error('等待 tileset 加载失败:', error);
+        });
+        return true;
+      }
+
+      this._createBoundingSphere(tileset);
+    } else {
+      // 隐藏：移除实体
+      if (visualizations.boundingSphere) {
+        this.#viewer.entities.remove(visualizations.boundingSphere);
+        visualizations.boundingSphere = null;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * 创建包围球可视化实体
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @private
+   */
+  _createBoundingSphere(tileset) {
+    if (!tileset.boundingSphere) {
+      return;
+    }
+
+    const visualizations = this._getVisualizations(tileset);
+    const boundingSphere = tileset.boundingSphere;
+
+    const entity = this.#viewer.entities.add({
+      position: boundingSphere.center,
+      ellipsoid: {
+        radii: new Cartesian3(
+          boundingSphere.radius,
+          boundingSphere.radius,
+          boundingSphere.radius
+        ),
+        material: Color.YELLOW.withAlpha(0.3),
+        outline: true,
+        outlineColor: Color.YELLOW
+      }
+    });
+
+    visualizations.boundingSphere = entity;
+  }
+
+  /**
+   * 显示/隐藏包围盒
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @param {Boolean} visible - 是否显示
+   * @returns {Boolean} 是否成功设置
+   */
+  showOrientedBoundingBox(tileset, visible) {
+    if (!tileset) {
+      return false;
+    }
+
+    const visualizations = this._getVisualizations(tileset);
+
+    if (visible) {
+      // 如果已经存在，先移除
+      visualizations.orientedBoundingBoxes.forEach(entity => {
+        this.#viewer.entities.remove(entity);
+      });
+      visualizations.orientedBoundingBoxes = [];
+
+      // 等待 tileset 加载完成
+      if (!tileset.root) {
+        tileset.readyPromise.then(() => {
+          this._createOrientedBoundingBoxes(tileset);
+        }).catch(error => {
+          console.error('等待 tileset 加载失败:', error);
+        });
+        return true;
+      }
+
+      this._createOrientedBoundingBoxes(tileset);
+    } else {
+      // 隐藏：移除所有实体
+      visualizations.orientedBoundingBoxes.forEach(entity => {
+        this.#viewer.entities.remove(entity);
+      });
+      visualizations.orientedBoundingBoxes = [];
+    }
+
+    return true;
+  }
+
+  /**
+   * 创建包围盒可视化实体
+   * 参考：https://www.cnblogs.com/zheyi420/p/18175709
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @private
+   */
+  _createOrientedBoundingBoxes(tileset) {
+    if (!tileset.root) {
+      return;
+    }
+
+    const visualizations = this._getVisualizations(tileset);
+    const entities = [];
+
+    // 获取 TileOrientedBoundingBox 内部的 OrientedBoundingBox
+    // tileset.root.boundingVolume 返回 TileOrientedBoundingBox
+    // tileset.root.boundingVolume.boundingVolume 返回真正的 OrientedBoundingBox
+    const tileOBB = tileset.root.boundingVolume;
+    if (!tileOBB || !tileOBB.boundingVolume) {
+      console.warn('无法获取 OrientedBoundingBox');
+      return;
+    }
+
+    const obb = tileOBB.boundingVolume; // 真正的 OrientedBoundingBox
+    const center = obb.center;
+    const halfAxes = obb.halfAxes; // Matrix3
+
+    // 从 halfAxes 矩阵中提取三个轴向量
+    const x = Matrix3.getColumn(halfAxes, 0, new Cartesian3());
+    const y = Matrix3.getColumn(halfAxes, 1, new Cartesian3());
+    const z = Matrix3.getColumn(halfAxes, 2, new Cartesian3());
+
+    // 计算包围盒尺寸（长、宽、高）
+    const length = Cartesian3.magnitude(x) * 2;
+    const width = Cartesian3.magnitude(y) * 2;
+    const height = Cartesian3.magnitude(z) * 2;
+
+    // 创建包围盒实体（参照博客实现）
+    const obbEntity = this.#viewer.entities.add({
+      position: center,
+      box: {
+        dimensions: new Cartesian3(length, width, height),
+        material: Color.BLUEVIOLET.withAlpha(0.2),
+        outline: true,
+        outlineColor: Color.CYAN
+      }
+    });
+    entities.push(obbEntity);
+
+    // 创建八个角点实体（用于验证包围盒位置）
+    const corners = this._calculateOBBCorners(center, x, y, z);
+    corners.forEach((corner) => {
+      const cornerEntity = this.#viewer.entities.add({
+        position: corner.position,
+        point: {
+          color: Color.RED,
+          pixelSize: 10
+        },
+        label: {
+          text: corner.label,
+          font: '20px sans-serif',
+          style: 2, // FILL_AND_OUTLINE
+          fillColor: Color.BLUE,
+          outlineColor: Color.WHITE,
+          outlineWidth: 2,
+          horizontalOrigin: 0, // CENTER
+          verticalOrigin: 2, // BASELINE
+          pixelOffset: new Cartesian3(0, -20, 0)
+        }
+      });
+      entities.push(cornerEntity);
+    });
+
+    visualizations.orientedBoundingBoxes = entities;
+  }
+
+  /**
+   * 计算 OBB 的八个角点
+   * 参考：https://www.cnblogs.com/zheyi420/p/18175709
+   * @param {Cartesian3} center - OBB 中心点
+   * @param {Cartesian3} x - X轴向量
+   * @param {Cartesian3} y - Y轴向量
+   * @param {Cartesian3} z - Z轴向量
+   * @returns {Array} 八个角点的数组
+   * @private
+   */
+  _calculateOBBCorners(center, x, y, z) {
+    const corners = [];
+
+    // 八个角点的符号组合
+    // 顶面四个点（+z）
+    corners.push({ label: '1', signs: ['-', '-', '+'] }); // -x, -y, +z
+    corners.push({ label: '2', signs: ['+', '-', '+'] }); // +x, -y, +z
+    corners.push({ label: '3', signs: ['+', '+', '+'] }); // +x, +y, +z
+    corners.push({ label: '4', signs: ['-', '+', '+'] }); // -x, +y, +z
+    // 底面四个点（-z）
+    corners.push({ label: '5', signs: ['-', '-', '-'] }); // -x, -y, -z
+    corners.push({ label: '6', signs: ['+', '-', '-'] }); // +x, -y, -z
+    corners.push({ label: '7', signs: ['+', '+', '-'] }); // +x, +y, -z
+    corners.push({ label: '8', signs: ['-', '+', '-'] }); // -x, +y, -z
+
+    return corners.map(corner => {
+      let position = Cartesian3.clone(center);
+
+      // 根据符号添加或减去对应的轴向量
+      if (corner.signs[0] === '+') {
+        position = Cartesian3.add(position, x, position);
+      } else {
+        position = Cartesian3.subtract(position, x, position);
+      }
+
+      if (corner.signs[1] === '+') {
+        position = Cartesian3.add(position, y, position);
+      } else {
+        position = Cartesian3.subtract(position, y, position);
+      }
+
+      if (corner.signs[2] === '+') {
+        position = Cartesian3.add(position, z, position);
+      } else {
+        position = Cartesian3.subtract(position, z, position);
+      }
+
+      return {
+        label: corner.label,
+        position: position
+      };
+    });
+  }
+
+  /**
+   * 显示/隐藏本地坐标轴
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @param {Boolean} visible - 是否显示
+   * @returns {Boolean} 是否成功设置
+   */
+  showLocalAxes(tileset, visible) {
+    if (!tileset) {
+      return false;
+    }
+
+    const visualizations = this._getVisualizations(tileset);
+
+    if (visible) {
+      // 如果已经存在，先移除
+      visualizations.localAxes.forEach(entity => {
+        this.#viewer.entities.remove(entity);
+      });
+      visualizations.localAxes = [];
+
+      // 等待 tileset 加载完成
+      if (!tileset.boundingSphere) {
+        tileset.readyPromise.then(() => {
+          this._createLocalAxes(tileset);
+        }).catch(error => {
+          console.error('等待 tileset 加载失败:', error);
+        });
+        return true;
+      }
+
+      this._createLocalAxes(tileset);
+    } else {
+      // 隐藏：移除所有实体
+      visualizations.localAxes.forEach(entity => {
+        this.#viewer.entities.remove(entity);
+      });
+      visualizations.localAxes = [];
+    }
+
+    return true;
+  }
+
+  /**
+   * 创建本地坐标轴可视化实体
+   * 参考：https://www.cnblogs.com/zheyi420/p/18175709
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @private
+   */
+  _createLocalAxes(tileset) {
+    if (!tileset.root) {
+      return;
+    }
+
+    const visualizations = this._getVisualizations(tileset);
+
+    // 获取 TileOrientedBoundingBox 内部的 OrientedBoundingBox
+    const tileOBB = tileset.root.boundingVolume;
+    if (!tileOBB || !tileOBB.boundingVolume) {
+      console.warn('无法获取 OrientedBoundingBox，使用默认坐标轴');
+      return;
+    }
+
+    const obb = tileOBB.boundingVolume; // 真正的 OrientedBoundingBox
+    const center = obb.center;
+    const halfAxes = obb.halfAxes; // Matrix3
+
+    // 从 halfAxes 矩阵中提取三个轴向量（本地坐标轴方向）
+    const x = Matrix3.getColumn(halfAxes, 0, new Cartesian3());
+    const y = Matrix3.getColumn(halfAxes, 1, new Cartesian3());
+    const z = Matrix3.getColumn(halfAxes, 2, new Cartesian3());
+
+    // 计算坐标轴端点：center + 轴向量
+    const xAxisEnd = Cartesian3.add(center, x, new Cartesian3());
+    const yAxisEnd = Cartesian3.add(center, y, new Cartesian3());
+    const zAxisEnd = Cartesian3.add(center, z, new Cartesian3());
+
+    // X轴（红色）
+    const xAxisEntity = this.#viewer.entities.add({
+      polyline: {
+        positions: [center, xAxisEnd],
+        width: 4,
+        material: Color.RED
+      }
+    });
+
+    // Y轴（绿色）
+    const yAxisEntity = this.#viewer.entities.add({
+      polyline: {
+        positions: [center, yAxisEnd],
+        width: 4,
+        material: Color.GREEN
+      }
+    });
+
+    // Z轴（蓝色）
+    const zAxisEntity = this.#viewer.entities.add({
+      polyline: {
+        positions: [center, zAxisEnd],
+        width: 4,
+        material: Color.BLUE
+      }
+    });
+
+    visualizations.localAxes = [xAxisEntity, yAxisEntity, zAxisEntity];
+  }
+
+  /**
+   * 设置 3DTiles 透明度
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @param {Number} opacity - 透明度值（0-1）
+   * @returns {Boolean} 是否成功设置
+   */
+  set3DTilesOpacity(tileset, opacity) {
+    if (!tileset) {
+      return false;
+    }
+
+    try {
+      // 方法1：使用 style（推荐）
+      if (tileset.style !== undefined) {
+        tileset.style = new Cesium3DTileStyle({
+          color: `color("white", ${opacity})`
+        });
+        return true;
+      }
+
+      // 方法2：使用 colorBlendMode（备用方案）
+      tileset.colorBlendMode = Cesium3DTileColorBlendMode.MIX;
+      tileset.color = Color.WHITE.withAlpha(opacity);
+      return true;
+    } catch (error) {
+      console.error('设置 3DTiles 透明度失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 清理 tileset 的所有可视化实体
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   */
+  removeTilesetVisualizations(tileset) {
+    if (!tileset) {
+      return;
+    }
+
+    const visualizations = this.#tilesetVisualizations.get(tileset);
+    if (!visualizations) {
+      return;
+    }
+
+    // 移除包围球
+    if (visualizations.boundingSphere) {
+      this.#viewer.entities.remove(visualizations.boundingSphere);
+    }
+
+    // 移除所有包围盒
+    visualizations.orientedBoundingBoxes.forEach(entity => {
+      this.#viewer.entities.remove(entity);
+    });
+
+    // 移除所有坐标轴
+    visualizations.localAxes.forEach(entity => {
+      this.#viewer.entities.remove(entity);
+    });
+
+    // 从 WeakMap 中移除（WeakMap 会自动处理）
+    this.#tilesetVisualizations.delete(tileset);
   }
 
   /**

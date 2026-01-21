@@ -83,6 +83,34 @@
                           @change="toggle3DTilesDebugOption(scope.row, 'debugShowContentBoundingVolume')"
                         >debugShowContentBoundingVolume</el-checkbox>
                       </div>
+                      <div class="option-item">
+                        <el-checkbox
+                          v-model="scope.row.showBoundingSphere"
+                          @change="toggle3DTilesBoundingSphere(scope.row)"
+                        >包围球（BoundingSphere）</el-checkbox>
+                      </div>
+                      <div class="option-item">
+                        <el-checkbox
+                          v-model="scope.row.showOrientedBoundingBox"
+                          @change="toggle3DTilesOrientedBoundingBox(scope.row)"
+                        >包围盒（OrientedBoundingBox）</el-checkbox>
+                      </div>
+                      <div class="option-item">
+                        <el-checkbox
+                          v-model="scope.row.showLocalAxes"
+                          @change="toggle3DTilesLocalAxes(scope.row)"
+                        >3DTiles 模型本地坐标轴</el-checkbox>
+                      </div>
+                      <div class="option-item">
+                        <span>透明度:</span>
+                        <el-slider
+                          v-model="scope.row.opacity"
+                          :min="0"
+                          :max="1"
+                          :step="0.01"
+                          @change="update3DTilesOpacity(scope.row)"
+                        />
+                      </div>
                     </template>
 
                     <!-- 其他图层类型（WMS/WMTS）的透明度选项 -->
@@ -235,6 +263,26 @@ function toggle3DTilesDebugOption(layer, type) {
     options.debugShowContentBoundingVolume = layer.debugShowContentBoundingVolume;
   }
   layerStore.set3DTilesDebugOptions(layer.id, options);
+}
+
+// 切换 3DTiles 包围球显示
+function toggle3DTilesBoundingSphere(layer) {
+  layerStore.set3DTilesBoundingSphere(layer.id, layer.showBoundingSphere);
+}
+
+// 切换 3DTiles 包围盒显示
+function toggle3DTilesOrientedBoundingBox(layer) {
+  layerStore.set3DTilesOrientedBoundingBox(layer.id, layer.showOrientedBoundingBox);
+}
+
+// 切换 3DTiles 本地坐标轴显示
+function toggle3DTilesLocalAxes(layer) {
+  layerStore.set3DTilesLocalAxes(layer.id, layer.showLocalAxes);
+}
+
+// 更新 3DTiles 透明度
+function update3DTilesOpacity(layer) {
+  layerStore.set3DTilesOpacity(layer.id, layer.opacity);
 }
 </script>
 
