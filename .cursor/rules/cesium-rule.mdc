@@ -1,0 +1,18 @@
+---
+name: cesium-rule
+description: This rule should be applied to all Cesium related code.
+---
+
+# Constant Enum
+
+When Cesium provides a constant enum, you should use the enum constant (e.g., `LabelStyle.FILL_AND_OUTLINE`) instead of the numeric value (e.g., `2`).
+
+Examples:
+- Good: `style: LabelStyle.FILL_AND_OUTLINE`
+- Bad: `style: 2`
+
+- Good: `horizontalOrigin: HorizontalOrigin.CENTER`
+- Bad: `horizontalOrigin: 0`
+
+- Good: `verticalOrigin: VerticalOrigin.TOP`
+- Bad: `verticalOrigin: -1`
