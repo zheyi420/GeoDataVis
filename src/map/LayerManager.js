@@ -4,7 +4,7 @@
  */
 
 import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
-import { HeadingPitchRange, Math as CesiumMath, Color, Cartesian3, Cesium3DTileStyle, Cesium3DTileColorBlendMode, Matrix3 } from 'cesium';
+import { HeadingPitchRange, Math as CesiumMath, Color, Cartesian2, Cartesian3, Cesium3DTileStyle, Cesium3DTileColorBlendMode, Matrix3 } from 'cesium';
 
 class LayerManager {
   #viewer; // 私有属性
@@ -409,6 +409,12 @@ class LayerManager {
     // 创建八个角点实体（用于验证包围盒位置）
     const corners = this._calculateOBBCorners(center, x, y, z);
     corners.forEach((corner) => {
+      // 根据是否为底部角点设置不同的标签位置
+      // 顶部角点：标签在上方（verticalOrigin: BOTTOM=1, pixelOffset 向上）
+      // 底部角点：标签在下方（verticalOrigin: TOP=-1, pixelOffset 向下）
+      const verticalOrigin = corner.isBottom ? -1 : 1;  // TOP : BOTTOM
+      const pixelOffsetY = corner.isBottom ? 20 : -20;  // 向下 : 向上
+
       const cornerEntity = this.#viewer.entities.add({
         position: corner.position,
         point: {
@@ -417,14 +423,14 @@ class LayerManager {
         },
         label: {
           text: corner.label,
-          font: '20px sans-serif',
+          font: '28px sans-serif',
           style: 2, // FILL_AND_OUTLINE
           fillColor: Color.BLUE,
           outlineColor: Color.WHITE,
           outlineWidth: 2,
           horizontalOrigin: 0, // CENTER
-          verticalOrigin: 2, // BASELINE
-          pixelOffset: new Cartesian3(0, -20, 0)
+          verticalOrigin: verticalOrigin,
+          pixelOffset: new Cartesian2(0, pixelOffsetY)
         }
       });
       entities.push(cornerEntity);
@@ -447,16 +453,16 @@ class LayerManager {
     const corners = [];
 
     // 八个角点的符号组合
-    // 顶面四个点（+z）
-    corners.push({ label: '1', signs: ['-', '-', '+'] }); // -x, -y, +z
-    corners.push({ label: '2', signs: ['+', '-', '+'] }); // +x, -y, +z
-    corners.push({ label: '3', signs: ['+', '+', '+'] }); // +x, +y, +z
-    corners.push({ label: '4', signs: ['-', '+', '+'] }); // -x, +y, +z
-    // 底面四个点（-z）
-    corners.push({ label: '5', signs: ['-', '-', '-'] }); // -x, -y, -z
-    corners.push({ label: '6', signs: ['+', '-', '-'] }); // +x, -y, -z
-    corners.push({ label: '7', signs: ['+', '+', '-'] }); // +x, +y, -z
-    corners.push({ label: '8', signs: ['-', '+', '-'] }); // -x, +y, -z
+    // 顶面四个点（+z）- isBottom: false
+    corners.push({ label: '1', signs: ['-', '-', '+'], isBottom: false }); // -x, -y, +z
+    corners.push({ label: '2', signs: ['+', '-', '+'], isBottom: false }); // +x, -y, +z
+    corners.push({ label: '3', signs: ['+', '+', '+'], isBottom: false }); // +x, +y, +z
+    corners.push({ label: '4', signs: ['-', '+', '+'], isBottom: false }); // -x, +y, +z
+    // 底面四个点（-z）- isBottom: true
+    corners.push({ label: '5', signs: ['-', '-', '-'], isBottom: true }); // -x, -y, -z
+    corners.push({ label: '6', signs: ['+', '-', '-'], isBottom: true }); // +x, -y, -z
+    corners.push({ label: '7', signs: ['+', '+', '-'], isBottom: true }); // +x, +y, -z
+    corners.push({ label: '8', signs: ['-', '+', '-'], isBottom: true }); // -x, +y, -z
 
     return corners.map(corner => {
       let position = Cartesian3.clone(center);
@@ -482,7 +488,8 @@ class LayerManager {
 
       return {
         label: corner.label,
-        position: position
+        position: position,
+        isBottom: corner.isBottom
       };
     });
   }
