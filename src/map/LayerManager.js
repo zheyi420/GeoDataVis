@@ -4,7 +4,7 @@
  */
 
 import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
-import { HeadingPitchRange, Math as CesiumMath, Color, Cartesian2, Cartesian3, Cesium3DTileStyle, Cesium3DTileColorBlendMode, Matrix3, LabelStyle, HorizontalOrigin, VerticalOrigin } from 'cesium';
+import { HeadingPitchRange, Math as CesiumMath, Color, Cartesian2, Cartesian3, Cesium3DTileStyle, Cesium3DTileColorBlendMode, Matrix3, LabelStyle, HorizontalOrigin, VerticalOrigin, Quaternion } from 'cesium';
 
 class LayerManager {
   #viewer; // 私有属性
@@ -495,6 +495,47 @@ class LayerManager {
   }
 
   /**
+   * 计算从 Z 轴方向到目标方向的旋转四元数
+   * @param {Cartesian3} targetDirection - 目标方向向量
+   * @returns {Quaternion} 旋转四元数
+   * @private
+   */
+  _computeAxisOrientation(targetDirection) {
+    const zAxis = Cartesian3.UNIT_Z;
+    const normalizedTarget = Cartesian3.normalize(targetDirection, new Cartesian3());
+
+    // 如果方向相同，返回单位四元数
+    if (Cartesian3.equalsEpsilon(normalizedTarget, zAxis, CesiumMath.EPSILON10)) {
+      return Quaternion.IDENTITY;
+    }
+
+    // 如果方向相反，需要180度旋转
+    const negatedZ = Cartesian3.negate(zAxis, new Cartesian3());
+    if (Cartesian3.equalsEpsilon(normalizedTarget, negatedZ, CesiumMath.EPSILON10)) {
+      return Quaternion.fromAxisAngle(Cartesian3.UNIT_X, CesiumMath.PI);
+    }
+
+    // 计算旋转轴（垂直于两个向量的平面）
+    const rotationAxis = Cartesian3.cross(zAxis, normalizedTarget, new Cartesian3());
+    const axisLength = Cartesian3.magnitude(rotationAxis);
+
+    // 如果两个向量平行，使用 X 轴作为旋转轴
+    if (axisLength < CesiumMath.EPSILON10) {
+      return Quaternion.fromAxisAngle(Cartesian3.UNIT_X, CesiumMath.PI);
+    }
+
+    // 归一化旋转轴
+    Cartesian3.normalize(rotationAxis, rotationAxis);
+
+    // 计算旋转角度
+    const dot = Cartesian3.dot(zAxis, normalizedTarget);
+    const angle = Math.acos(CesiumMath.clamp(dot, -1.0, 1.0));
+
+    // 创建四元数
+    return Quaternion.fromAxisAngle(rotationAxis, angle);
+  }
+
+  /**
    * 显示/隐藏本地坐标轴
    * @param {Cesium3DTileset} tileset - 3DTiles 实例
    * @param {Boolean} visible - 是否显示
@@ -565,12 +606,45 @@ class LayerManager {
     const y = Matrix3.getColumn(halfAxes, 1, new Cartesian3());
     const z = Matrix3.getColumn(halfAxes, 2, new Cartesian3());
 
-    // 计算坐标轴端点：center + 轴向量
-    const xAxisEnd = Cartesian3.add(center, x, new Cartesian3());
-    const yAxisEnd = Cartesian3.add(center, y, new Cartesian3());
-    const zAxisEnd = Cartesian3.add(center, z, new Cartesian3());
+    // 计算包围盒的完整尺寸（halfAxes 是半轴，需要乘以2）
+    const xLength = Cartesian3.magnitude(x) * 2;
+    const yLength = Cartesian3.magnitude(y) * 2;
+    const zLength = Cartesian3.magnitude(z) * 2;
 
-    // X轴（红色）
+    // 计算三个轴长度的最大值，统一使用最长轴的长度
+    const maxLength = Math.max(xLength, yLength, zLength);
+
+    // 计算包围盒体积
+    const volume = xLength * yLength * zLength;
+
+    // 基于体积计算统一的锥体基准尺寸（使用几何平均长度）
+    // 几何平均 = (xLength * yLength * zLength)^(1/3) = volume^(1/3)
+    const geometricMean = Math.pow(volume, 1/3);
+
+    // 计算统一的锥体大小（使用几何平均的 3%，确保在查看整个模型时仍能清晰可见）
+    const coneBaseSize = geometricMean * 0.03;
+    const coneLength = coneBaseSize * 3;
+    const coneBottomRadius = coneBaseSize; // 底半径与长度一致
+
+    const scale = 1.4;
+    // 统一使用最长轴的长度，计算 scale 倍长度的轴端点（用于绘制轴线段）
+    const maxAxisLength = maxLength / 2; // 转换为半轴长度
+    const scaledLength = maxAxisLength * scale; // 统一的缩放后长度
+
+    const normalizedX = Cartesian3.normalize(x, new Cartesian3());
+    const normalizedY = Cartesian3.normalize(y, new Cartesian3());
+    const normalizedZ = Cartesian3.normalize(z, new Cartesian3());
+
+    // 使用统一的长度计算三个轴的端点
+    const scaledX = Cartesian3.multiplyByScalar(normalizedX, scaledLength, new Cartesian3());
+    const scaledY = Cartesian3.multiplyByScalar(normalizedY, scaledLength, new Cartesian3());
+    const scaledZ = Cartesian3.multiplyByScalar(normalizedZ, scaledLength, new Cartesian3());
+
+    const xAxisEnd = Cartesian3.add(center, scaledX, new Cartesian3());
+    const yAxisEnd = Cartesian3.add(center, scaledY, new Cartesian3());
+    const zAxisEnd = Cartesian3.add(center, scaledZ, new Cartesian3());
+
+    // X轴线段（红色）
     const xAxisEntity = this.#viewer.entities.add({
       polyline: {
         positions: [center, xAxisEnd],
@@ -579,7 +653,22 @@ class LayerManager {
       }
     });
 
-    // Y轴（绿色）
+    // X轴端点锥体（红色）- 使用统一的锥体大小
+    const xAxisOrientation = this._computeAxisOrientation(normalizedX);
+    const xConeEntity = this.#viewer.entities.add({
+      position: xAxisEnd,
+      orientation: xAxisOrientation,
+      cylinder: {
+        length: coneLength,
+        topRadius: 0,
+        bottomRadius: coneBottomRadius, // 统一的底部半径
+        material: Color.RED,
+        outline: true,
+        outlineColor: Color.RED
+      }
+    });
+
+    // Y轴线段（绿色）
     const yAxisEntity = this.#viewer.entities.add({
       polyline: {
         positions: [center, yAxisEnd],
@@ -588,7 +677,22 @@ class LayerManager {
       }
     });
 
-    // Z轴（蓝色）
+    // Y轴端点锥体（绿色）- 使用统一的锥体大小
+    const yAxisOrientation = this._computeAxisOrientation(normalizedY);
+    const yConeEntity = this.#viewer.entities.add({
+      position: yAxisEnd,
+      orientation: yAxisOrientation,
+      cylinder: {
+        length: coneLength,
+        topRadius: 0,
+        bottomRadius: coneBottomRadius, // 统一的底部半径
+        material: Color.GREEN,
+        outline: true,
+        outlineColor: Color.GREEN
+      }
+    });
+
+    // Z轴线段（蓝色）
     const zAxisEntity = this.#viewer.entities.add({
       polyline: {
         positions: [center, zAxisEnd],
@@ -597,7 +701,83 @@ class LayerManager {
       }
     });
 
-    visualizations.localAxes = [xAxisEntity, yAxisEntity, zAxisEntity];
+    // Z轴端点锥体（蓝色）- 使用统一的锥体大小
+    const zAxisOrientation = this._computeAxisOrientation(normalizedZ);
+    const zConeEntity = this.#viewer.entities.add({
+      position: zAxisEnd,
+      orientation: zAxisOrientation,
+      cylinder: {
+        length: coneLength,
+        topRadius: 0,
+        bottomRadius: coneBottomRadius, // 统一的底部半径
+        material: Color.BLUE,
+        outline: true,
+        outlineColor: Color.BLUE
+      }
+    });
+
+    // 计算标签位置：从锥体位置沿着轴方向再延伸 coneLength 的距离
+    const labelOffsetX = Cartesian3.multiplyByScalar(normalizedX, coneLength, new Cartesian3());
+    const labelOffsetY = Cartesian3.multiplyByScalar(normalizedY, coneLength, new Cartesian3());
+    const labelOffsetZ = Cartesian3.multiplyByScalar(normalizedZ, coneLength, new Cartesian3());
+
+    const xLabelPosition = Cartesian3.add(xAxisEnd, labelOffsetX, new Cartesian3());
+    const yLabelPosition = Cartesian3.add(yAxisEnd, labelOffsetY, new Cartesian3());
+    const zLabelPosition = Cartesian3.add(zAxisEnd, labelOffsetZ, new Cartesian3());
+
+    // 创建X轴标签
+    const xLabelEntity = this.#viewer.entities.add({
+      position: xLabelPosition,
+      label: {
+        text: 'X',
+        font: '28px sans-serif',
+        style: LabelStyle.FILL_AND_OUTLINE,
+        fillColor: Color.RED,
+        outlineColor: Color.WHITE,
+        outlineWidth: 2,
+        horizontalOrigin: HorizontalOrigin.CENTER,
+        verticalOrigin: VerticalOrigin.CENTER,
+        pixelOffset: new Cartesian2(0, 0)
+      }
+    });
+
+    // 创建Y轴标签
+    const yLabelEntity = this.#viewer.entities.add({
+      position: yLabelPosition,
+      label: {
+        text: 'Y',
+        font: '28px sans-serif',
+        style: LabelStyle.FILL_AND_OUTLINE,
+        fillColor: Color.GREEN,
+        outlineColor: Color.WHITE,
+        outlineWidth: 2,
+        horizontalOrigin: HorizontalOrigin.CENTER,
+        verticalOrigin: VerticalOrigin.CENTER,
+        pixelOffset: new Cartesian2(0, 0)
+      }
+    });
+
+    // 创建Z轴标签
+    const zLabelEntity = this.#viewer.entities.add({
+      position: zLabelPosition,
+      label: {
+        text: 'Z',
+        font: '28px sans-serif',
+        style: LabelStyle.FILL_AND_OUTLINE,
+        fillColor: Color.BLUE,
+        outlineColor: Color.WHITE,
+        outlineWidth: 2,
+        horizontalOrigin: HorizontalOrigin.CENTER,
+        verticalOrigin: VerticalOrigin.CENTER,
+        pixelOffset: new Cartesian2(0, 0)
+      }
+    });
+
+    visualizations.localAxes = [
+      xAxisEntity, xConeEntity, xLabelEntity,
+      yAxisEntity, yConeEntity, yLabelEntity,
+      zAxisEntity, zConeEntity, zLabelEntity
+    ];
   }
 
   /**
