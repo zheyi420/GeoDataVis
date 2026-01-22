@@ -4,9 +4,14 @@
  */
 import { Viewer, Camera, Rectangle, ScreenSpaceEventHandler, ScreenSpaceEventType, CameraEventType, KeyboardEventModifier } from 'cesium'
 
+/**
+ * @typedef {import("cesium").Viewer} Viewer
+ */
+
 class ViewerManager {
   /**
    * @name 地图视图类（单例模式）
+   * @type {Viewer|null}
    */
   #viewer; // 私有属性
   #viewerContainer; // 私有属性

@@ -467,6 +467,7 @@ export const useLayerStore = defineStore('layers', () => {
 
   return {
     layers,
+    getLayerManager,
     addWmsLayer,
     addWmtsLayer,
     add3DTilesLayer,

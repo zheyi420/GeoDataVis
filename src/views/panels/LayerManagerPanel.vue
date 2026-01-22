@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2025-04-14
  * @LastEditors: zheyi420 37471153+zheyi420@users.noreply.github.com
- * @LastEditTime: 2026-01-16
+ * @LastEditTime: 2026-01-22
  * @FilePath: \GeoDataVis\src\views\panels\LayerManagerPanel.vue
  * @Description: 图层管理面板，显示加载的地图服务图层及地理数据文件图层
  *
@@ -54,7 +54,19 @@
                 />
               </template>
             </el-table-column>
-            <el-table-column prop="name" label="图层名称" />
+            <el-table-column prop="name" label="图层名称">
+              <template #default="scope">
+                <span
+                  :class="{
+                    'layer-name': true,
+                    'layer-name-clickable': scope.row.sourceType === 'Cesium3DTiles'
+                  }"
+                  @click="handleLayerNameClick(scope.row)"
+                >
+                  {{ scope.row.name }}
+                </span>
+              </template>
+            </el-table-column>
             <el-table-column width="90">
               <template #default="scope">
                 <el-popover
@@ -284,6 +296,37 @@ function toggle3DTilesLocalAxes(layer) {
 function update3DTilesOpacity(layer) {
   layerStore.set3DTilesOpacity(layer.id, layer.opacity);
 }
+
+// 处理图层名称点击事件
+function handleLayerNameClick(layer) {
+  // 只处理 Cesium3DTiles 类型的图层
+  if (layer.sourceType !== 'Cesium3DTiles') {
+    return;
+  }
+
+  // 获取 LayerManager 实例
+  const layerManager = layerStore.getLayerManager();
+  if (!layerManager) {
+    console.error('LayerManager 未初始化');
+    return;
+  }
+
+  // 获取 tileset 实例
+  const tileset = layer.layerInstance;
+  if (!tileset) {
+    console.error('tileset 实例不存在');
+    return;
+  }
+
+  // 调用 LayerManager 的聚焦方法
+  layerManager.zoomToTileset(tileset)
+    .then(() => {
+      console.log('相机聚焦成功');
+    })
+    .catch(error => {
+      console.error('相机聚焦失败:', error);
+    });
+}
 </script>
 
 <style scoped lang="scss">
@@ -348,6 +391,27 @@ function update3DTilesOpacity(layer) {
       display: flex;
       flex-direction: column;
       margin-bottom: 12px;
+    }
+  }
+
+  .layer-name {
+    display: inline-block;
+    padding: 2px 4px;
+    border-radius: 2px;
+    transition: all 0.2s;
+
+    &.layer-name-clickable {
+      cursor: pointer;
+      color: #409eff;
+
+      &:hover {
+        background-color: #ecf5ff;
+        color: #66b1ff;
+      }
+
+      &:active {
+        color: #3a8ee6;
+      }
     }
   }
 }

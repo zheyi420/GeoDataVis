@@ -6,7 +6,12 @@
 import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
 import { HeadingPitchRange, Math as CesiumMath, Color, Cartesian2, Cartesian3, Cesium3DTileStyle, Cesium3DTileColorBlendMode, Matrix3, LabelStyle, HorizontalOrigin, VerticalOrigin, Quaternion } from 'cesium';
 
+/**
+ * @typedef {import("cesium").Viewer} Viewer
+ */
+
 class LayerManager {
+  /** @type {Viewer} */
   #viewer; // 私有属性
   static #instance; // 单例实例 静态私有属性
   #tilesetVisualizations; // 存储每个 tileset 的可视化实体集合
@@ -88,7 +93,7 @@ class LayerManager {
       this.#viewer.scene.primitives.add(tileset);
 
       // 3. 自动聚焦 camera 到模型位置
-      this._zoomToTileset(tileset);
+      this.zoomToTileset(tileset);
 
       return tileset;
     } catch (error) {
@@ -99,11 +104,19 @@ class LayerManager {
 
   /**
    * 聚焦 camera 到 3DTiles 模型
+   * 如果 tileset 尚未加载完成，会等待 readyPromise 后再执行聚焦
    * @param {Object} tileset - Cesium 3DTiles 实例
+   * @returns {Promise<void>} 返回 Promise，聚焦完成后 resolve
    */
-  _zoomToTileset(tileset) {
-    try {
-      if (tileset.boundingSphere) {
+  zoomToTileset(tileset) {
+    if (!tileset) {
+      console.error('聚焦失败: tileset 不存在');
+      return Promise.reject(new Error('tileset 不存在'));
+    }
+
+    // 如果 boundingSphere 已存在，直接聚焦
+    if (tileset.boundingSphere) {
+      try {
         const boundingSphere = tileset.boundingSphere;
         this.#viewer.camera.flyToBoundingSphere(boundingSphere, {
           duration: 1.0,
@@ -113,10 +126,41 @@ class LayerManager {
             boundingSphere.radius * 2
           ),
         });
+        return Promise.resolve();
+      } catch (error) {
+        console.error('聚焦失败:', error);
+        return Promise.reject(error);
       }
-    } catch (error) {
-      console.error('聚焦失败:', error);
     }
+
+    // 如果 boundingSphere 不存在，等待 tileset 加载完成
+    if (tileset.readyPromise) {
+      return tileset.readyPromise
+        .then(() => {
+          if (tileset.boundingSphere) {
+            const boundingSphere = tileset.boundingSphere;
+            this.#viewer.camera.flyToBoundingSphere(boundingSphere, {
+              duration: 1.0,
+              offset: new HeadingPitchRange(
+                CesiumMath.toRadians(0),
+                CesiumMath.toRadians(-45),
+                boundingSphere.radius * 2
+              ),
+            });
+          } else {
+            console.warn('tileset 加载完成但 boundingSphere 仍不存在');
+            return Promise.reject(new Error('tileset boundingSphere 不存在'));
+          }
+        })
+        .catch(error => {
+          console.error('等待 tileset 加载失败:', error);
+          return Promise.reject(error);
+        });
+    }
+
+    // 如果既没有 boundingSphere 也没有 readyPromise，返回错误
+    console.error('聚焦失败: tileset 未加载且没有 readyPromise');
+    return Promise.reject(new Error('tileset 未加载且没有 readyPromise'));
   }
 
   /**
