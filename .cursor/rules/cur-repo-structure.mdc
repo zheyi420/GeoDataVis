@@ -1,0 +1,8 @@
+---
+name: cur-repo-structure
+description: This rule should be applied when related to the repository, folder or file structure.
+---
+
+# Overview
+
+Current repo use monorepo structure of pnpm.

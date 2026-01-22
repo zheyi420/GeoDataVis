@@ -16,3 +16,44 @@ Examples:
 
 - Good: `verticalOrigin: VerticalOrigin.TOP`
 - Bad: `verticalOrigin: -1`
+
+# Cesium Source Code
+
+When working with Cesium API calls, refer to the source code to understand internal implementations and parameter details.
+
+## Source Code Path
+
+This project uses pnpm as the package manager. Cesium source code is located in the pnpm store symlink directory:
+
+`node_modules\.pnpm\@cesium+engine@<version>\node_modules\@cesium\engine\Source\`
+
+Current version path:
+`node_modules\.pnpm\@cesium+engine@19.0.0\node_modules\@cesium\engine\Source\`
+
+## Source Directory Structure
+
+| Directory | Description |
+|-----------|-------------|
+| `Core/` | Math APIs, Geometry APIs, utility functions, Resource/Request APIs, Terrain APIs |
+| `DataSources/` | High-level APIs including Entity API, Property API, DataSource API for KML, GeoJson, CZML data formats |
+| `Renderer/` | WebGL wrapper and extensions (Framebuffer, Texture, etc.) |
+| `Scene/` | Scene module with Primitive API, Model API, Globe API, 3DTiles API |
+| `Shaders/` | GLSL shader code files |
+| `Widget/` | UI components and styles |
+
+## Common Source Code References
+
+- Entity: `DataSources/Entity.js`, `DataSources/BillboardGraphics.js`, `DataSources/LabelGraphics.js`
+- 3D Tiles: `Scene/Cesium3DTile.js`, `Scene/Cesium3DTileset.js`
+- Primitives: `Scene/Primitive.js`, `Scene/Billboard.js`, `Scene/Label.js`
+- Geometry: `Core/Cartesian3.js`, `Core/Matrix4.js`, `Core/Transforms.js`
+
+## Notes
+
+1. The version number in path (e.g., `@19.0.0`) changes with package updates
+2. Check both **JSDoc comments** and **actual implementation code** in source files for complete understanding of API behavior and parameters
+3. APIs marked with `@private` are internal implementations and may change in future versions
+4. **Accessing source code**: Since `node_modules` may be excluded from automatic indexing:
+   - Use the full absolute path when referencing files (as shown in the path examples above)
+   - If needed, explicitly open the source file in the editor to ensure it's accessible
+   - The files exist in the filesystem and can be read directly using file read operations
