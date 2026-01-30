@@ -1,0 +1,166 @@
+---
+name: tech-architecture
+description: This rule describes the technical stack and architecture design of the project.
+---
+
+# GeoDataVis 技术架构
+
+## 技术栈
+
+### 核心框架
+- **Vue 3** - 使用 Composition API（`<script setup>`），单页面应用（SPA）
+- **Pinia** - 状态管理
+- **Vite** - 构建工具
+
+### 地图引擎
+- **Cesium 1.132.0** - 3D 地球和地理数据可视化引擎
+  - 使用 `@cesium/engine` 包
+  - 外部化加载（生产环境）以优化构建体积
+
+### UI 框架
+- **Element Plus** - UI 组件库
+- **@element-plus/icons-vue** - 图标库
+
+### 样式处理
+- **SCSS** - CSS 预处理器（使用 `sass`）
+- **Modern Compiler API** - Sass 编译器
+
+### 开发工具
+- **ESLint** - 代码检查
+- **Prettier** - 代码格式化
+- **Vue DevTools** - Vue 调试工具（开发环境）
+
+## 核心架构模块
+
+### 1. Cesium 地图管理层
+
+#### ViewerManager（单例）
+- **职责**: 管理 Cesium Viewer 的创建和配置
+- **核心功能**:
+  - 单例模式确保全局唯一 Viewer
+  - 配置默认视图范围（广东区域）
+  - 自定义鼠标控制策略
+  - 保持相机 roll 角度为 0
+- **位置**: `src/map/ViewerManager.js`
+
+#### LayerManager（单例）
+- **职责**: 图层的增删改查和可视化控制
+- **核心功能**:
+  - WMS/WMTS 图层管理
+  - 3D Tiles 模型管理（加载、聚焦、可视化调试）
+  - 图层可见性、透明度控制
+  - 3DTiles 包围球/包围盒/坐标轴可视化
+- **位置**: `src/map/LayerManager.js`
+
+### 2. 状态管理层（Pinia）
+
+#### layerStore
+- **职责**: 管理图层状态
+- **核心状态**:
+  - 图层列表（id、name、type、visible、opacity 等）
+  - 图层实例引用（使用 `markRaw` 避免响应式）
+- **核心方法**: 添加/删除图层、设置可见性/透明度、图层排序
+- **位置**: `src/stores/map/layerStore.js`
+
+#### panelStatusStore
+- **职责**: 管理 UI 面板状态
+- **核心状态**: 三个服务参数对话框的显示/隐藏状态
+- **位置**: `src/stores/panelStatus.js`
+
+### 3. 组件层
+
+#### 容器组件
+- **MapContainer.vue** - 初始化 Cesium Viewer，提供全屏地图容器
+
+#### 面板组件
+- **ToolBarLoadPanel** - 数据加载入口（触发对话框）
+- **LayerManagerPanel** - 图层列表管理（可见性、透明度、删除、3DTiles 调试）
+- **MapParamsPanel** - 实时显示相机和鼠标位置信息
+
+#### 对话框组件
+- **DialogWmsServiceParam** - WMS 服务参数配置
+- **DialogWmtsServiceParam** - WMTS 服务参数配置
+- **DialogCesium3DTilesParam** - 3D Tiles 模型参数配置
+
+## 架构关系图
+
+```mermaid
+graph LR
+    User[用户交互]
+    
+    User --> Toolbar[ToolBarLoadPanel<br/>工具栏]
+    User --> LayerPanel[LayerManagerPanel<br/>图层面板]
+    
+    Toolbar --> PanelStore[panelStatusStore<br/>面板状态]
+    PanelStore --> Dialogs[参数对话框×3]
+    
+    Dialogs --> LayerStore[layerStore<br/>图层状态]
+    LayerStore --> LayerMgr[LayerManager<br/>图层管理单例]
+    
+    LayerPanel --> LayerStore
+    
+    LayerMgr --> Viewer[Cesium Viewer<br/>地图渲染]
+    ViewerMgr[ViewerManager<br/>Viewer单例] --> Viewer
+    
+    MapContainer[MapContainer.vue<br/>地图容器] --> ViewerMgr
+```
+
+## 数据流向
+
+```mermaid
+flowchart TD
+    A[用户操作] --> B{操作类型}
+    
+    B -->|加载数据| C[打开参数对话框]
+    C --> D[填写参数]
+    D --> E[layerStore添加图层]
+    E --> F[LayerManager创建图层]
+    F --> G[添加到Cesium Viewer]
+    
+    B -->|管理图层| H[LayerManagerPanel操作]
+    H --> I{操作类型}
+    I -->|可见性/透明度| J[layerStore更新状态]
+    I -->|删除| K[layerStore移除]
+    
+    J --> L[LayerManager同步]
+    K --> L
+    L --> G
+    
+    B -->|查看信息| M[MapParamsPanel显示]
+    M --> N[监听Cesium事件]
+    N --> O[实时更新UI]
+```
+
+## 模块职责总结
+
+| 模块 | 职责 | 特点 |
+|------|------|------|
+| **ViewerManager** | Cesium Viewer 生命周期管理 | 单例模式 |
+| **LayerManager** | 图层操作和 Cesium 交互 | 单例模式 |
+| **layerStore** | 图层状态持久化 | Pinia 响应式 |
+| **panelStatusStore** | UI 状态管理 | Pinia 响应式 |
+| **MapContainer** | 地图容器初始化 | Vue 组件 |
+| **面板组件** | 用户交互界面 | Vue 组件 |
+| **对话框组件** | 参数输入和验证 | Vue 组件 |
+
+## 构建和部署
+
+### 构建模式
+- **development** - 开发模式（Cesium 不外部化）
+- **production-github-pages** - GitHub Pages 部署
+- **production-local** - 本地部署
+
+### Cesium 集成
+- **外部化策略**: 生产环境使用 `vite-plugin-externals` 外部化 Cesium
+- **资源复制**: 使用 `vite-plugin-static-copy` 复制 Assets/Workers/ThirdParty/Widgets
+- **CDN 配置**: 通过 `window.CESIUM_BASE_URL` 指定资源路径
+
+### 环境变量
+- **VITE_BASE_URL** - 应用基础路径（GitHub Pages 需设置为仓库名）
+
+## 设计模式
+
+1. **单例模式** - ViewerManager 和 LayerManager 确保全局唯一实例
+2. **观察者模式** - Pinia store 响应式状态变化
+3. **组合模式** - Vue 3 Composition API
+4. **职责分离** - 视图层、状态层、业务层清晰分离

@@ -1,0 +1,104 @@
+---
+name: repo-structure
+description: This rule describes the project directory structure and file organization.
+---
+
+# GeoDataVis 项目结构
+
+## 项目类型
+
+使用 pnpm 作为包管理器的 Monorepo 结构（未来可扩展为多包架构）。
+
+## 核心目录树
+
+```
+GeoDataVis/
+├── .cursor/              # Cursor 编辑器配置
+│   └── rules/           # 项目规则文件
+├── .github/             # GitHub Actions 配置
+│   └── workflows/       # CI/CD 工作流
+├── public/              # 静态资源
+├── src/                 # 源代码目录
+│   ├── assets/         # 静态资源（CSS 等）
+│   ├── components/     # Vue 通用组件（预留）
+│   ├── map/            # Cesium 地图核心模块
+│   │   ├── business/   # 地图业务逻辑
+│   │   ├── utils/      # 地图工具类
+│   │   ├── ViewerManager.js   # Viewer 单例管理
+│   │   └── LayerManager.js    # 图层管理单例
+│   ├── stores/         # Pinia 状态管理
+│   │   └── map/        # 地图相关状态
+│   └── views/          # Vue 页面组件
+│       └── panels/     # UI 面板组件
+├── vite.config.js      # Vite 构建配置
+├── package.json        # 项目依赖配置
+└── pnpm-lock.yaml      # pnpm 依赖锁定文件
+```
+
+## 核心目录说明
+
+### `src/map/` - Cesium 地图核心
+- **ViewerManager.js** - Cesium Viewer 单例，负责初始化和配置
+- **LayerManager.js** - 图层管理单例，处理 WMS/WMTS/3DTiles 图层
+- **business/** - 地图业务逻辑层（预留扩展）
+- **utils/** - 工具类
+  - `CesiumViewInfo.js` - 视图信息获取
+  - `ImageryLayerUtils.js` - 图层创建工具
+  - `CoordinateTransformer.js` - 坐标转换（预留）
+
+### `src/stores/` - 状态管理
+- **map/layerStore.js** - 图层状态管理（图层列表、可见性、透明度等）
+- **panelStatus.js** - UI 面板状态管理（对话框显示/隐藏）
+
+### `src/views/` - 页面与面板
+- **MapContainer.vue** - 地图容器，初始化 Cesium Viewer
+- **panels/** - UI 面板组件
+  - `ToolBarLoadPanel.vue` - 数据加载工具栏
+  - `LayerManagerPanel.vue` - 图层管理面板
+  - `MapParamsPanel.vue` - 地图参数显示面板
+  - `DialogWmsServiceParam.vue` - WMS 参数对话框
+  - `DialogWmtsServiceParam.vue` - WMTS 参数对话框
+  - `DialogCesium3DTilesParam.vue` - 3DTiles 参数对话框
+
+### `src/components/` - 通用组件
+- 预留的通用 Vue 组件目录，当前为空
+
+## 目录结构可视化
+
+```mermaid
+graph TB
+    Root[GeoDataVis]
+    
+    Root --> Config[".cursor/rules<br/>规则配置"]
+    Root --> Src["src/<br/>源代码"]
+    Root --> Public["public/<br/>静态资源"]
+    Root --> ConfigFiles["配置文件<br/>vite/eslint/package.json"]
+    
+    Src --> Map["map/<br/>Cesium核心"]
+    Src --> Stores["stores/<br/>状态管理"]
+    Src --> Views["views/<br/>页面组件"]
+    Src --> Components["components/<br/>通用组件(预留)"]
+    
+    Map --> ViewerMgr["ViewerManager.js<br/>Viewer单例"]
+    Map --> LayerMgr["LayerManager.js<br/>图层管理"]
+    Map --> Business["business/<br/>业务逻辑"]
+    Map --> Utils["utils/<br/>工具类"]
+    
+    Stores --> LayerStore["map/layerStore.js<br/>图层状态"]
+    Stores --> PanelStore["panelStatus.js<br/>面板状态"]
+    
+    Views --> MapContainer["MapContainer.vue<br/>地图容器"]
+    Views --> Panels["panels/<br/>面板组件"]
+    
+    Panels --> Toolbar["ToolBarLoadPanel"]
+    Panels --> LayerPanel["LayerManagerPanel"]
+    Panels --> ParamsPanel["MapParamsPanel"]
+    Panels --> Dialogs["对话框组件"]
+```
+
+## 关键文件
+
+- **入口**: `src/main.js` - 初始化 Vue 应用、Pinia 和 Cesium（单页面应用）
+- **根组件**: `src/App.vue` - 组合所有面板和地图容器
+- **构建配置**: `vite.config.js` - Cesium 外部化和资源复制配置
+- **环境变量**: `.env.*` - 不同部署模式的配置（GitHub Pages、本地）
