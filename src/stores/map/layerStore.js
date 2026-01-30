@@ -26,6 +26,7 @@ export const useLayerStore = defineStore('layers', () => {
       visible: layer.visible !== undefined ? layer.visible : true,
       opacity: layer.opacity !== undefined ? layer.opacity : 1,
       sourceType: layer.sourceType || '', // 例如：'WMS', 'GeoJSON', 'Cesium3DTiles'等
+      locatable: layer.locatable !== undefined ? layer.locatable : false, // 是否可定位
       layerInstance: markRaw(layer.layerInstance) || null, // 实际图层对象的引用
       metadata: layer.metadata || {} // 其他元数据
     };
@@ -157,6 +158,7 @@ export const useLayerStore = defineStore('layers', () => {
             sourceType: 'Cesium3DTiles',
             visible: true,
             opacity: 1,
+            locatable: true, // 3DTiles 图层可定位
             layerInstance: tileset,
             metadata: tilesOptions
           });

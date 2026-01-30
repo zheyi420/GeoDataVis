@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2025-04-14
  * @LastEditors: zheyi420 37471153+zheyi420@users.noreply.github.com
- * @LastEditTime: 2026-01-22
+ * @LastEditTime: 2026-01-30
  * @FilePath: \GeoDataVis\src\views\panels\LayerManagerPanel.vue
  * @Description: 图层管理面板，显示加载的地图服务图层及地理数据文件图层
  *
@@ -31,7 +31,7 @@
         <el-collapse-item title="地图服务图层" name="serviceLayers">
           <template #title>
             <div class="collapse-title">
-              <el-icon><MapLocation /></el-icon>
+              <el-icon><Grid /></el-icon>
               <span>地图服务图层</span>
             </div>
           </template>
@@ -59,10 +59,13 @@
                 <span
                   :class="{
                     'layer-name': true,
-                    'layer-name-clickable': scope.row.sourceType === 'Cesium3DTiles'
+                    'layer-name-clickable': scope.row.locatable
                   }"
                   @click="handleLayerNameClick(scope.row)"
                 >
+                  <el-icon v-if="scope.row.locatable" class="layer-icon">
+                    <MapLocation />
+                  </el-icon>
                   {{ scope.row.name }}
                 </span>
               </template>
@@ -228,7 +231,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useLayerStore } from '@/stores/map/layerStore';
 import { ElIcon, ElButton, ElCollapse, ElCollapseItem, ElCheckbox, ElSlider, ElTable, ElTableColumn, ElPopover } from 'element-plus';
-import { ArrowUp, ArrowDown, MapLocation, Document, Setting } from '@element-plus/icons-vue';
+import { ArrowUp, ArrowDown, MapLocation, Document, Setting, Grid } from '@element-plus/icons-vue';
 
 // 控制面板折叠状态
 const collapsed = ref(false);
@@ -299,8 +302,8 @@ function update3DTilesOpacity(layer) {
 
 // 处理图层名称点击事件
 function handleLayerNameClick(layer) {
-  // 只处理 Cesium3DTiles 类型的图层
-  if (layer.sourceType !== 'Cesium3DTiles') {
+  // 使用 locatable 字段判断
+  if (!layer.locatable) {
     return;
   }
 
@@ -311,21 +314,24 @@ function handleLayerNameClick(layer) {
     return;
   }
 
-  // 获取 tileset 实例
-  const tileset = layer.layerInstance;
-  if (!tileset) {
-    console.error('tileset 实例不存在');
+  // 获取图层实例
+  const layerInstance = layer.layerInstance;
+  if (!layerInstance) {
+    console.error('图层实例不存在');
     return;
   }
 
-  // 调用 LayerManager 的聚焦方法
-  layerManager.zoomToTileset(tileset)
-    .then(() => {
-      console.log('相机聚焦成功');
-    })
-    .catch(error => {
-      console.error('相机聚焦失败:', error);
-    });
+  // 根据图层类型调用相应的定位方法
+  if (layer.sourceType === 'Cesium3DTiles') {
+    layerManager.zoomToTileset(layerInstance)
+      .then(() => {
+        console.log('相机聚焦成功');
+      })
+      .catch(error => {
+        console.error('相机聚焦失败:', error);
+      });
+  }
+  // 未来可以添加 GeoJSON 等其他类型的定位逻辑
 }
 </script>
 
@@ -395,10 +401,15 @@ function handleLayerNameClick(layer) {
   }
 
   .layer-name {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 2px 4px;
-    border-radius: 2px;
+    // border-radius: 2px;
     transition: all 0.2s;
+
+    .layer-icon {
+      margin-right: 4px;
+    }
 
     &.layer-name-clickable {
       cursor: pointer;
