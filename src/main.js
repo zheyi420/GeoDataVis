@@ -4,7 +4,6 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
 import App from './App.vue'
-import router from './router'
 
 /**
  * https://cesium.com/learn/cesiumjs-learn/cesiumjs-quickstart/
@@ -32,7 +31,6 @@ Ion.defaultAccessToken =
 const app = createApp(App)
 
 app.use(createPinia())
-app.use(router)
 
 app.mount('#app')
 
