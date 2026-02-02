@@ -990,17 +990,16 @@ class LayerManager {
     }
 
     try {
-      // 方法1：使用 style（推荐）
-      if (tileset.style !== undefined) {
-        tileset.style = new Cesium3DTileStyle({
-          color: `color("white", ${opacity})`
-        });
-        return true;
-      }
-
-      // 方法2：使用 colorBlendMode（备用方案）
-      tileset.colorBlendMode = Cesium3DTileColorBlendMode.MIX;
-      tileset.color = Color.WHITE.withAlpha(opacity);
+      // 使用 Cesium3DTileStyle 设置透明度
+      // color("white", opacity) 保持原始纹理颜色，只调整透明度
+      tileset.style = new Cesium3DTileStyle({
+        color: `color("white", ${opacity})`
+      });
+      
+      // 设置颜色混合模式为 HIGHLIGHT
+      // 这样样式颜色会与原始颜色相乘，保持纹理细节
+      tileset.colorBlendMode = Cesium3DTileColorBlendMode.HIGHLIGHT;
+      
       return true;
     } catch (error) {
       console.error('设置 3DTiles 透明度失败:', error);
