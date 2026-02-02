@@ -8,6 +8,7 @@ import { HeadingPitchRange, Math as CesiumMath, Color, Cartesian2, Cartesian3, C
 
 /**
  * @typedef {import("cesium").Viewer} Viewer
+ * @typedef {import("cesium").Cesium3DTileset} Cesium3DTileset
  */
 
 class LayerManager {
@@ -264,11 +265,56 @@ class LayerManager {
    * @returns {Boolean} 是否成功设置
    */
   set3DTilesVisibility(tileset, visible) {
-    if (tileset) {
-      tileset.show = visible;
-      return true;
+    if (!tileset) {
+      return false;
     }
-    return false;
+
+    const visualizations = this._getVisualizations(tileset);
+
+    if (visible) {
+      // 显示模型：先设置 tileset.show，然后恢复用户期望显示的可视化元素
+      tileset.show = true;
+
+      // 恢复包围球
+      if (visualizations.userWantsBoundingSphere) {
+        this._restoreBoundingSphere(tileset);
+      }
+
+      // 恢复包围盒
+      if (visualizations.userWantsOrientedBoundingBox) {
+        this._restoreOrientedBoundingBox(tileset);
+      }
+
+      // 恢复本地坐标轴
+      if (visualizations.userWantsLocalAxes) {
+        this._restoreLocalAxes(tileset);
+      }
+    } else {
+      // 隐藏模型：先隐藏所有可视化元素，然后隐藏 tileset
+
+      // 隐藏包围球（如果存在）
+      if (visualizations.boundingSphere) {
+        this.#viewer.entities.remove(visualizations.boundingSphere);
+        visualizations.boundingSphere = null;
+      }
+
+      // 隐藏包围盒（如果存在）
+      visualizations.orientedBoundingBoxes.forEach(entity => {
+        this.#viewer.entities.remove(entity);
+      });
+      visualizations.orientedBoundingBoxes = [];
+
+      // 隐藏本地坐标轴（如果存在）
+      visualizations.localAxes.forEach(entity => {
+        this.#viewer.entities.remove(entity);
+      });
+      visualizations.localAxes = [];
+
+      // 最后隐藏 tileset
+      tileset.show = false;
+    }
+
+    return true;
   }
 
   /**
@@ -281,7 +327,11 @@ class LayerManager {
       this.#tilesetVisualizations.set(tileset, {
         boundingSphere: null,
         orientedBoundingBoxes: [],
-        localAxes: []
+        localAxes: [],
+        // 记录用户期望显示的状态（独立于 tileset.show）
+        userWantsBoundingSphere: false,
+        userWantsOrientedBoundingBox: false,
+        userWantsLocalAxes: false
       });
     }
     return this.#tilesetVisualizations.get(tileset);
@@ -299,6 +349,14 @@ class LayerManager {
     }
 
     const visualizations = this._getVisualizations(tileset);
+
+    // 记录用户期望状态
+    visualizations.userWantsBoundingSphere = visible;
+
+    // 如果 tileset 不可见，不执行实际的显示操作（但允许隐藏操作）
+    if (!tileset.show && visible) {
+      return true; // 状态已记录，等待 tileset 显示时恢复
+    }
 
     if (visible) {
       // 如果已经存在，先移除
@@ -360,6 +418,32 @@ class LayerManager {
   }
 
   /**
+   * 恢复包围球显示（内部使用，不更新 userWants 状态）
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @private
+   */
+  _restoreBoundingSphere(tileset) {
+    const visualizations = this._getVisualizations(tileset);
+
+    // 如果已经存在，先移除
+    if (visualizations.boundingSphere) {
+      this.#viewer.entities.remove(visualizations.boundingSphere);
+    }
+
+    // 等待 tileset 加载完成
+    if (!tileset.boundingSphere) {
+      tileset.readyPromise.then(() => {
+        this._createBoundingSphere(tileset);
+      }).catch(error => {
+        console.error('等待 tileset 加载失败:', error);
+      });
+      return;
+    }
+
+    this._createBoundingSphere(tileset);
+  }
+
+  /**
    * 显示/隐藏包围盒
    * @param {Cesium3DTileset} tileset - 3DTiles 实例
    * @param {Boolean} visible - 是否显示
@@ -371,6 +455,14 @@ class LayerManager {
     }
 
     const visualizations = this._getVisualizations(tileset);
+
+    // 记录用户期望状态
+    visualizations.userWantsOrientedBoundingBox = visible;
+
+    // 如果 tileset 不可见，不执行实际的显示操作（但允许隐藏操作）
+    if (!tileset.show && visible) {
+      return true; // 状态已记录，等待 tileset 显示时恢复
+    }
 
     if (visible) {
       // 如果已经存在，先移除
@@ -484,6 +576,33 @@ class LayerManager {
   }
 
   /**
+   * 恢复包围盒显示（内部使用，不更新 userWants 状态）
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @private
+   */
+  _restoreOrientedBoundingBox(tileset) {
+    const visualizations = this._getVisualizations(tileset);
+
+    // 如果已经存在，先移除
+    visualizations.orientedBoundingBoxes.forEach(entity => {
+      this.#viewer.entities.remove(entity);
+    });
+    visualizations.orientedBoundingBoxes = [];
+
+    // 等待 tileset 加载完成
+    if (!tileset.root) {
+      tileset.readyPromise.then(() => {
+        this._createOrientedBoundingBoxes(tileset);
+      }).catch(error => {
+        console.error('等待 tileset 加载失败:', error);
+      });
+      return;
+    }
+
+    this._createOrientedBoundingBoxes(tileset);
+  }
+
+  /**
    * 计算 OBB 的八个角点
    * 参考：https://www.cnblogs.com/zheyi420/p/18175709
    * @param {Cartesian3} center - OBB 中心点
@@ -591,6 +710,14 @@ class LayerManager {
     }
 
     const visualizations = this._getVisualizations(tileset);
+
+    // 记录用户期望状态
+    visualizations.userWantsLocalAxes = visible;
+
+    // 如果 tileset 不可见，不执行实际的显示操作（但允许隐藏操作）
+    if (!tileset.show && visible) {
+      return true; // 状态已记录，等待 tileset 显示时恢复
+    }
 
     if (visible) {
       // 如果已经存在，先移除
@@ -822,6 +949,33 @@ class LayerManager {
       yAxisEntity, yConeEntity, yLabelEntity,
       zAxisEntity, zConeEntity, zLabelEntity
     ];
+  }
+
+  /**
+   * 恢复本地坐标轴显示（内部使用，不更新 userWants 状态）
+   * @param {Cesium3DTileset} tileset - 3DTiles 实例
+   * @private
+   */
+  _restoreLocalAxes(tileset) {
+    const visualizations = this._getVisualizations(tileset);
+
+    // 如果已经存在，先移除
+    visualizations.localAxes.forEach(entity => {
+      this.#viewer.entities.remove(entity);
+    });
+    visualizations.localAxes = [];
+
+    // 等待 tileset 加载完成
+    if (!tileset.boundingSphere) {
+      tileset.readyPromise.then(() => {
+        this._createLocalAxes(tileset);
+      }).catch(error => {
+        console.error('等待 tileset 加载失败:', error);
+      });
+      return;
+    }
+
+    this._createLocalAxes(tileset);
   }
 
   /**
