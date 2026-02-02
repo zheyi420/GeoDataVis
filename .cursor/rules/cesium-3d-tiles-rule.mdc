@@ -1,0 +1,109 @@
+---
+name: cesium-3d-tiles-rule
+description: This rule only applied to Cesium 3DTiles related code.
+---
+
+# 3D Tiles Styling and Opacity
+
+## Opacity Setting
+
+### Core Principles
+
+- Bad: `tileset.color = Color.WHITE.withAlpha(opacity)`
+  - Reason: **Cesium3DTileset class does NOT have a `color` property**
+- Good: Use `Cesium3DTileStyle` API
+
+### Recommended Implementation
+
+```javascript
+// Preserve original texture color, only adjust opacity
+tileset.style = new Cesium3DTileStyle({
+  color: `color("white", ${opacity})`
+});
+
+// Set blend mode to HIGHLIGHT (multiplicative blending)
+tileset.colorBlendMode = Cesium3DTileColorBlendMode.HIGHLIGHT;
+```
+
+### Why This Works
+
+- `color("white", opacity)` uses white RGB (1,1,1) which preserves original colors when multiplied in HIGHLIGHT mode
+- Only the alpha value affects transparency
+- This preserves the original texture and colors of photogrammetry models
+
+## colorBlendMode Selection
+
+| Mode | Blending Algorithm | Use Case | Effect |
+|------|-------------------|----------|--------|
+| `HIGHLIGHT` | `finalColor = styleColor × sourceColor` | **Adjusting opacity** (Recommended) | Preserves original texture and colors |
+| `MIX` | `finalColor = mix(sourceColor, styleColor, styleColor.alpha)` | Color fusion effects | Model appears whitened or discolored |
+| `REPLACE` | `finalColor = styleColor` | Complete recoloring | Loses original texture details |
+
+## Common Mistakes
+
+1. **Incorrect conditional check**:
+
+```javascript
+// Bad: tileset.style defaults to undefined, condition is always false
+if (tileset.style !== undefined) {
+  tileset.style = new Cesium3DTileStyle({ ... });
+}
+```
+
+2. **Using non-existent properties**:
+
+```javascript
+// Bad: Cesium3DTileset does NOT have a color property
+tileset.color = Color.WHITE.withAlpha(opacity);
+```
+
+3. **Wrong colorBlendMode**:
+
+```javascript
+// Bad: This will make textures appear whitened
+tileset.colorBlendMode = Cesium3DTileColorBlendMode.MIX;
+```
+
+## Alternative Implementation Methods
+
+```javascript
+// Method 1: Using vec4 (GLSL style)
+tileset.style = new Cesium3DTileStyle({
+  color: `vec4(1.0, 1.0, 1.0, ${opacity})`
+});
+
+// Method 2: Using rgba string
+tileset.style = new Cesium3DTileStyle({
+  color: `rgba(255, 255, 255, ${opacity})`
+});
+
+// Method 3: Conditional expressions (dynamic based on properties)
+tileset.style = new Cesium3DTileStyle({
+  color: {
+    conditions: [
+      ['${Height} >= 100', `color("white", ${opacity * 0.5})`],
+      ['true', `color("white", ${opacity})`]
+    ]
+  }
+});
+```
+
+## Test Data
+
+For testing 3D Tiles opacity functionality:
+
+- **AGI HQ Tileset**: `https://pelican-public.s3.amazonaws.com/3dtiles/agi-hq/tileset.json`
+- This is a standard photogrammetry model (b3dm format), suitable for verifying opacity effects
+
+## References
+
+Official Documentation:
+- [Cesium 3D Tiles Styling Tutorial](https://cesium.com/learn/cesiumjs-learn/cesiumjs-3d-tiles-styling/)
+- [Cesium3DTileStyle API Documentation](https://cesium.com/learn/cesiumjs/ref-doc/Cesium3DTileStyle.html)
+- [Cesium3DTileColorBlendMode API](https://cesium.com/learn/cesiumjs/ref-doc/global.html?classFilter=Cesium3DTileColorBlendMode)
+- [3D Tiles Styling Specification](https://github.com/CesiumGS/3d-tiles/tree/main/specification/Styling)
+
+Source Code References:
+- `Scene/Cesium3DTileset.js`
+- `Scene/Cesium3DTileStyle.js`
+- `Scene/Cesium3DTileColorBlendMode.js`
