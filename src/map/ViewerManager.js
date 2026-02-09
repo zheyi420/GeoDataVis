@@ -81,7 +81,7 @@ export default class ViewerManager {
   async createViewer(container, options = {}) {
     // set the default view for the 3D scene.
     // 又是homeButton响应后的回调函数中camera.flyHome()方法的目的地
-    const [west, south, east, north] = [111.11, 21.66568, 115.861587, 23.881399]
+    const [west, south, east, north] = [73.62, 16.7, 134.77, 53.56]
     // The default rectangle the camera will view on creation.
     Camera.DEFAULT_VIEW_FACTOR = 0 // 控制相机与指定矩形之间距离的参数
     Camera.DEFAULT_VIEW_RECTANGLE = Rectangle.fromDegrees(west, south, east, north)
