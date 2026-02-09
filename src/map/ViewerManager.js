@@ -1,14 +1,25 @@
 /*
  * @Description: Viewer 初始化（单例模式）
- *
+ * 默认使用 Cesium 自带的离线 TMS（NaturalEarthII）作为底图。
  */
-import { Viewer, Camera, Rectangle, ScreenSpaceEventHandler, ScreenSpaceEventType, CameraEventType, KeyboardEventModifier } from 'cesium'
+import {
+  Viewer,
+  Camera,
+  Rectangle,
+  ScreenSpaceEventHandler,
+  ScreenSpaceEventType,
+  CameraEventType,
+  KeyboardEventModifier,
+  TileMapServiceImageryProvider,
+  ImageryLayer,
+} from 'cesium'
+
 
 /**
  * @typedef {import("cesium").Viewer} Viewer
  */
 
-class ViewerManager {
+export default class ViewerManager {
   /**
    * @name 地图视图类（单例模式）
    * @type {Viewer|null}
@@ -40,18 +51,34 @@ class ViewerManager {
   }
 
   /**
+   * 创建默认底图：Cesium 自带的离线 TMS（NaturalEarthII）。
+   * @returns {Promise<import("cesium").ImageryLayer|undefined>}
+   */
+  async #createDefaultBaseLayer() {
+    const tmsUrl = getOfflineTmsBaseUrl()
+    try {
+      const provider = await TileMapServiceImageryProvider.fromUrl(tmsUrl, {
+        fileExtension: 'jpg',
+      })
+      return new ImageryLayer(provider)
+    } catch (err) {
+      console.error('离线 TMS (NaturalEarthII) 加载失败:', err)
+      return undefined
+    }
+  }
+
+  /**
    * @name 创建视图
    * @param { Element | string } container - The DOM element or ID that will contain the widget.
-   * @param { Object } options - 场景参数
-   * @param { String } options.baseColor - 地球背景色
-   * @param { Boolean } options.show - 是否显示球体
-   * @param { Boolean } options.depthTestAgainstTerrain - 开启深度监测
-   * @param { Boolean } options.enableLighting - 开启光照
-   * @param { Number } options.globeAlpha - 球体透明度
-   * @param { Number } options.minimumDisableDepthTestDistance - 禁用深度测试最小距离
-   * @returns { Object } Viewer
+   * @param { Object } [options] - 场景参数
+   * @param { String } [options.baseColor] - 地球背景色
+   * @param { Boolean } [options.depthTestAgainstTerrain] - 开启深度监测
+   * @param { Boolean } [options.enableLighting] - 开启光照
+   * @param { Number } [options.globeAlpha] - 球体透明度
+   * @param { Number } [options.minimumDisableDepthTestDistance] - 禁用深度测试最小距离
+   * @returns { Promise<Viewer> }
    */
-  createViewer(container, options) {
+  async createViewer(container, options = {}) {
     // set the default view for the 3D scene.
     // 又是homeButton响应后的回调函数中camera.flyHome()方法的目的地
     const [west, south, east, north] = [111.11, 21.66568, 115.861587, 23.881399]
@@ -78,7 +105,7 @@ class ViewerManager {
     const defaultWidgetConfig = {
       // showRenderLoopErrors: false, // 显示渲染循环错误面板
       // animation: true, // Animation widget 动画面板
-      // baseLayerPicker: true, // 底图选择器
+      baseLayerPicker: false, // 底图选择器
       fullscreenButton: false, // 全屏按钮
       geocoder: false, // Geocoder widget
       // homeButton: true, // 主视图按钮
@@ -91,12 +118,16 @@ class ViewerManager {
       /* 不设置shouldAnimate，让clockViewModel控制 */
       // shouldAnimate: false, // 禁用时钟动画（默认 false）
       // clockViewModel: clockViewModel,  // 使用自定义的时钟视图模型
+      baseLayer: await this.#createDefaultBaseLayer()
     }
+
+    const viewerOptions = {
+      ...defaultWidgetConfig,
+      ...(options && { ...options })
+    }
+
     try {
-      this.#viewer = new Viewer(container, {
-        ...defaultWidgetConfig,
-        ...options,
-      })
+      this.#viewer = new Viewer(container, viewerOptions)
     } catch (error) {
       console.error('Initialize the viewer widget failed', error)
     }
@@ -211,4 +242,15 @@ class ViewerManager {
   }
 }
 
-export default ViewerManager
+/**
+ * 离线 TMS（NaturalEarthII）底图的 base URL
+ * - 开发环境：Vite 将项目根映射到服务器根，指向 node_modules 下路径
+ * - 生产环境：资源来自 viteStaticCopy 输出，使用 base + libs/cesium/Assets/...
+ * @returns {string}
+ */
+const getOfflineTmsBaseUrl = () => {
+  if (import.meta.env.DEV) {
+    return '/node_modules/cesium/Build/Cesium/Assets/Textures/NaturalEarthII'
+  }
+  return `${import.meta.env.BASE_URL}libs/cesium/Assets/Textures/NaturalEarthII`
+}

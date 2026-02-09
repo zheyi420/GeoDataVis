@@ -10,8 +10,8 @@ import LayerManager from '@/map/LayerManager'
 const mapContainer = ref(null)
 const viewerManager = new ViewerManager()
 
-onMounted(() => {
-  window.viewer = viewerManager.createViewer(mapContainer.value, {
+onMounted(async () => {
+  window.viewer = await viewerManager.createViewer(mapContainer.value, {
     // Add your viewer options here
   })
   window.layerManager = new LayerManager(window.viewer)
