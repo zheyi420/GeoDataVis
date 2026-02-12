@@ -32,7 +32,7 @@
           <!-- URL说明 -->
           <div ref="ref4InputUrlTip" class="form-item-tips form-item-tips-url">
             <span>示例：</span>
-            <span>http://t0.tianditu.gov.cn/img_w/wmts?tk=***</span>
+            <span>https://t0.tianditu.gov.cn/img_w/wmts?tk=***</span>
           </div>
           <el-form-item label="WMTS元数据地址" :label-width="formLabelWidth" prop="metadataUrl">
             <el-input
