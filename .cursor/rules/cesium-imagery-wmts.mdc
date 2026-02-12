@@ -1,0 +1,44 @@
+---
+name: cesium-imagery-wmts
+description: Cesium WebMercatorTilingScheme 层级语义与 WMTS tileMatrixLabels 对齐规则，适用于所有影像图层（UrlTemplateImageryProvider、WebMapTileServiceImageryProvider 等）
+---
+
+# WebMercatorTilingScheme 层级语义（通用）
+
+当 Cesium 影像图层使用 WebMercatorTilingScheme 时，level 与网格规模对应关系：
+
+| Cesium level | 网格规模 |
+|--------------|----------|
+| 0 | 1×1 |
+| 1 | 2×2 |
+| 2 | 4×4 |
+| L | 2^L × 2^L |
+
+源码依据：`Core/WebMercatorTilingScheme.js` 中 `getNumberOfXTilesAtLevel(level) = numberOfLevelZeroTilesX << level`（默认 1×1 为根级）。
+
+# minimumLevel / maximumLevel（通用）
+
+- 所有支持瓦片层级的 ImageryProvider 均应正确设置，避免请求不存在层级
+- UrlTemplateImageryProvider：`{z}` 即 Cesium level；使用 `{reverseZ}` 时需定义 maximumLevel
+- 适用：UrlTemplateImageryProvider、WebMapTileServiceImageryProvider、BingMapsImageryProvider 等
+
+# WMTS tileMatrixLabels 对齐（专用）
+
+WebMapTileServiceImageryProvider 使用 `tileMatrixLabels[level]` 映射 TileMatrix 标识（源码 `requestImage2`），因此 labels 必须以 Cesium level 为下标。
+
+对齐规则：
+- 若 WMTS 首级 MatrixWidth=2（2×2），则 `minimumLevel = Math.max(0, Math.round(Math.log2(firstMatrixWidth)))` → 1
+- `tileMatrixLabels.length = minimumLevel + parsedLabels.length`，前 minimumLevel 项用 `parsedLabels[0]` 占位
+- `maximumLevel = minimumLevel + parsedLabels.length - 1`
+
+错误示例：直接传 WMTS 原生 18 项且未设 minimumLevel → Cesium level 与 WMTS TileMatrix 错位，出现地理错位（如中国大陆显示格陵兰）。
+
+正确示例：使用 `WmtsCapabilitiesParser` 构造的 transformedLabels，并传入 minimumLevel、maximumLevel 给 WebMapTileServiceImageryProvider。
+
+# Cesium 源码路径
+
+参考 `cesium-rule.mdc` 中的 Source Code Path。与影像层级相关的源文件：
+
+- `Core/WebMercatorTilingScheme.js`
+- `Scene/WebMapTileServiceImageryProvider.js`
+- `Scene/UrlTemplateImageryProvider.js`
