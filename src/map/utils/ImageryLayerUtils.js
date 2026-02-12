@@ -80,9 +80,11 @@ export function createWmsImageryLayer(wmsOptions) {
  * @param {String} wmtsOptions.format - 图片格式
  * @param {String} wmtsOptions.tileMatrixSetID - 瓦片矩阵集标识符
  * @param {Object} [wmtsOptions.tileMatrixLabels] - 瓦片矩阵标签
- * @param {Number} [wmtsOptions.maximumLevel] - 最大层级
+ * @param {Number} [wmtsOptions.minimumLevel] - The minimum level-of-detail supported by the imagery provider.
+ * @param {Number} [wmtsOptions.maximumLevel] - The maximum level-of-detail supported by the imagery provider, or undefined if there is no limit.
  * @param {Number} [wmtsOptions.tileWidth=256] - 瓦片宽度
  * @param {Number} [wmtsOptions.tileHeight=256] - 瓦片高度
+ * @param {import("cesium").TilingScheme} [wmtsOptions.tilingScheme] - The tiling scheme corresponding to the organization of the tiles in the TileMatrixSet.
  * @returns {Promise<ImageryLayer>} 创建的图层对象的Promise
  */
 export function createWmtsImageryLayer(wmtsOptions) {
@@ -91,18 +93,22 @@ export function createWmtsImageryLayer(wmtsOptions) {
       console.log('createWmtsImageryLayer 参数', wmtsOptions);
 
       // 创建WMTS图层提供者
-      const provider = new WebMapTileServiceImageryProvider({
+      const provideConstructorOptions = {
         url: wmtsOptions.url,
         layer: wmtsOptions.layer,
         style: wmtsOptions.style,
         format: wmtsOptions.format,
         tileMatrixSetID: wmtsOptions.tileMatrixSetID,
-        tileMatrixLabels: wmtsOptions.tileMatrixLabels,
-        maximumLevel: wmtsOptions.maximumLevel || 18,
-        tileWidth: wmtsOptions.tileWidth || 256,
-        tileHeight: wmtsOptions.tileHeight || 256,
-        tilingScheme: wmtsOptions.tilingScheme || new WebMercatorTilingScheme()
-      });
+        ...(Object.hasOwn(wmtsOptions, 'tileMatrixLabels') && { tileMatrixLabels: wmtsOptions.tileMatrixLabels }),
+        ...(Object.hasOwn(wmtsOptions, 'minimumLevel') && { minimumLevel: wmtsOptions.minimumLevel }),
+        ...(Object.hasOwn(wmtsOptions, 'maximumLevel') && { maximumLevel: wmtsOptions.maximumLevel }),
+        ...(Object.hasOwn(wmtsOptions, 'tileWidth') && { tileWidth: wmtsOptions.tileWidth }),
+        ...(Object.hasOwn(wmtsOptions, 'tileHeight') && { tileHeight: wmtsOptions.tileHeight }),
+        ...(Object.hasOwn(wmtsOptions, 'tilingScheme') && { tilingScheme: wmtsOptions.tilingScheme }),
+        // ...(!Object.hasOwn(wmtsOptions, 'tilingScheme') && { tilingScheme: new WebMercatorTilingScheme() })
+      }
+      console.log('Cesium.WebMapTileServiceImageryProvider.ConstructorOptions', provideConstructorOptions);
+      const provider = new WebMapTileServiceImageryProvider(provideConstructorOptions);
 
       // 监听提供者错误事件
       const removeCallback4ProviderErrEvt = provider.errorEvent.addEventListener((tileProviderError) => {

@@ -1,6 +1,7 @@
 <template>
   <el-dialog
     v-model="visStatus4DialogWmtsServiceParam"
+    class="dialog-wmts-service-param"
     width="600"
     destroy-on-close
     :align-center="false"
@@ -31,8 +32,18 @@
           <!-- URL说明 -->
           <div ref="ref4InputUrlTip" class="form-item-tips form-item-tips-url">
             <span>示例：</span>
-            <span><!-- TODO --></span>
+            <span>http://t0.tianditu.gov.cn/img_w/wmts?tk=***</span>
           </div>
+          <el-form-item label="WMTS元数据地址" :label-width="formLabelWidth" prop="metadataUrl">
+            <el-input
+              v-model="form4WmtsServiceParam.metadataUrl"
+              autocomplete="off"
+              :placeholder="placeholder4Form.metadataUrl"
+            />
+          </el-form-item>
+          <!-- <div class="form-item-tips">
+            <span>选填，填写后在确认时将解析并自动填充下方参数</span>
+          </div> -->
         </div>
         <div class="wmts-param-b">
           <el-divider content-position="center">标准参数</el-divider>
@@ -75,7 +86,7 @@
                 </el-form-item>
               </el-col>
               <el-col :span="5">
-                <span class="param-item">tileMatrixSetID:</span>
+                <span class="param-item">tileMatrixSet:</span>
               </el-col>
               <el-col :span="9">
                 <el-form-item class="param-item" prop="tileMatrixSetID">
@@ -95,7 +106,7 @@
               <el-col :span="9">
                 <el-form-item prop="width" class="param-item">
                   <el-input
-                    v-model="form4WmtsServiceParam.width"
+                    v-model="form4WmtsServiceParam.tileWidth"
                     autocomplete="off"
                     style="width: 80px"
                     :placeholder="placeholder4Form.width"
@@ -108,7 +119,7 @@
               <el-col :span="9">
                 <el-form-item prop="height" class="param-item">
                   <el-input
-                    v-model="form4WmtsServiceParam.height"
+                    v-model="form4WmtsServiceParam.tileHeight"
                     autocomplete="off"
                     style="width: 80px"
                     :placeholder="placeholder4Form.height"
@@ -150,6 +161,7 @@ import {
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
 import { useLayerStore } from '@/stores/map/layerStore'
+import { fetchAndParseWmtsCapabilities } from '@/map/utils/WmtsCapabilitiesParser'
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogWmtsServiceParam } = storeToRefs(panelStatusStore)
@@ -159,6 +171,7 @@ const ruleFormRef = ref(null)
 const form4WmtsServiceParam = reactive({
   layerName: null,
   url: null,
+  metadataUrl: null,
   layer: null,
   style: '',
   format: 'image/png',
@@ -171,13 +184,15 @@ const formatOptions = [
   { label: 'image/png', value: 'image/png' },
   { label: 'image/jpeg', value: 'image/jpeg' },
   { label: 'image/png8', value: 'image/png8' },
-  { label: 'image/webp', value: 'image/webp' }
+  { label: 'image/webp', value: 'image/webp' },
+  { label: 'tiles', value: 'tiles' }
 ]
 
 const placeholder4Form = reactive({
   layerName: 'WMTS图层',
   width: '256',
   height: '256',
+  metadataUrl: '选填',
 })
 
 const rules = reactive({
@@ -313,65 +328,72 @@ function resetForm() {
   Object.assign(form4WmtsServiceParam, {
     layerName: null,
     url: null,
+    metadataUrl: null,
     layer: null,
     style: '',
     format: 'image/png',
-    tileMatrixSetID: 'GoogleMapsCompatible',
+    tileMatrixSetID: 'EPSG:3857',
     tileWidth: 256,
     tileHeight: 256,
   })
 }
 
-function setNewWmtsServiceConnection(formEl) {
+async function setNewWmtsServiceConnection(formEl) {
   if (!formEl) return
 
   loading.value = true
 
-  formEl.validate((valid) => {
-    if (valid) {
-      const _form = { ...form4WmtsServiceParam }
-
-      console.log('提交WMTS表单', _form)
-
-      // 处理表单数据，构造 WebMapTileServiceImageryProvider 选项
-      const WebMapTileServiceImageryProviderConstructorOptions = {
-        url: _form.url,
-        layer: _form.layer,
-        style: _form.style,
-        format: _form.format,
-        tileMatrixSetID: _form.tileMatrixSetID,
-        tileWidth: _form.tileWidth,
-        tileHeight: _form.tileHeight
-      }
-
-      // 通过 store 添加 WMTS 图层
-      const layerStore = useLayerStore();
-      layerStore.addWmtsLayer(_form.layerName, WebMapTileServiceImageryProviderConstructorOptions)
-        .then(() => {
-          // 图层加载成功
-          ElMessage({
-            type: 'success',
-            message: `WMTS图层："${_form.layerName}" 加载成功`
-          });
-          // 重置表单
-          resetForm();
-          // 关闭对话框
-          closeDialogWmtsServiceParam();
-        })
-        .catch(error => {
-          // 图层加载失败
-          ElMessage({
-            type: 'error',
-            message: error.message || 'WMTS图层加载失败，请检查服务地址和参数'
-          });
-          // 不关闭对话框，让用户修改参数
-        })
-        .finally(() => {
-          // 结束加载状态
-          loading.value = false;
-        });
-    } else {
+  formEl.validate(async (valid) => {
+    if (!valid) {
       console.log('WMTS表单验证失败!')
+      loading.value = false
+      return
+    }
+
+    const _form = { ...form4WmtsServiceParam }
+    console.log('提交WMTS表单', _form)
+
+    // 构造 WebMapTileServiceImageryProvider 选项，先使用表单值；style 为空时自动设为 'default'
+    const options = {
+      url: _form.url,
+      layer: _form.layer,
+      style: (_form.style != null && String(_form.style).trim() !== '') ? _form.style : 'default',
+      format: _form.format,
+      tileMatrixSetID: _form.tileMatrixSetID,
+      tileWidth: _form.tileWidth,
+      tileHeight: _form.tileHeight
+    }
+
+    // 若填写了元数据地址，请求并解析 GetCapabilities，用解析结果覆盖/补充参数
+    const metadataUrl = (_form.metadataUrl && typeof _form.metadataUrl === 'string') ? _form.metadataUrl.trim() : ''
+    if (metadataUrl) {
+      try {
+        const parsed = await fetchAndParseWmtsCapabilities(metadataUrl)
+        options.layer = parsed.layer
+        options.style = parsed.style
+        options.format = parsed.format
+        options.tileMatrixSetID = parsed.tileMatrixSetID
+        options.tileMatrixLabels = parsed.tileMatrixLabels
+        if (parsed.minimumLevel != null) options.minimumLevel = parsed.minimumLevel
+        if (parsed.maximumLevel != null) options.maximumLevel = parsed.maximumLevel
+        if (parsed.tileWidth != null) options.tileWidth = parsed.tileWidth
+        if (parsed.tileHeight != null) options.tileHeight = parsed.tileHeight
+      } catch (err) {
+        ElMessage.error(err.message || '解析 WMTS 元数据失败')
+        loading.value = false
+        return
+      }
+    }
+
+    const layerStore = useLayerStore()
+    try {
+      await layerStore.addWmtsLayer(_form.layerName, options)
+      ElMessage({ type: 'success', message: `WMTS图层："${_form.layerName}" 加载成功` })
+      resetForm()
+      closeDialogWmtsServiceParam()
+    } catch (error) {
+      ElMessage.error(error.message || 'WMTS图层加载失败，请检查服务地址和参数')
+    } finally {
       loading.value = false
     }
   })
@@ -386,6 +408,9 @@ function setNewWmtsServiceConnection(formEl) {
 }
 .form-content {
   .wmts-param-a {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .wmts-param-b {
@@ -430,15 +455,26 @@ function setNewWmtsServiceConnection(formEl) {
   }
 }
 .form-item-tips {
+  align-self: flex-end;
   width: fit-content;
-  // margin-top: -10px;
   font-size: 12px;
   color: #606266;
+  margin-top: -10px;
 
   &.form-item-tips-url {
-    right: var(--el-dialog-padding-primary);
-    position: absolute;
-    margin-top: -10px;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
   }
+}
+</style>
+
+<style lang="scss">
+.dialog-wmts-service-param {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 </style>
