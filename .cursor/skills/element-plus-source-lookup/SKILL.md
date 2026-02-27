@@ -56,9 +56,9 @@ node_modules/.pnpm/element-plus@{目录名}/node_modules/element-plus/
 
 ## 禁止事项
 
-- **禁止**使用 glob 搜索查找 element-plus 组件源码
-- 应通过 `pnpm-lock.yaml` 获取 version，按转换规则得到目录名，直接拼接路径
-- 见上方「执行步骤」与 [reference.md](reference.md)
+- **禁止**使用 glob 搜索（如 `**/element-plus/**/组件标识/**/index.js`）查找 element-plus 组件源码
+- pnpm 的 `.pnpm` 目录结构固定，应通过 `pnpm-lock.yaml` 获取 version，按转换规则得到目录名，直接拼接路径 `node_modules/.pnpm/element-plus@{目录名}/node_modules/element-plus/lib/components/{组件标识}/index.js`
+- 应通过版本与路径公式直接拼接完整路径，见上方「执行步骤」与 [reference.md](reference.md)
 
 ## 注意事项
 

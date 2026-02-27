@@ -66,7 +66,7 @@ lib/components/{组件标识}/
 
 ## 禁止事项
 
-- **禁止**使用 glob 搜索查找 element-plus 源码
+- **禁止**使用 glob 搜索（如 `**/element-plus/**/组件标识/**/index.js`）查找 element-plus 源码
 - 应直接按路径公式拼接，见上方「版本与路径转换」和「完整路径格式」
 
 ## 通用查询策略
