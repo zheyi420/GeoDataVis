@@ -18,6 +18,7 @@
     <DialogWmsServiceParam />
     <DialogWmtsServiceParam />
     <DialogCesium3DTilesParam />
+    <DialogCesiumTerrainParam />
   </div>
 </template>
 
@@ -30,6 +31,7 @@ import LayerManagerPanel from '@/views/panels/LayerManagerPanel.vue'
 import DialogWmsServiceParam from '@/views/panels/DialogWmsServiceParam.vue'
 import DialogWmtsServiceParam from '@/views/panels/DialogWmtsServiceParam.vue'
 import DialogCesium3DTilesParam from '@/views/panels/DialogCesium3DTilesParam.vue'
+import DialogCesiumTerrainParam from '@/views/panels/DialogCesiumTerrainParam.vue'
 
 const paramsPanelHeight = ref(0) // 默认高度
 

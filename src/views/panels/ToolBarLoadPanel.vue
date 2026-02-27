@@ -85,6 +85,16 @@ const options4ServiceLoadType = [
       }
     ],
   },
+  {
+    value: 'DEM',
+    label: 'DEM',
+    children: [
+      {
+        value: 'CesiumTerrain',
+        label: 'Cesium Terrain',
+      },
+    ],
+  },
 ]
 
 function handleVisibleChange4ServiceLoadTypeDropdown(visible) {
@@ -133,6 +143,10 @@ function handleChange4ServiceLoadType(value) {
         }
         case '3D-Data': {
           _load3DDataService(value[1]);
+          break;
+        }
+        case 'DEM': {
+          _loadDemService(value[1]);
           break;
         }
         default: {
@@ -186,6 +200,26 @@ function _load3DDataService(value) {
     }
     default: {
       console.log('###加载服务-3D-Data-未匹配', value);
+      break;
+    }
+  }
+}
+
+/**
+ * 处理 DEM 地形服务加载
+ * @param {string} value - 服务类型（如 'CesiumTerrain'）
+ */
+function _loadDemService(value) {
+  console.log('###_loadDemService value:', value);
+
+  switch (value) {
+    case 'CesiumTerrain': {
+      console.log('###加载服务-DEM-CesiumTerrain');
+      usePanelStatusStore().openDialogCesiumTerrainParam();
+      break;
+    }
+    default: {
+      console.log('###加载服务-DEM-未匹配', value);
       break;
     }
   }

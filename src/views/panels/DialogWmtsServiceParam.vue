@@ -41,6 +41,11 @@
               :placeholder="placeholder4Form.metadataUrl"
             />
           </el-form-item>
+          <!-- URL说明 -->
+          <div ref="ref4InputUrlTip" class="form-item-tips form-item-tips-url">
+            <span>示例：</span>
+            <span>https://t0.tianditu.gov.cn/img_w/wmts?request=GetCapabilities&service=wmts</span>
+          </div>
           <!-- <div class="form-item-tips">
             <span>选填，填写后在确认时将解析并自动填充下方参数</span>
           </div> -->

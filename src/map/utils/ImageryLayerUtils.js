@@ -2,7 +2,7 @@
  * @Description: 影像图层工具函数
  *
  */
-import { ImageryLayer, WebMapServiceImageryProvider, WebMapTileServiceImageryProvider, WebMercatorTilingScheme, Cesium3DTileset } from 'cesium'
+import { ImageryLayer, WebMapServiceImageryProvider, WebMapTileServiceImageryProvider, WebMercatorTilingScheme, Cesium3DTileset, CesiumTerrainProvider } from 'cesium'
 import { ElMessage } from "element-plus";
 
 /**
@@ -167,6 +167,52 @@ export async function create3DTilesLayer(options) {
     // 提供更详细的错误信息
     if (error.message.includes('404')) {
       throw new Error('tileset.json 文件不存在（404），请检查 URL 是否正确')
+    } else if (error.message.includes('CORS')) {
+      throw new Error('跨域请求被阻止，请检查服务器 CORS 配置')
+    } else if (error.message.includes('timeout')) {
+      throw new Error('加载超时，请检查网络连接和服务器状态')
+    } else if (error.message.includes('Network')) {
+      throw new Error('网络错误，请检查服务器状态和网络连接')
+    } else {
+      throw new Error(`加载失败: ${error.message}`)
+    }
+  }
+}
+
+/**
+ * 创建 Cesium Terrain 地形提供者
+ * @param {Object} options - 配置项
+ * @param {string} options.url - 地形服务根 URL（Cesium 会自动请求 layer.json）
+ * @param {boolean} [options.requestVertexNormals=false] - 是否请求顶点法线（用于地形光照）
+ * @param {boolean} [options.requestWaterMask=false] - 是否请求水面遮罩（用于水面效果）
+ * @returns {Promise<import("cesium").CesiumTerrainProvider>} CesiumTerrainProvider 实例的 Promise
+ */
+export async function createCesiumTerrainProvider(options) {
+  const {
+    url,
+    requestVertexNormals = false,
+    requestWaterMask = false,
+  } = options
+
+  if (!url) {
+    throw new Error('地形服务根 URL 不能为空')
+  }
+
+  try {
+    console.log('createCesiumTerrainProvider 参数', options)
+
+    const provider = await CesiumTerrainProvider.fromUrl(url.trim(), {
+      requestVertexNormals,
+      requestWaterMask,
+    })
+
+    console.log('Cesium Terrain 加载成功:', provider)
+    return provider
+  } catch (error) {
+    console.error('创建 Cesium Terrain 失败:', error)
+
+    if (error.message.includes('404')) {
+      throw new Error('layer.json 文件不存在（404），请检查 URL 是否正确')
     } else if (error.message.includes('CORS')) {
       throw new Error('跨域请求被阻止，请检查服务器 CORS 配置')
     } else if (error.message.includes('timeout')) {

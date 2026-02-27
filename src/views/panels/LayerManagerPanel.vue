@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2025-04-14
  * @LastEditors: zheyi420 37471153+zheyi420@users.noreply.github.com
- * @LastEditTime: 2026-01-30
+ * @LastEditTime: 2026-02-27
  * @FilePath: \GeoDataVis\src\views\panels\LayerManagerPanel.vue
  * @Description: 图层管理面板，显示加载的地图服务图层及地理数据文件图层
  *
@@ -155,6 +155,44 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <!-- 当前地形区域 -->
+          <div class="current-terrain-row">
+            <div v-if="!hasUserTerrains" class="current-terrain-static">
+              [当前地形] 无地形
+            </div>
+            <el-select
+              v-else
+              v-model="activeTerrainIdModel"
+              class="current-terrain-select"
+              popper-class="terrain-select-popper"
+              size="small"
+            >
+              <template #label="{ label }">
+                [当前地形] {{ label }}
+              </template>
+              <el-option value="none" label="无地形" />
+              <el-option
+                v-for="t in terrainList"
+                :key="t.id"
+                :value="t.id"
+                :label="t.name"
+              >
+                <div class="terrain-option-row">
+                  <span class="terrain-option-name">{{ t.name }}</span>
+                  <el-button
+                    type="danger"
+                    size="small"
+                    circle
+                    class="terrain-option-delete"
+                    @click.stop="removeTerrain(t.id)"
+                  >
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </el-option>
+            </el-select>
+          </div>
         </el-collapse-item>
 
         <!-- 地理数据文件图层 -->
@@ -229,9 +267,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useLayerStore } from '@/stores/map/layerStore';
-import { ElIcon, ElButton, ElCollapse, ElCollapseItem, ElCheckbox, ElSlider, ElTable, ElTableColumn, ElPopover } from 'element-plus';
-import { ArrowUp, ArrowDown, MapLocation, Document, Setting, Grid } from '@element-plus/icons-vue';
+import { useTerrainStore } from '@/stores/map/terrainStore';
+import { ElIcon, ElButton, ElCollapse, ElCollapseItem, ElCheckbox, ElSlider, ElTable, ElTableColumn, ElPopover, ElSelect, ElOption } from 'element-plus';
+import { ArrowUp, ArrowDown, MapLocation, Document, Setting, Grid, Delete } from '@element-plus/icons-vue';
 
 // 控制面板折叠状态
 const collapsed = ref(false);
@@ -243,9 +283,22 @@ const layerPopovers = ref({});
 
 // 使用图层管理的store
 const layerStore = useLayerStore();
+const terrainStore = useTerrainStore();
+const { terrainList, activeTerrainId } = storeToRefs(terrainStore);
 
 const serviceLayers = computed(() => layerStore.getServiceLayers());
 const fileLayers = computed(() => layerStore.getFileLayers());
+
+// 地形相关：activeTerrainId 需要双向绑定并触发 setActiveTerrain
+const activeTerrainIdModel = computed({
+  get: () => activeTerrainId.value,
+  set: (val) => { terrainStore.setActiveTerrain(val); },
+});
+const hasUserTerrains = computed(() => terrainList.value.length > 0);
+
+function removeTerrain(id) {
+  terrainStore.removeTerrain(id);
+}
 
 onMounted(() => {});
 
@@ -400,6 +453,23 @@ function handleLayerNameClick(layer) {
     }
   }
 
+  .current-terrain-row {
+    margin-top: 8px;
+    padding-top: 8px;
+    // border-top: 1px solid #ebeef5;
+
+    .current-terrain-static {
+      color: #909399;
+      font-size: 13px;
+      cursor: default;
+      user-select: none;
+    }
+
+    .current-terrain-select {
+      width: 100%;
+    }
+  }
+
   .layer-name {
     display: inline-flex;
     align-items: center;
@@ -423,6 +493,31 @@ function handleLayerNameClick(layer) {
       &:active {
         color: #3a8ee6;
       }
+    }
+  }
+}
+</style>
+
+<style lang="scss">
+// 非 scoped 样式，专门用于 teleported 的下拉面板
+// 通过 popper-class="terrain-select-popper" 限制作用域
+.terrain-select-popper {
+  .terrain-option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+
+    .terrain-option-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .terrain-option-delete {
+      flex-shrink: 0;
+      margin-left: 8px;
     }
   }
 }

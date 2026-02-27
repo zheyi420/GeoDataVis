@@ -83,6 +83,26 @@ export const usePanelStatusStore = defineStore('panelStatus', () => {
     visStatus4DialogCesium3DTilesParam.value = false
   }
 
+  /**
+   * 控制"Cesium Terrain"服务参数对话框的可见状态
+   * @type {import('vue').Ref<boolean>}
+   */
+  const visStatus4DialogCesiumTerrainParam = ref(false)
+
+  /**
+   * 打开"Cesium Terrain"服务参数对话框
+   */
+  function openDialogCesiumTerrainParam() {
+    visStatus4DialogCesiumTerrainParam.value = true
+  }
+
+  /**
+   * 关闭"Cesium Terrain"服务参数对话框
+   */
+  function closeDialogCesiumTerrainParam() {
+    visStatus4DialogCesiumTerrainParam.value = false
+  }
+
   return {
     visStatus4DialogGeoServerWmsServiceParam,
     switchVisStatus4DialogGeoServerWmsServiceParam,
@@ -96,5 +116,8 @@ export const usePanelStatusStore = defineStore('panelStatus', () => {
     switchVisStatus4DialogCesium3DTilesParam,
     openDialogCesium3DTilesParam,
     closeDialogCesium3DTilesParam,
+    visStatus4DialogCesiumTerrainParam,
+    openDialogCesiumTerrainParam,
+    closeDialogCesiumTerrainParam,
   }
 })

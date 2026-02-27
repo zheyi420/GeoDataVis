@@ -4,7 +4,7 @@
  */
 
 import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
-import { HeadingPitchRange, Math as CesiumMath, Color, Cartesian2, Cartesian3, Cesium3DTileStyle, Cesium3DTileColorBlendMode, Matrix3, LabelStyle, HorizontalOrigin, VerticalOrigin, Quaternion } from 'cesium';
+import { HeadingPitchRange, Math as CesiumMath, Color, Cartesian2, Cartesian3, Cesium3DTileStyle, Cesium3DTileColorBlendMode, Matrix3, LabelStyle, HorizontalOrigin, VerticalOrigin, Quaternion, EllipsoidTerrainProvider } from 'cesium';
 
 /**
  * @typedef {import("cesium").Viewer} Viewer
@@ -162,6 +162,32 @@ class LayerManager {
     // 如果既没有 boundingSphere 也没有 readyPromise，返回错误
     console.error('聚焦失败: tileset 未加载且没有 readyPromise');
     return Promise.reject(new Error('tileset 未加载且没有 readyPromise'));
+  }
+
+  /**
+   * 设置地形提供者
+   * @param {import("cesium").TerrainProvider} provider - 地形提供者实例
+   * @returns {Boolean} 是否成功设置
+   */
+  setTerrainProvider(provider) {
+    if (!this.#viewer) {
+      return false;
+    }
+    try {
+      this.#viewer.scene.globe.terrainProvider = provider;
+      return true;
+    } catch (error) {
+      console.error('设置地形失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 获取默认地形提供者（椭球体，无高程）
+   * @returns {import("cesium").EllipsoidTerrainProvider}
+   */
+  getDefaultTerrainProvider() {
+    return new EllipsoidTerrainProvider();
   }
 
   /**
