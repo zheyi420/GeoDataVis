@@ -1,0 +1,94 @@
+---
+description: GeoDataVis Cesium 架构最佳实践，涵盖单例模式、Pinia 集成、markRaw 使用和新功能扩展规范
+globs: src/map/**/*.js,src/map/**/*.vue,src/stores/**/*.js,src/views/panels/**/*.vue
+alwaysApply: false
+---
+
+# Cesium 架构最佳实践
+
+## 单例模式（ViewerManager / LayerManager）
+
+新增地图功能时，始终通过单例获取实例，不要直接 `new`：
+
+```js
+// ✅ 正确
+const layerManager = LayerManager.getInstance()
+
+// ❌ 错误
+const layerManager = new LayerManager(viewer)
+```
+
+`window.layerManager` 是全局挂载点，Store 内通过它调用 Cesium 操作。
+
+## Pinia Store 规范
+
+Cesium 实例（Viewer、Tileset、ImageryLayer 等）存入 Store 前必须用 `markRaw` 包裹，防止 Vue 响应式系统代理 Cesium 对象：
+
+```js
+// ✅ 正确
+import { markRaw } from 'vue'
+layerList.value.push({ id, name, instance: markRaw(cesiumObject) })
+
+// ❌ 错误 — Cesium 内部属性被代理后会报错
+layerList.value.push({ id, name, instance: cesiumObject })
+```
+
+## 新增加载类型的扩展模式
+
+### 1. LayerManager 新增方法
+
+```js
+// 在 LayerManager.js 中添加
+async addGeoJsonDataSource(options) {
+  const dataSource = await GeoJsonDataSource.load(options.url, options)
+  this.#viewer.dataSources.add(dataSource)
+  return dataSource
+}
+```
+
+### 2. layerStore 同步状态
+
+```js
+// layerStore.js 中
+async function addGeoJsonLayer(options) {
+  const layerManager = getLayerManager()
+  const instance = await layerManager.addGeoJsonDataSource(options)
+  const id = `geojson_${Date.now()}`
+  layerList.value.push({ id, name: options.name, type: 'geojson', instance: markRaw(instance) })
+  return id
+}
+```
+
+### 3. 对话框组件调用 Store
+
+```vue
+<!-- DialogXxxParam.vue 中 -->
+<script setup>
+import { useLayerStore } from '@/stores/map/layerStore'
+const layerStore = useLayerStore()
+
+async function handleConfirm() {
+  await layerStore.addGeoJsonLayer(formData)
+  emit('close')
+}
+</script>
+```
+
+## Shader / Primitive 扩展位置
+
+| 类型 | 存放位置 |
+|------|---------|
+| PostProcessStage | `ViewerManager.js` 内，或新建 `src/map/PostProcessManager.js` |
+| CustomShader / Fabric 材质 | `src/map/shaders/` 目录 |
+| 大规模 Primitive 渲染 | `src/map/business/MassPointRenderer.js` |
+| 业务路径规划 | `src/map/business/PathPlanner.js` |
+
+## 3DTiles 透明度与样式
+
+使用 `Cesium3DTileStyle` 而非直接修改颜色属性：
+
+```js
+// ✅ 正确
+tileset.style = new Cesium3DTileStyle({ color: `color("white", ${opacity})` })
+tileset.colorBlendMode = Cesium3DTileColorBlendMode.HIGHLIGHT
+```
