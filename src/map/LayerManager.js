@@ -4,7 +4,23 @@
  */
 
 import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
-import { HeadingPitchRange, Math as CesiumMath, Color, Cartesian2, Cartesian3, Cesium3DTileStyle, Cesium3DTileColorBlendMode, Matrix3, LabelStyle, HorizontalOrigin, VerticalOrigin, Quaternion, EllipsoidTerrainProvider } from 'cesium';
+import {
+  GeographicTilingScheme,
+  WebMercatorTilingScheme,
+  HeadingPitchRange,
+  Math as CesiumMath,
+  Color,
+  Cartesian2,
+  Cartesian3,
+  Cesium3DTileStyle,
+  Cesium3DTileColorBlendMode,
+  Matrix3,
+  LabelStyle,
+  HorizontalOrigin,
+  VerticalOrigin,
+  Quaternion,
+  EllipsoidTerrainProvider,
+} from 'cesium';
 
 /**
  * @typedef {import("cesium").Viewer} Viewer
@@ -47,7 +63,23 @@ class LayerManager {
    */
   addWmsLayer(wmsOptions) {
     console.log('addWmsLayer', wmsOptions);
-    return createWmsImageryLayer(wmsOptions)
+
+    // 根据 srs/crs 自动设置 tilingScheme，确保 bbox 坐标系统与 srs 一致
+    const srsOrCrs = wmsOptions.srs ?? wmsOptions.crs ?? '';
+    const epsgCode = String(srsOrCrs).replace(/^EPSG:/i, '');
+    const tilingScheme =
+      epsgCode === '3857'
+        ? new WebMercatorTilingScheme()
+        : epsgCode === '4326'
+          ? new GeographicTilingScheme()
+          : undefined;
+
+    const enrichedOptions = {
+      ...wmsOptions,
+      ...(tilingScheme ? { tilingScheme } : {}),
+    };
+
+    return createWmsImageryLayer(enrichedOptions)
       .then(layer => {
         if (layer) {
           // 确保图层被添加到viewer中

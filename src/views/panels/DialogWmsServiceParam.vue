@@ -153,7 +153,12 @@
                 <span class="param-item">transparent:</span>
               </el-col>
               <el-col :span="9">
-                <el-tooltip content="地图背景是否应该透明" placement="right">
+                <el-tooltip placement="right">
+                  <template #content>
+                    图层背景是否透明<br />
+                    • 开启（推荐）：适合叠加图层，背景透明<br />
+                    • 关闭：适合底图，可设置背景色
+                  </template>
                   <el-form-item prop="transparent" class="param-item">
                     <el-switch v-model="form4WmsServiceParam.transparent" style="margin-left: 10px" />
                   </el-form-item>
@@ -162,17 +167,23 @@
             </el-row>
             <el-row :gutter="2" align="middle">
               <el-col :span="3">
-                <span class="param-item">bgcolor:</span>
+                <span class="param-item" :class="{ 'param-item-disabled': form4WmsServiceParam.transparent }">bgcolor:</span>
               </el-col>
               <el-col :span="9">
                 <el-tooltip placement="right">
-                  <template #content>地图图像的背景颜色<br />值为 RRGGBB 格式</template>
+                  <template #content>
+                    图层背景颜色<br />
+                    值为 RRGGBB 格式（如 FFFFFF）<br />
+                    仅在 transparent=false 时可用
+                  </template>
                   <el-form-item prop="bgcolor" class="param-item">
                     <el-input
                       v-model="form4WmsServiceParam.bgcolor"
+                      :disabled="form4WmsServiceParam.transparent"
                       style="width: 100px"
                       :formatter="value => `#${value}`"
                       :parser="value => value.replace(/^#/, '')"
+                      placeholder="FFFFFF"
                     />
                   </el-form-item>
                 </el-tooltip>
@@ -185,6 +196,33 @@
               </el-col>
               <el-col :span="9">
                 <span class="param-item" style="margin-left: 5px" :class="{ 'param-item-disabled': !form4WmsServiceParam.enableParamExceptions }">{{ form4WmsServiceParam.exceptions }}</span>
+              </el-col>
+            </el-row>
+            <el-row :gutter="2" align="middle">
+              <el-col :span="6" style="padding-left: 20px;">
+                <el-checkbox v-model="form4WmsServiceParam.enableCqlFilter" style="margin-left: -18px" />
+                <span class="param-item" :class="{ 'param-item-disabled': !form4WmsServiceParam.enableCqlFilter }" style="margin-left: 5px">
+                  CQL_FILTER:
+                </span>
+              </el-col>
+              <el-col :span="18">
+                <el-tooltip placement="top">
+                  <template #content>
+                    GeoServer 数据过滤器（示例）<br />
+                    province = '广东省'<br />
+                    name LIKE '杭%'<br />
+                    LAND_KM BETWEEN 100 AND 200
+                  </template>
+                  <el-form-item prop="cql_filter" class="param-item">
+                    <el-input
+                      v-model="form4WmsServiceParam.cql_filter"
+                      :disabled="!form4WmsServiceParam.enableCqlFilter"
+                      autocomplete="off"
+                      placeholder="例：province = '广东省'"
+                      style="width: 400px"
+                    />
+                  </el-form-item>
+                </el-tooltip>
               </el-col>
             </el-row>
             <!-- TODO 后续增加
@@ -264,10 +302,12 @@ const form4WmsServiceParam = reactive({
   width: null,
   height: null,
   format: 'image/png',
-  transparent: false,
+  transparent: true,
   bgcolor: 'FFFFFF',
   exceptions: 'application/vnd.ogc.se_xml',
   enableParamExceptions: false,
+  cql_filter: '',
+  enableCqlFilter: false,
 })
 const label4SrsCrs = computed(() => {
   return form4WmsServiceParam.version === '1.3.0' ? 'crs:' : 'srs:'
@@ -515,6 +555,7 @@ function setNewWmsServiceConnection(ruleFormRef) {
         console.log('提交表单', _form)
 
         // 处理表单数据，区分 WebMapServiceImageryProvider 的 parameters 和其他参数
+        // 注：tilingScheme 由 LayerManager 根据 srs/crs 自动设置，此处不引入 Cesium
         const WebMapServiceImageryProviderConstructorOptions = {
           url: _form.url,
           layers: _form.layers,
@@ -524,15 +565,18 @@ function setNewWmsServiceConnection(ruleFormRef) {
             request: _form.request,
             styles: _form.styles,
             format: _form.format,
-            bgcolor: _form.bgcolor,
             transparent: _form.transparent,
+            ...(!_form.transparent && _form.bgcolor ? { bgcolor: `0x${_form.bgcolor}` } : {}),
           },
           tileWidth: _form.width,
           tileHeight: _form.height,
-          ...(_form.version === '1.3.0' ? { crs: _form.srs_crs } : { srs: _form.srs_crs })
+          ...(_form.version === '1.3.0' ? { crs: _form.srs_crs } : { srs: _form.srs_crs }),
         }
         if (_form.enableParamExceptions) {
           WebMapServiceImageryProviderConstructorOptions.parameters.exceptions = _form.exceptions
+        }
+        if (_form.enableCqlFilter && _form.cql_filter.trim()) {
+          WebMapServiceImageryProviderConstructorOptions.parameters.cql_filter = _form.cql_filter.trim()
         }
 
         // 调用加载 WMS 服务的方法，使用Promise链处理结果
@@ -586,10 +630,12 @@ function resetForm() {
     form4WmsServiceParam.request = 'GetMap'
     form4WmsServiceParam.styles = ''
     form4WmsServiceParam.format = 'image/png'
-    form4WmsServiceParam.transparent = false
+    form4WmsServiceParam.transparent = true
     form4WmsServiceParam.bgcolor = 'FFFFFF'
     form4WmsServiceParam.exceptions = 'application/vnd.ogc.se_xml'
     form4WmsServiceParam.enableParamExceptions = false
+    form4WmsServiceParam.cql_filter = ''
+    form4WmsServiceParam.enableCqlFilter = false
   }
 }
 
