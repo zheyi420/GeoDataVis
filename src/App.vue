@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, provide } from 'vue'
 import MapContainer from '@/views/MapContainer.vue';
 import MapParamsPanel from '@/views/panels/MapParamsPanel.vue'
 import ToolBarLoadPanel from '@/views/panels/ToolBarLoadPanel.vue'
@@ -32,6 +32,9 @@ import DialogWmsServiceParam from '@/views/panels/DialogWmsServiceParam.vue'
 import DialogWmtsServiceParam from '@/views/panels/DialogWmtsServiceParam.vue'
 import DialogCesium3DTilesParam from '@/views/panels/DialogCesium3DTilesParam.vue'
 import DialogCesiumTerrainParam from '@/views/panels/DialogCesiumTerrainParam.vue'
+
+const isViewerReady = ref(false)
+provide('isViewerReady', isViewerReady)
 
 const paramsPanelHeight = ref(0) // 默认高度
 

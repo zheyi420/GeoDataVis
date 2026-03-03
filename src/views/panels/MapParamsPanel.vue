@@ -1,8 +1,8 @@
 <!--
  * @Author: zheyi420
  * @Date: 2025-04-11
- * @LastEditors: zheyi420
- * @LastEditTime: 2025-08-28
+ * @LastEditors: zheyi420 37471153+zheyi420@users.noreply.github.com
+ * @LastEditTime: 2026-03-03
  * @FilePath: \GeoDataVis\src\views\panels\MapParamsPanel.vue
  * @Description: 显示相机、鼠标等信息
  *
@@ -29,7 +29,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, watch, computed } from 'vue'
+import { ref, onMounted, reactive, watch, onBeforeUnmount, inject } from 'vue'
 import { ScreenSpaceEventHandler, ScreenSpaceEventType, Math as CesiumMath, Cartographic } from 'cesium'
 
 const panelRef = ref(null)
@@ -70,8 +70,8 @@ function updateCameraParams() {
 }
 
 function updateMouseParams(movement) {
-  const ellipsoid = window.viewer.scene.globe.ellipsoid;
-  const cartesian = window.viewer.scene.camera.pickEllipsoid(movement.endPosition, ellipsoid);
+  const ellipsoid = window.viewer.scene.globe.ellipsoid
+  const cartesian = window.viewer.scene.camera.pickEllipsoid(movement.endPosition, ellipsoid)
   if (cartesian) {
     const cartographic = Cartographic.fromCartesian(cartesian);
     mouseParams.longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(5); // 保留五位小数
@@ -81,20 +81,39 @@ function updateMouseParams(movement) {
 }
 
 onMounted(() => {
-  const viewer = window.viewer;
-  if (viewer) {
-    console.log('viewer is defined');
+  // 发送面板高度
+  if (panelRef.value) {
+    emit('heightChange', panelRef.value.offsetHeight)
+  }
+})
 
-    // 发送面板高度
-    if (panelRef.value) {
-      emit('heightChange', panelRef.value.offsetHeight)
-    }
+const isViewerReady = inject('isViewerReady')
+let cleanupCallbacks = null
 
-    const removeCallBack4UpdateCameraParams = viewer.camera.changed.addEventListener(updateCameraParams);
-    updateCameraParams(); // 初始化时调用一次
+function setupViewerListeners() {
+  const viewer = window.viewer
+  if (!viewer) return null
 
-    const handler = new ScreenSpaceEventHandler(viewer.scene.canvas);
-    handler.setInputAction(updateMouseParams, ScreenSpaceEventType.MOUSE_MOVE);
+  const removeCameraCallback = viewer.camera.changed.addEventListener(updateCameraParams)
+  updateCameraParams()
+
+  const handler = new ScreenSpaceEventHandler(viewer.scene.canvas)
+  handler.setInputAction(updateMouseParams, ScreenSpaceEventType.MOUSE_MOVE)
+
+  return { removeCameraCallback, handler }
+}
+
+const unwatchViewerReady = watch(isViewerReady, (ready) => {
+  if (ready) {
+    cleanupCallbacks = setupViewerListeners()
+    unwatchViewerReady()
+  }
+}, { immediate: true })
+
+onBeforeUnmount(() => {
+  if (cleanupCallbacks) {
+    cleanupCallbacks.removeCameraCallback?.()
+    cleanupCallbacks.handler?.destroy()
   }
 })
 </script>
