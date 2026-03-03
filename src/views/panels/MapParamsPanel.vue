@@ -31,6 +31,8 @@
 <script setup>
 import { ref, onMounted, reactive, watch, onBeforeUnmount, inject } from 'vue'
 import { ScreenSpaceEventHandler, ScreenSpaceEventType, Math as CesiumMath, Cartographic } from 'cesium'
+import { storeToRefs } from 'pinia'
+import { useTerrainStore } from '@/stores/map/terrainStore'
 
 const panelRef = ref(null)
 const emit = defineEmits(['heightChange'])
@@ -49,6 +51,9 @@ const mouseParams = reactive({
   latitude: 0,
   altitude: 0
 })
+
+const terrainStore = useTerrainStore()
+const { activeTerrainId } = storeToRefs(terrainStore)
 
 function updateCameraParams() {
   const viewer = window.viewer;
@@ -70,8 +75,20 @@ function updateCameraParams() {
 }
 
 function updateMouseParams(movement) {
-  const ellipsoid = window.viewer.scene.globe.ellipsoid
-  const cartesian = window.viewer.scene.camera.pickEllipsoid(movement.endPosition, ellipsoid)
+  const viewer = window.viewer
+
+  let cartesian = null
+  const hasActiveTerrain = activeTerrainId.value !== 'none'
+  if (hasActiveTerrain) {
+    const ray = viewer.camera.getPickRay(movement.endPosition)
+    if (ray) {
+      cartesian = viewer.scene.globe.pick(ray, viewer.scene)
+    }
+  } else {
+    const ellipsoid = viewer.scene.globe.ellipsoid
+    cartesian = viewer.scene.camera.pickEllipsoid(movement.endPosition, ellipsoid)
+  }
+
   if (cartesian) {
     const cartographic = Cartographic.fromCartesian(cartesian);
     mouseParams.longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(5); // 保留五位小数
