@@ -1,0 +1,43 @@
+---
+description: GeoDataVis 开发路线图与策略，定义项目定位、双轨并行策略、季度里程碑与技术扩展点
+alwaysApply: true
+---
+
+# GeoDataVis 开发路线图
+
+## 产品定位
+
+**作品集 / 技术演示平台** — 向面试官/客户展示 WebGIS 底层开发能力，为低空监控等业务场景做技术储备。
+
+> 核心原则：每项技术必须对应可说明的业务场景，避免"为技术而技术"。
+
+## 核心策略：双轨并行
+
+- **20% 基础功能** — 补齐文件加载、数据查询等"有用"功能
+- **80% 实战技术场景** — 死磕 Shader / Primitive / 算法，建立不可替代性
+
+## 季度里程碑
+
+| 阶段 | 时间 | 基础任务 | 护城河技术 | 作品集展示价值 |
+|------|------|---------|-----------|--------------|
+| Q1 基础加固 | 2026 Q1 (3–5月) | GeoJSON/KML/CZML 文件加载 | PostProcessStage 高程分层渲染、实时阴影 | "实现地形高度可视化，为低空规划提供辅助" |
+| Q2 视觉飞跃 | 2026 Q2 (6–8月) | 3DTiles 属性查询与高亮 | CustomShader 动态预警圈、流场可视化、轨迹渲染 | "用 GLSL 实现无人机监控范围动态展示" |
+| Q3 性能突破 | 2026 Q3 (9–11月) | 大规模数据 LOD 优化 | Primitive API + GPU Instancing 10万级点实时更新 | "城市级监控场景，10万目标实时渲染 60FPS" |
+| Q4 架构升级 | 2026 Q4 | 多源数据聚合接口 | 物理阴影、动态天气环境模拟 | "完整真实感场景渲染" |
+| 业务落地 | 2027 全年 | — | 视频融合 / 实时监控 / 低空航路规划 | 行业解决方案 |
+
+## 关键文件与扩展点
+
+| 功能 | 涉及文件 | 扩展方式 |
+|------|---------|---------|
+| 文件加载 | `ToolBarLoadPanel.vue`、新增 `DialogGeoJsonParam.vue` | `handleChange4FileLoadType` 分支 + LayerManager |
+| DataSource | `LayerManager.js` | 新增 `addGeoJsonDataSource` / `addKmlDataSource` / `addCzmlDataSource` |
+| PostProcessStage | `ViewerManager.js` 或新建 `PostProcessManager.js` | `viewer.scene.postProcessStages.add()` |
+| CustomShader | 新建 `src/map/shaders/` | Fabric 材质或 Primitive 自定义材质 |
+| Primitive 大规模点 | 新建 `src/map/business/MassPointRenderer.js` | `Primitive` + `GeometryInstance` + Instancing |
+| 航路规划 | 新建 `src/map/business/PathPlanner.js` | 地形采样 API + 3D A* |
+
+## 学习资源
+
+- Cesium 博客：https://cesium.com/blog（Custom Shader、3D Tiles Next、Metadata）
+- Cesium 内置 Shader：`node_modules/.pnpm/@cesium+engine@*/node_modules/@cesium/engine/Source/Shaders/`
