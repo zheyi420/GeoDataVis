@@ -23,7 +23,8 @@
 </template>
 
 <script setup>
-import { ref, computed, provide } from 'vue'
+import { ref, computed, provide, watch } from 'vue'
+import { ElLoading } from 'element-plus'
 import MapContainer from '@/views/MapContainer.vue';
 import MapParamsPanel from '@/views/panels/MapParamsPanel.vue'
 import ToolBarLoadPanel from '@/views/panels/ToolBarLoadPanel.vue'
@@ -32,9 +33,12 @@ import DialogWmsServiceParam from '@/views/panels/DialogWmsServiceParam.vue'
 import DialogWmtsServiceParam from '@/views/panels/DialogWmtsServiceParam.vue'
 import DialogCesium3DTilesParam from '@/views/panels/DialogCesium3DTilesParam.vue'
 import DialogCesiumTerrainParam from '@/views/panels/DialogCesiumTerrainParam.vue'
+import { useServiceConfigStore } from '@/stores/serviceConfigStore'
 
 const isViewerReady = ref(false)
 provide('isViewerReady', isViewerReady)
+
+const serviceConfigStore = useServiceConfigStore()
 
 const paramsPanelHeight = ref(0) // 默认高度
 
@@ -46,6 +50,27 @@ const layerManagerStyle = computed(() => ({
   // height: `calc(100vh - 40px - ${paramsPanelHeight.value}px)`,
   bottom: `${paramsPanelHeight.value}px`
 }))
+
+watch(
+  isViewerReady,
+  async (ready) => {
+    if (!ready) return
+    if (serviceConfigStore.serviceConfigs.length === 0) return
+
+    const loadingInstance = ElLoading.service({
+      fullscreen: true,
+      lock: true,
+      text: '正在恢复服务配置...',
+    })
+
+    try {
+      await serviceConfigStore.restoreAll()
+    } finally {
+      loadingInstance.close()
+    }
+  },
+  { once: true }
+)
 </script>
 
 <style scoped lang="scss">

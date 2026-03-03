@@ -284,10 +284,12 @@ import {
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
 import { useLayerStore } from '@/stores/map/layerStore'
+import { useServiceConfigStore } from '@/stores/serviceConfigStore'
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogGeoServerWmsServiceParam } = storeToRefs(panelStatusStore)
 const { closeDialogGeoServerWmsServiceParam } = panelStatusStore
+const serviceConfigStore = useServiceConfigStore()
 
 const ruleFormRef = ref(null)
 const form4WmsServiceParam = reactive({
@@ -584,6 +586,12 @@ function setNewWmsServiceConnection(ruleFormRef) {
         const layerStore = useLayerStore();
         layerStore.addWmsLayer(_form.layerName, WebMapServiceImageryProviderConstructorOptions)
           .then(layerId => {
+            serviceConfigStore.addServiceConfig(
+              'WMS',
+              _form.layerName,
+              WebMapServiceImageryProviderConstructorOptions,
+              layerId
+            )
             // 图层加载成功
             ElMessage({
               type: 'success',

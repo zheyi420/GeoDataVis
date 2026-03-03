@@ -166,11 +166,13 @@ import {
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
 import { useLayerStore } from '@/stores/map/layerStore'
+import { useServiceConfigStore } from '@/stores/serviceConfigStore'
 import { fetchAndParseWmtsCapabilities } from '@/map/utils/WmtsCapabilitiesParser'
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogWmtsServiceParam } = storeToRefs(panelStatusStore)
 const { closeDialogWmtsServiceParam } = panelStatusStore
+const serviceConfigStore = useServiceConfigStore()
 
 const ruleFormRef = ref(null)
 const form4WmtsServiceParam = reactive({
@@ -392,7 +394,8 @@ async function setNewWmtsServiceConnection(formEl) {
 
     const layerStore = useLayerStore()
     try {
-      await layerStore.addWmtsLayer(_form.layerName, options)
+      const layerId = await layerStore.addWmtsLayer(_form.layerName, options)
+      serviceConfigStore.addServiceConfig('WMTS', _form.layerName, options, layerId)
       ElMessage({ type: 'success', message: `WMTS图层："${_form.layerName}" 加载成功` })
       resetForm()
       closeDialogWmtsServiceParam()

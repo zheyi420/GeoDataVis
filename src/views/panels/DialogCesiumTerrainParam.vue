@@ -115,11 +115,13 @@ import {
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
 import { useTerrainStore } from '@/stores/map/terrainStore'
+import { useServiceConfigStore } from '@/stores/serviceConfigStore'
 import { createCesiumTerrainProvider } from '@/map/utils/ImageryLayerUtils'
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogCesiumTerrainParam } = storeToRefs(panelStatusStore)
 const { closeDialogCesiumTerrainParam } = panelStatusStore
+const serviceConfigStore = useServiceConfigStore()
 
 const ruleFormRef = ref(null)
 const ref4InputUrl = ref(null)
@@ -221,7 +223,9 @@ function loadCesiumTerrain(ruleFormRef) {
       createCesiumTerrainProvider(terrainOptions)
         .then((provider) => {
           const terrainStore = useTerrainStore()
-          terrainStore.addTerrain(_form.name, provider, terrainOptions)
+          const terrainId = terrainStore.addTerrain(_form.name, provider, terrainOptions)
+          const configId = serviceConfigStore.addServiceConfig('CesiumTerrain', _form.name, terrainOptions, terrainId)
+          serviceConfigStore.setActiveTerrainConfigId(configId)
           ElMessage({
             type: 'success',
             message: `地形："${_form.name}" 加载成功`,
