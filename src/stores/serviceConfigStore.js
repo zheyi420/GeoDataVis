@@ -148,88 +148,90 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
   async function restoreAll() {
     if (isRestoring.value) return
     isRestoring.value = true
-    layerIdToConfigId.clear()
-    terrainConfigIdToTerrainId.clear()
-    terrainIdToConfigId.clear()
+    try {
+      layerIdToConfigId.clear()
+      terrainConfigIdToTerrainId.clear()
+      terrainIdToConfigId.clear()
 
-    const layerStore = useLayerStore()
-    const terrainStore = useTerrainStore()
+      const layerStore = useLayerStore()
+      const terrainStore = useTerrainStore()
 
-    // 按业务依赖排序：Terrain → 影像/数据 → 3D模型，减轻首帧负担。未知类型默认 1（影像层）
-    const sortedConfigs = [...serviceConfigs.value].sort(
-      (a, b) => (RESTORE_ORDER[a.type] ?? 1) - (RESTORE_ORDER[b.type] ?? 1)
-    )
+      // 按业务依赖排序：Terrain → 影像/数据 → 3D模型，减轻首帧负担。未知类型默认 1（影像层）
+      const sortedConfigs = [...serviceConfigs.value].sort(
+        (a, b) => (RESTORE_ORDER[a.type] ?? 1) - (RESTORE_ORDER[b.type] ?? 1)
+      )
 
-    for (const config of sortedConfigs) {
-      try {
-        if (config.type === 'WMS') {
-          const initialState = { visible: config.visible, opacity: config.opacity }
-          const layerId = await layerStore.addWmsLayer(config.layerName, config.options, initialState)
-          layerIdToConfigId.set(layerId, config.configId)
-          if (config.visible === false) {
-            layerStore.setLayerVisibility(layerId, false)
+      for (const config of sortedConfigs) {
+        try {
+          if (config.type === 'WMS') {
+            const initialState = { visible: config.visible, opacity: config.opacity }
+            const layerId = await layerStore.addWmsLayer(config.layerName, config.options, initialState)
+            layerIdToConfigId.set(layerId, config.configId)
+            if (config.visible === false) {
+              layerStore.setLayerVisibility(layerId, false)
+            }
+            if (config.opacity !== undefined && config.opacity !== 1) {
+              layerStore.setLayerOpacity(layerId, config.opacity)
+            }
+            await yieldToFrame()
+            continue
           }
-          if (config.opacity !== undefined && config.opacity !== 1) {
-            layerStore.setLayerOpacity(layerId, config.opacity)
+
+          if (config.type === 'WMTS') {
+            const initialState = { visible: config.visible, opacity: config.opacity }
+            const layerId = await layerStore.addWmtsLayer(config.layerName, config.options, initialState)
+            layerIdToConfigId.set(layerId, config.configId)
+            if (config.visible === false) {
+              layerStore.setLayerVisibility(layerId, false)
+            }
+            if (config.opacity !== undefined && config.opacity !== 1) {
+              layerStore.setLayerOpacity(layerId, config.opacity)
+            }
+            await yieldToFrame()
+            continue
           }
-          await yieldToFrame()
-          continue
+
+          if (config.type === 'Cesium3DTiles') {
+            const initialState = { visible: config.visible, skipZoom: true }
+            const restoreOptions = {
+              ...config.options,
+              immediatelyLoadDesiredLevelOfDetail: false
+            }
+            const layerId = await layerStore.add3DTilesLayer(
+              config.layerName,
+              restoreOptions,
+              initialState
+            )
+            layerIdToConfigId.set(layerId, config.configId)
+            if (config.visible === false) {
+              layerStore.setLayerVisibility(layerId, false)
+            }
+            // 3DTiles 不恢复透明度，保持默认（opacity=1）
+            await yieldToFrame()
+            continue
+          }
+
+          if (config.type === 'CesiumTerrain') {
+            const provider = await createCesiumTerrainProvider(config.options)
+            const terrainId = terrainStore.addTerrain(config.layerName, provider, config.options)
+            terrainConfigIdToTerrainId.set(config.configId, terrainId)
+            terrainIdToConfigId.set(terrainId, config.configId)
+            await yieldToFrame()
+          }
+        } catch (error) {
+          console.error('恢复服务配置失败:', config, error)
         }
-
-        if (config.type === 'WMTS') {
-          const initialState = { visible: config.visible, opacity: config.opacity }
-          const layerId = await layerStore.addWmtsLayer(config.layerName, config.options, initialState)
-          layerIdToConfigId.set(layerId, config.configId)
-          if (config.visible === false) {
-            layerStore.setLayerVisibility(layerId, false)
-          }
-          if (config.opacity !== undefined && config.opacity !== 1) {
-            layerStore.setLayerOpacity(layerId, config.opacity)
-          }
-          await yieldToFrame()
-          continue
-        }
-
-        if (config.type === 'Cesium3DTiles') {
-          const initialState = { visible: config.visible, skipZoom: true }
-          const restoreOptions = {
-            ...config.options,
-            immediatelyLoadDesiredLevelOfDetail: false
-          }
-          const layerId = await layerStore.add3DTilesLayer(
-            config.layerName,
-            restoreOptions,
-            initialState
-          )
-          layerIdToConfigId.set(layerId, config.configId)
-          if (config.visible === false) {
-            layerStore.setLayerVisibility(layerId, false)
-          }
-          // 3DTiles 不恢复透明度，保持默认（opacity=1）
-          await yieldToFrame()
-          continue
-        }
-
-        if (config.type === 'CesiumTerrain') {
-          const provider = await createCesiumTerrainProvider(config.options)
-          const terrainId = terrainStore.addTerrain(config.layerName, provider, config.options)
-          terrainConfigIdToTerrainId.set(config.configId, terrainId)
-          terrainIdToConfigId.set(terrainId, config.configId)
-          await yieldToFrame()
-        }
-      } catch (error) {
-        console.error('恢复服务配置失败:', config, error)
       }
-    }
 
-    if (activeTerrainConfigId.value) {
-      const terrainId = terrainConfigIdToTerrainId.get(activeTerrainConfigId.value)
-      if (terrainId) {
-        terrainStore.setActiveTerrain(terrainId)
+      if (activeTerrainConfigId.value) {
+        const terrainId = terrainConfigIdToTerrainId.get(activeTerrainConfigId.value)
+        if (terrainId) {
+          terrainStore.setActiveTerrain(terrainId)
+        }
       }
+    } finally {
+      isRestoring.value = false
     }
-
-    isRestoring.value = false
   }
 
   return {
