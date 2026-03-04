@@ -7,6 +7,15 @@ import { createCesiumTerrainProvider } from '@/map/utils/ImageryLayerUtils'
 const STORAGE_KEY = 'geodatavis_service_configs'
 const STORAGE_VERSION = 1
 
+/** 恢复顺序：0=地形 1=影像/数据 2=3D模型。新增类型需在此登记，未登记默认 1（影像层） */
+const RESTORE_ORDER = {
+  CesiumTerrain: 0,
+  WMS: 1,
+  WMTS: 1,
+  Cesium3DTiles: 2,
+  // 未来扩展：XYZ: 1, GeoJSON: 1, KML: 1, CZML: 1 等
+}
+
 function isClient() {
   return typeof window !== 'undefined' && typeof localStorage !== 'undefined'
 }
@@ -146,7 +155,12 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
     const layerStore = useLayerStore()
     const terrainStore = useTerrainStore()
 
-    for (const config of serviceConfigs.value) {
+    // 按业务依赖排序：Terrain → 影像/数据 → 3D模型，减轻首帧负担。未知类型默认 1（影像层）
+    const sortedConfigs = [...serviceConfigs.value].sort(
+      (a, b) => (RESTORE_ORDER[a.type] ?? 1) - (RESTORE_ORDER[b.type] ?? 1)
+    )
+
+    for (const config of sortedConfigs) {
       try {
         if (config.type === 'WMS') {
           const initialState = { visible: config.visible, opacity: config.opacity }
