@@ -11,6 +11,13 @@ function isClient() {
   return typeof window !== 'undefined' && typeof localStorage !== 'undefined'
 }
 
+/**
+ * 帧让出工具函数
+ */
+function yieldToFrame() {
+  return new Promise((r) => requestAnimationFrame(r))
+}
+
 function normalizeConfig(raw) {
   if (!raw || typeof raw !== 'object') return null
   const { configId, type, layerName, options, visible, opacity } = raw
@@ -151,6 +158,7 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
           if (config.opacity !== undefined && config.opacity !== 1) {
             layerStore.setLayerOpacity(layerId, config.opacity)
           }
+          await yieldToFrame()
           continue
         }
 
@@ -164,6 +172,7 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
           if (config.opacity !== undefined && config.opacity !== 1) {
             layerStore.setLayerOpacity(layerId, config.opacity)
           }
+          await yieldToFrame()
           continue
         }
 
@@ -175,6 +184,7 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
             layerStore.setLayerVisibility(layerId, false)
           }
           // 3DTiles 不恢复透明度，保持默认（opacity=1）
+          await yieldToFrame()
           continue
         }
 
@@ -183,6 +193,7 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
           const terrainId = terrainStore.addTerrain(config.layerName, provider, config.options)
           terrainConfigIdToTerrainId.set(config.configId, terrainId)
           terrainIdToConfigId.set(terrainId, config.configId)
+          await yieldToFrame()
         }
       } catch (error) {
         console.error('恢复服务配置失败:', config, error)
