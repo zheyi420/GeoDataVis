@@ -114,9 +114,10 @@ class LayerManager {
    * @param {Object} tilesOptions - 3DTiles 配置项
    * @param {string} tilesOptions.url - tileset.json 的 URL
    * @param {number} tilesOptions.maximumScreenSpaceError - 屏幕空间误差（默认 16）
+   * @param {Object} [options] - 可选参数，如 { skipZoom: true } 恢复时跳过自动聚焦
    * @returns {Promise<Object>} 返回 tileset 实例的 Promise
    */
-  async add3DTilesLayer(tilesOptions) {
+  async add3DTilesLayer(tilesOptions, options) {
     console.log('add3DTilesLayer', tilesOptions);
     try {
       // 1. 使用工具函数创建 3DTiles 模型
@@ -125,8 +126,10 @@ class LayerManager {
       // 2. 添加到 Cesium viewer 的 primitives
       this.#viewer.scene.primitives.add(tileset);
 
-      // 3. 自动聚焦 camera 到模型位置
-      this.zoomToTileset(tileset);
+      // 3. 自动聚焦 camera 到模型位置（恢复场景下 skipZoom 为 true 时跳过）
+      if (!options?.skipZoom) {
+        this.zoomToTileset(tileset);
+      }
 
       return tileset;
     } catch (error) {

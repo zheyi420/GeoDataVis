@@ -142,7 +142,8 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
     for (const config of serviceConfigs.value) {
       try {
         if (config.type === 'WMS') {
-          const layerId = await layerStore.addWmsLayer(config.layerName, config.options)
+          const initialState = { visible: config.visible, opacity: config.opacity }
+          const layerId = await layerStore.addWmsLayer(config.layerName, config.options, initialState)
           layerIdToConfigId.set(layerId, config.configId)
           if (config.visible === false) {
             layerStore.setLayerVisibility(layerId, false)
@@ -154,7 +155,8 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
         }
 
         if (config.type === 'WMTS') {
-          const layerId = await layerStore.addWmtsLayer(config.layerName, config.options)
+          const initialState = { visible: config.visible, opacity: config.opacity }
+          const layerId = await layerStore.addWmtsLayer(config.layerName, config.options, initialState)
           layerIdToConfigId.set(layerId, config.configId)
           if (config.visible === false) {
             layerStore.setLayerVisibility(layerId, false)
@@ -166,7 +168,8 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
         }
 
         if (config.type === 'Cesium3DTiles') {
-          const layerId = await layerStore.add3DTilesLayer(config.layerName, config.options)
+          const initialState = { visible: config.visible, opacity: config.opacity, skipZoom: true }
+          const layerId = await layerStore.add3DTilesLayer(config.layerName, config.options, initialState)
           layerIdToConfigId.set(layerId, config.configId)
           if (config.visible === false) {
             layerStore.setLayerVisibility(layerId, false)

@@ -76,9 +76,10 @@ export const useLayerStore = defineStore('layers', () => {
    * 添加WMS图层
    * @param {String} layerName - 图层名称
    * @param {Object} wmsOptions - WMS图层选项
+   * @param {Object} [initialState] - 可选初始状态，用于恢复场景 { visible, opacity }
    * @returns {Promise<String>} 返回图层ID的Promise
    */
-  function addWmsLayer(layerName, wmsOptions) {
+  function addWmsLayer(layerName, wmsOptions, initialState) {
     const layerManager = getLayerManager();
     if (!layerManager) {
       return Promise.reject(new Error('LayerManager 未初始化'));
@@ -92,8 +93,8 @@ export const useLayerStore = defineStore('layers', () => {
             name: layerName,
             type: 'service',
             sourceType: 'WMS',
-            visible: true,
-            opacity: 1,
+            visible: initialState?.visible !== undefined ? initialState.visible : true,
+            opacity: initialState?.opacity !== undefined ? initialState.opacity : 1,
             layerInstance: layerInstance,
             metadata: wmsOptions
           });
@@ -108,9 +109,10 @@ export const useLayerStore = defineStore('layers', () => {
    * 添加WMTS图层
    * @param {String} layerName - 图层名称
    * @param {Object} wmtsOptions - WMTS图层选项
+   * @param {Object} [initialState] - 可选初始状态，用于恢复场景 { visible, opacity }
    * @returns {Promise<String>} 返回图层ID的Promise
    */
-  function addWmtsLayer(layerName, wmtsOptions) {
+  function addWmtsLayer(layerName, wmtsOptions, initialState) {
     const layerManager = getLayerManager();
     if (!layerManager) {
       return Promise.reject(new Error('LayerManager 未初始化'));
@@ -124,8 +126,8 @@ export const useLayerStore = defineStore('layers', () => {
             name: layerName,
             type: 'service',
             sourceType: 'WMTS',
-            visible: true,
-            opacity: 1,
+            visible: initialState?.visible !== undefined ? initialState.visible : true,
+            opacity: initialState?.opacity !== undefined ? initialState.opacity : 1,
             layerInstance: layerInstance,
             metadata: wmtsOptions
           });
@@ -140,15 +142,17 @@ export const useLayerStore = defineStore('layers', () => {
    * 添加 Cesium 3DTiles 模型
    * @param {String} layerName - 图层名称
    * @param {Object} tilesOptions - 3DTiles 配置项
+   * @param {Object} [initialState] - 可选初始状态 { visible, opacity, skipZoom }，skipZoom 透传给 LayerManager
    * @returns {Promise<String>} 返回图层ID的Promise
    */
-  function add3DTilesLayer(layerName, tilesOptions) {
+  function add3DTilesLayer(layerName, tilesOptions, initialState) {
     const layerManager = getLayerManager();
     if (!layerManager) {
       return Promise.reject(new Error('LayerManager 未初始化'));
     }
 
-    return layerManager.add3DTilesLayer(tilesOptions)
+    const addOptions = initialState?.skipZoom !== undefined ? { skipZoom: initialState.skipZoom } : undefined;
+    return layerManager.add3DTilesLayer(tilesOptions, addOptions)
       .then(tileset => {
         if (tileset) {
           // 添加到 store 中
@@ -156,8 +160,8 @@ export const useLayerStore = defineStore('layers', () => {
             name: layerName,
             type: 'model',
             sourceType: 'Cesium3DTiles',
-            visible: true,
-            opacity: 1,
+            visible: initialState?.visible !== undefined ? initialState.visible : true,
+            opacity: initialState?.opacity !== undefined ? initialState.opacity : 1,
             locatable: true, // 3DTiles 图层可定位
             layerInstance: tileset,
             metadata: tilesOptions
