@@ -192,7 +192,15 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
 
         if (config.type === 'Cesium3DTiles') {
           const initialState = { visible: config.visible, skipZoom: true }
-          const layerId = await layerStore.add3DTilesLayer(config.layerName, config.options, initialState)
+          const restoreOptions = {
+            ...config.options,
+            immediatelyLoadDesiredLevelOfDetail: false
+          }
+          const layerId = await layerStore.add3DTilesLayer(
+            config.layerName,
+            restoreOptions,
+            initialState
+          )
           layerIdToConfigId.set(layerId, config.configId)
           if (config.visible === false) {
             layerStore.setLayerVisibility(layerId, false)

@@ -139,12 +139,14 @@ export function createWmtsImageryLayer(wmtsOptions) {
  * @param {Object} options - 配置项
  * @param {string} options.url - tileset.json 的 URL
  * @param {number} [options.maximumScreenSpaceError=16] - 屏幕空间误差
+ * @param {boolean} [options.immediatelyLoadDesiredLevelOfDetail] - 是否立即加载期望 LOD，显式传入 false 时推迟精细层级加载（恢复场景用）
  * @returns {Promise<Cesium3DTileset>} Cesium 3DTiles 实例的 Promise
  */
 export async function create3DTilesLayer(options) {
   const {
     url,
-    maximumScreenSpaceError = 16
+    maximumScreenSpaceError = 16,
+    immediatelyLoadDesiredLevelOfDetail
   } = options
 
   if (!url) {
@@ -154,10 +156,14 @@ export async function create3DTilesLayer(options) {
   try {
     console.log('create3DTilesLayer 参数', options)
 
-    // 使用 Cesium3DTileset.fromUrl 加载 3DTiles
-    const tileset = await Cesium3DTileset.fromUrl(url, {
+    const fromUrlOptions = {
       maximumScreenSpaceError: maximumScreenSpaceError
-    })
+    }
+    if ('immediatelyLoadDesiredLevelOfDetail' in options) {
+      fromUrlOptions.immediatelyLoadDesiredLevelOfDetail = immediatelyLoadDesiredLevelOfDetail
+    }
+
+    const tileset = await Cesium3DTileset.fromUrl(url, fromUrlOptions)
 
     console.log('Cesium 3DTiles 加载成功:', tileset)
     return tileset
