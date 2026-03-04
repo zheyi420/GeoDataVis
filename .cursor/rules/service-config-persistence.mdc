@@ -1,0 +1,21 @@
+---
+description: 服务配置本地持久化架构与扩展约束
+globs: src/stores/**/*.js, src/views/panels/*.vue, src/App.vue
+alwaysApply: false
+---
+
+# 服务配置本地持久化
+
+## 存什么
+
+存 Dialog 内**已处理 options**（默认值补全、格式转换后、直接传入 `add*Layer` / `addTerrain` 的纯 JSON），不存原始表单、不存 layerStore（含 `layerInstance`、`providerInstance` 等 Cesium 实例，无法序列化）。
+
+## 数据流
+
+- **Dialog 确认成功** → `serviceConfigStore.addServiceConfig(type, layerName, processedOptions, layerId)` → `watch` 自动写入 localStorage
+- **App.vue** 在 `isViewerReady` 为 true 且有 `serviceConfigs.length > 0` 时，全屏 Loading 并调用 `restoreAll()`
+- **LayerManagerPanel** 在移除、可见性、透明度、图层顺序、切换地形时，同步调用 `serviceConfigStore` 对应 action（通过 `getConfigIdByLayerId` / `getConfigIdByTerrainId` 反查 configId）
+
+## 扩展新 Dialog 类型
+
+在确认成功后调用 `addServiceConfig(type, layerName, processedOptions, layerId)`，`options` 必须为可序列化 JSON（与传给 `add*Layer` 的完全一致）。
