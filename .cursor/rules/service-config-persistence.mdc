@@ -14,7 +14,12 @@ alwaysApply: false
 
 - **Dialog 确认成功** → `serviceConfigStore.addServiceConfig(type, layerName, processedOptions, layerId)` → `watch` 自动写入 localStorage
 - **App.vue** 在 `isViewerReady` 为 true 且有 `serviceConfigs.length > 0` 时，全屏 Loading 并调用 `restoreAll()`
-- **LayerManagerPanel** 在移除、可见性、透明度、图层顺序、切换地形时，同步调用 `serviceConfigStore` 对应 action（通过 `getConfigIdByLayerId` / `getConfigIdByTerrainId` 反查 configId）
+- **LayerManagerPanel** 在移除、可见性、透明度（3DTiles 除外）、图层顺序、切换地形时，同步调用 `serviceConfigStore` 对应 action（通过 `getConfigIdByLayerId` / `getConfigIdByTerrainId` 反查 configId）
+
+## restoreAll 恢复约束
+
+- WMS/WMTS：调用 `addXxxLayer` 时传入 `initialState: { visible: config.visible, opacity: config.opacity }`，避免 store 先 `visible: true` 再改 `false` 导致勾选框闪烁
+- 3DTiles：传入 `initialState: { visible: config.visible, skipZoom: true }`，不传 opacity；不存储、不恢复透明度，恢复时保持初次加载效果（opacity=1）；`skipZoom: true` 不执行 `zoomToTileset`，避免相机在多个 3DTiles 间反复飞行
 
 ## 扩展新 Dialog 类型
 
