@@ -23,7 +23,7 @@
       <span class="panel-name">鼠标位置：</span>
       <span>{{ mouseParams.longitude }}°</span>
       <span>{{ mouseParams.latitude }}°</span>
-      <span>{{ mouseParams.altitude }} 米</span>
+      <span v-if="showMouseElevation">{{ mouseParams.altitude }} 米</span>
     </div>
   </div>
 </template>
@@ -52,6 +52,8 @@ const mouseParams = reactive({
   altitude: 0
 })
 
+const showMouseElevation = ref(false)
+
 const terrainStore = useTerrainStore()
 const { activeTerrainId } = storeToRefs(terrainStore)
 
@@ -76,9 +78,15 @@ function updateCameraParams() {
 
 function updateMouseParams(movement) {
   const viewer = window.viewer
+  if (!viewer) return
 
   let cartesian = null
   const hasActiveTerrain = activeTerrainId.value !== 'none'
+  const cameraHeight = viewer.camera.positionCartographic.height
+  const ELEVATION_DISPLAY_THRESHOLD = 50000
+  const shouldShowElevation = hasActiveTerrain && cameraHeight <= ELEVATION_DISPLAY_THRESHOLD
+  showMouseElevation.value = shouldShowElevation
+
   if (hasActiveTerrain) {
     const ray = viewer.camera.getPickRay(movement.endPosition)
     if (ray) {
@@ -93,7 +101,9 @@ function updateMouseParams(movement) {
     const cartographic = Cartographic.fromCartesian(cartesian);
     mouseParams.longitude = CesiumMath.toDegrees(cartographic.longitude).toFixed(5); // 保留五位小数
     mouseParams.latitude = CesiumMath.toDegrees(cartographic.latitude).toFixed(5); // 保留五位小数
-    mouseParams.altitude = cartographic.height.toFixed(2); // 保留两位小数
+    if (shouldShowElevation) {
+      mouseParams.altitude = cartographic.height.toFixed(2); // 保留两位小数
+    }
   }
 }
 
