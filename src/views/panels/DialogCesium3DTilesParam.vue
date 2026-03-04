@@ -129,11 +129,13 @@ import {
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { storeToRefs } from 'pinia'
 import { useLayerStore } from '@/stores/map/layerStore'
+import { useServiceConfigStore } from '@/stores/serviceConfigStore'
 import { validateTilesetUrl } from '@/map/utils/ImageryLayerUtils'
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogCesium3DTilesParam } = storeToRefs(panelStatusStore)
 const { closeDialogCesium3DTilesParam } = panelStatusStore
+const serviceConfigStore = useServiceConfigStore()
 
 const ruleFormRef = ref(null)
 const ref4InputUrl = ref(null)
@@ -263,6 +265,7 @@ function loadCesium3DTiles(ruleFormRef) {
       layerStore
         .add3DTilesLayer(_form.name, tileset3DOptions)
         .then((layerId) => {
+          serviceConfigStore.addServiceConfig('Cesium3DTiles', _form.name, tileset3DOptions, layerId)
           // 模型加载成功
           console.log('3DTiles 模型加载成功，图层 ID:', layerId)
           ElMessage({

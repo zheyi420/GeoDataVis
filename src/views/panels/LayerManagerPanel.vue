@@ -270,6 +270,7 @@ import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useLayerStore } from '@/stores/map/layerStore';
 import { useTerrainStore } from '@/stores/map/terrainStore';
+import { useServiceConfigStore } from '@/stores/serviceConfigStore';
 import { ElIcon, ElButton, ElCollapse, ElCollapseItem, ElCheckbox, ElSlider, ElTable, ElTableColumn, ElPopover, ElSelect, ElOption } from 'element-plus';
 import { ArrowUp, ArrowDown, MapLocation, Document, Setting, Grid, Delete } from '@element-plus/icons-vue';
 
@@ -284,6 +285,7 @@ const layerPopovers = ref({});
 // 使用图层管理的store
 const layerStore = useLayerStore();
 const terrainStore = useTerrainStore();
+const serviceConfigStore = useServiceConfigStore();
 const { terrainList, activeTerrainId } = storeToRefs(terrainStore);
 
 const serviceLayers = computed(() => layerStore.getServiceLayers());
@@ -292,12 +294,26 @@ const fileLayers = computed(() => layerStore.getFileLayers());
 // 地形相关：activeTerrainId 需要双向绑定并触发 setActiveTerrain
 const activeTerrainIdModel = computed({
   get: () => activeTerrainId.value,
-  set: (val) => { terrainStore.setActiveTerrain(val); },
+  set: (val) => {
+    terrainStore.setActiveTerrain(val);
+    if (val === 'none') {
+      serviceConfigStore.setActiveTerrainConfigId(null);
+      return;
+    }
+    const configId = serviceConfigStore.getConfigIdByTerrainId(val);
+    if (configId) {
+      serviceConfigStore.setActiveTerrainConfigId(configId);
+    }
+  },
 });
 const hasUserTerrains = computed(() => terrainList.value.length > 0);
 
 function removeTerrain(id) {
   terrainStore.removeTerrain(id);
+  const configId = serviceConfigStore.getConfigIdByTerrainId(id);
+  if (configId) {
+    serviceConfigStore.removeServiceConfig(configId);
+  }
 }
 
 onMounted(() => {});
@@ -305,11 +321,19 @@ onMounted(() => {});
 // 切换图层可见性
 function toggleLayerVisibility(layer) {
   layerStore.setLayerVisibility(layer.id, layer.visible);
+  const configId = serviceConfigStore.getConfigIdByLayerId(layer.id);
+  if (configId) {
+    serviceConfigStore.updateServiceConfig(configId, { visible: layer.visible });
+  }
 }
 
 // 更新图层透明度
 function updateLayerOpacity(layer) {
   layerStore.setLayerOpacity(layer.id, layer.opacity);
+  const configId = serviceConfigStore.getConfigIdByLayerId(layer.id);
+  if (configId) {
+    serviceConfigStore.updateServiceConfig(configId, { opacity: layer.opacity });
+  }
 }
 
 // 移除图层
@@ -318,6 +342,10 @@ function removeLayer(layer) {
   layerPopovers.value[layer.id] = false;
   // 再移除图层
   layerStore.removeLayer(layer.id);
+  const configId = serviceConfigStore.getConfigIdByLayerId(layer.id);
+  if (configId) {
+    serviceConfigStore.removeServiceConfig(configId);
+  }
   // 清理弹窗状态
   delete layerPopovers.value[layer.id];
 }
@@ -351,6 +379,10 @@ function toggle3DTilesLocalAxes(layer) {
 // 更新 3DTiles 透明度
 function update3DTilesOpacity(layer) {
   layerStore.set3DTilesOpacity(layer.id, layer.opacity);
+  const configId = serviceConfigStore.getConfigIdByLayerId(layer.id);
+  if (configId) {
+    serviceConfigStore.updateServiceConfig(configId, { opacity: layer.opacity });
+  }
 }
 
 // 处理图层名称点击事件
