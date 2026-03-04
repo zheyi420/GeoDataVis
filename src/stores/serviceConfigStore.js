@@ -168,15 +168,13 @@ export const useServiceConfigStore = defineStore('serviceConfig', () => {
         }
 
         if (config.type === 'Cesium3DTiles') {
-          const initialState = { visible: config.visible, opacity: config.opacity, skipZoom: true }
+          const initialState = { visible: config.visible, skipZoom: true }
           const layerId = await layerStore.add3DTilesLayer(config.layerName, config.options, initialState)
           layerIdToConfigId.set(layerId, config.configId)
           if (config.visible === false) {
             layerStore.setLayerVisibility(layerId, false)
           }
-          if (config.opacity !== undefined && config.opacity !== 1) {
-            layerStore.setLayerOpacity(layerId, config.opacity)
-          }
+          // 3DTiles 不恢复透明度，保持默认（opacity=1）
           continue
         }
 

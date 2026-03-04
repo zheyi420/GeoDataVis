@@ -376,13 +376,9 @@ function toggle3DTilesLocalAxes(layer) {
   layerStore.set3DTilesLocalAxes(layer.id, layer.showLocalAxes);
 }
 
-// 更新 3DTiles 透明度
+// 更新 3DTiles 透明度（不持久化，恢复时保持默认）
 function update3DTilesOpacity(layer) {
   layerStore.set3DTilesOpacity(layer.id, layer.opacity);
-  const configId = serviceConfigStore.getConfigIdByLayerId(layer.id);
-  if (configId) {
-    serviceConfigStore.updateServiceConfig(configId, { opacity: layer.opacity });
-  }
 }
 
 // 处理图层名称点击事件
