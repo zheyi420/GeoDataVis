@@ -227,7 +227,7 @@ class LayerManager {
    */
   async zoomToDataSource(dataSource) {
     if (!dataSource) {
-      return Promise.reject(new Error('DataSource 不存在'));
+      throw new Error('DataSource 不存在');
     }
     await this.#viewer.flyTo(dataSource);
   }
