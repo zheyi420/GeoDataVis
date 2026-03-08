@@ -13,7 +13,7 @@ description: This rule describes the technical stack and architecture design of 
 - **Vite** - 构建工具
 
 ### 地图引擎
-- **Cesium 1.132.0** - 3D 地球和地理数据可视化引擎
+- **Cesium** - 3D 地球和地理数据可视化引擎
   - 使用 `@cesium/engine` 包
   - 外部化加载（生产环境）以优化构建体积
 

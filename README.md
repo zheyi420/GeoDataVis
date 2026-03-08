@@ -8,7 +8,7 @@
 
 | 层级 | 技术 |
 |------|------|
-| 地图引擎 | Cesium 1.132.0 (`@cesium/engine`) |
+| 地图引擎 | Cesium (`@cesium/engine`) |
 | 前端框架 | Vue 3 + Composition API |
 | 状态管理 | Pinia |
 | 构建工具 | Vite |
