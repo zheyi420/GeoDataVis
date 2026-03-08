@@ -257,6 +257,12 @@ function handleChange4FileLoadType(value) {
   ref4FileLoadTypeDropdown.value.handleClose();
   // 清空选中的节点
   ref4FileLoadTypeCascaderPanel.value.clearCheckedNodes();
+
+  if (!value || value.length === 0) return;
+
+  if (value[0] === 'GeoJSON') {
+    usePanelStatusStore().openDialogGeoJsonParam();
+  }
 }
 
 

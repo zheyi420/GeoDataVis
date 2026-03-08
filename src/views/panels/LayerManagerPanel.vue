@@ -222,7 +222,22 @@
                 />
               </template>
             </el-table-column>
-            <el-table-column prop="name" label="图层名称" />
+            <el-table-column prop="name" label="图层名称">
+              <template #default="scope">
+                <span
+                  :class="{
+                    'layer-name': true,
+                    'layer-name-clickable': scope.row.locatable
+                  }"
+                  @click="handleLayerNameClick(scope.row)"
+                >
+                  <el-icon v-if="scope.row.locatable" class="layer-icon">
+                    <MapLocation />
+                  </el-icon>
+                  {{ scope.row.name }}
+                </span>
+              </template>
+            </el-table-column>
             <el-table-column width="90">
               <template #default="scope">
                 <el-popover
@@ -414,8 +429,15 @@ function handleLayerNameClick(layer) {
       .catch(error => {
         console.error('相机聚焦失败:', error);
       });
+  } else if (layer.sourceType === 'GeoJSON') {
+    layerManager.zoomToDataSource(layerInstance)
+      .then(() => {
+        console.log('GeoJSON 相机聚焦成功');
+      })
+      .catch(error => {
+        console.error('GeoJSON 相机聚焦失败:', error);
+      });
   }
-  // 未来可以添加 GeoJSON 等其他类型的定位逻辑
 }
 </script>
 
@@ -519,10 +541,10 @@ function handleLayerNameClick(layer) {
 
     &.layer-name-clickable {
       cursor: pointer;
-      color: #409eff;
+      // color: #409eff;
 
       &:hover {
-        background-color: #ecf5ff;
+        // background-color: #ecf5ff;
         color: #66b1ff;
       }
 

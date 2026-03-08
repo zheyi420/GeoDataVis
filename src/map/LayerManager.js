@@ -221,6 +221,18 @@ class LayerManager {
   }
 
   /**
+   * 聚焦 camera 到 DataSource（如 GeoJSON）
+   * @param {Cesium.DataSource} dataSource - DataSource 实例
+   * @returns {Promise<void>} 返回 Promise，聚焦完成后 resolve
+   */
+  async zoomToDataSource(dataSource) {
+    if (!dataSource) {
+      return Promise.reject(new Error('DataSource 不存在'));
+    }
+    await this.#viewer.flyTo(dataSource);
+  }
+
+  /**
    * 设置地形提供者
    * @param {import("cesium").TerrainProvider} provider - 地形提供者实例
    * @returns {Boolean} 是否成功设置
