@@ -176,34 +176,65 @@ export const useLayerStore = defineStore('layers', () => {
   /**
    * 添加 GeoJSON 数据图层
    * @param {String} layerName - 图层名称
-   * @param {Object} geoJsonData - GeoJSON 对象
-   * @param {Object} [options] - GeoJsonDataSource.load 选项
+   * @param {Object} geoJsonAnalysis - GeoJSON 分析结果
+   * @param {Object} geoJsonData - GeoJSON 原始对象
    * @param {Object} [initialState] - 可选初始状态 { visible }
    * @returns {Promise<String>} 返回图层ID的Promise
    */
-  function addGeoJsonLayer(layerName, geoJsonData, options, initialState) {
+  function addGeoJsonLayer(layerName, geoJsonAnalysis, geoJsonData, initialState) {
     const layerManager = getLayerManager();
     if (!layerManager) {
       return Promise.reject(new Error('LayerManager 未初始化'));
     }
 
-    return layerManager.addGeoJsonDataSource(geoJsonData, options)
-      .then(dataSource => {
-        if (dataSource) {
+    const features2D = geoJsonAnalysis?.features2D || [];
+    const features3D = geoJsonAnalysis?.features3D || [];
+    const geoJson2D = features2D.length > 0
+      ? { type: 'FeatureCollection', features: features2D }
+      : null;
+    const geoJson3D = features3D.length > 0
+      ? { type: 'FeatureCollection', features: features3D }
+      : null;
+
+    return layerManager.addGeoJsonDataSource(geoJson2D, geoJson3D)
+      .then(({ dataSource2D, dataSource3D }) => {
+        if (dataSource2D || dataSource3D) {
           const layerId = _addLayer({
             name: layerName,
             type: 'file',
             sourceType: 'GeoJSON',
             visible: initialState?.visible !== undefined ? initialState.visible : true,
             locatable: true,
-            layerInstance: dataSource,
-            metadata: options || {}
+            layerInstance: { dataSource2D, dataSource3D },
+            metadata: {
+              geoJson2D,
+              geoJson3D,
+              geoJsonData
+            }
           });
           return layerId;
-        } else {
-          throw new Error('GeoJSON 图层创建失败');
         }
+        throw new Error('GeoJSON 图层创建失败');
       });
+  }
+
+  /**
+   * 更新所有 GeoJSON 图层的贴地设置
+   * @param {Boolean} hasActiveTerrain - 是否有真实地形
+   * @returns {Promise<void>}
+   */
+  async function updateAllGeoJsonClampToGround(hasActiveTerrain) {
+    const layerManager = getLayerManager();
+    if (!layerManager) {
+      return;
+    }
+    const geoJsonLayers = layers.value.filter(layer => layer.sourceType === 'GeoJSON');
+    for (const layer of geoJsonLayers) {
+      const geoJson2D = layer.metadata?.geoJson2D;
+      if (geoJson2D && geoJson2D.features && geoJson2D.features.length > 0) {
+        await layerManager.reloadGeoJson2D(layer.layerInstance, geoJson2D, hasActiveTerrain);
+      }
+    }
   }
 
   // 移除指定ID的图层
@@ -511,6 +542,7 @@ export const useLayerStore = defineStore('layers', () => {
     addWmtsLayer,
     add3DTilesLayer,
     addGeoJsonLayer,
+    updateAllGeoJsonClampToGround,
     removeLayer,
     setLayerVisibility,
     setLayerOpacity,

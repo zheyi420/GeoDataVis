@@ -21,6 +21,8 @@ import {
   VerticalOrigin,
   Quaternion,
   EllipsoidTerrainProvider,
+  BoundingSphere,
+  BoundingSphereState,
 } from 'cesium';
 
 /**
@@ -142,21 +144,59 @@ class LayerManager {
 
   /**
    * 添加 GeoJSON DataSource
-   * @param {Object} geoJsonData - GeoJSON 对象
-   * @param {Object} [options] - GeoJsonDataSource.load 配置
-   * @returns {Promise<GeoJsonDataSource>}
+   * @param {Object|null} geoJson2D - 2D GeoJSON 对象
+   * @param {Object|null} geoJson3D - 3D GeoJSON 对象
+   * @returns {Promise<{dataSource2D: GeoJsonDataSource|null, dataSource3D: GeoJsonDataSource|null}>}
    */
-  async addGeoJsonDataSource(geoJsonData, options) {
-    console.log('addGeoJsonDataSource', options);
+  async addGeoJsonDataSource(geoJson2D, geoJson3D) {
+    console.log('addGeoJsonDataSource');
     try {
-      const dataSource = await GeoJsonDataSource.load(geoJsonData, options);
-      this.#viewer.dataSources.add(dataSource);
-      await this.#viewer.flyTo(dataSource);
-      return dataSource;
+      const hasActiveTerrain = this.hasActiveTerrain();
+      let dataSource2D = null;
+      let dataSource3D = null;
+
+      if (geoJson2D && Array.isArray(geoJson2D.features) && geoJson2D.features.length > 0) {
+        dataSource2D = await GeoJsonDataSource.load(geoJson2D, {
+          clampToGround: hasActiveTerrain
+        });
+        this.#viewer.dataSources.add(dataSource2D);
+      }
+
+      if (geoJson3D && Array.isArray(geoJson3D.features) && geoJson3D.features.length > 0) {
+        dataSource3D = await GeoJsonDataSource.load(geoJson3D, {
+          clampToGround: false
+        });
+        this.#viewer.dataSources.add(dataSource3D);
+      }
+
+      await this.zoomToDataSource({ dataSource2D, dataSource3D });
+      return { dataSource2D, dataSource3D };
     } catch (error) {
       console.error('加载 GeoJSON 失败:', error);
       throw new Error(`加载 GeoJSON 失败: ${error.message}`);
     }
+  }
+
+  /**
+   * 重新加载 GeoJSON 2D DataSource（用于地形切换）
+   * @param {{dataSource2D: GeoJsonDataSource|null}} layerInstance - 图层实例
+   * @param {Object} geoJson2D - 2D GeoJSON 对象
+   * @param {Boolean} clampToGround - 是否贴地形
+   * @returns {Promise<GeoJsonDataSource>}
+   */
+  async reloadGeoJson2D(layerInstance, geoJson2D, clampToGround) {
+    if (!layerInstance || !geoJson2D) {
+      throw new Error('GeoJSON 2D 数据不存在');
+    }
+    if (layerInstance.dataSource2D) {
+      this.#viewer.dataSources.remove(layerInstance.dataSource2D, true);
+    }
+    const newDataSource = await GeoJsonDataSource.load(geoJson2D, {
+      clampToGround
+    });
+    this.#viewer.dataSources.add(newDataSource);
+    layerInstance.dataSource2D = newDataSource;
+    return newDataSource;
   }
 
   /**
@@ -222,14 +262,83 @@ class LayerManager {
 
   /**
    * 聚焦 camera 到 DataSource（如 GeoJSON）
-   * @param {Cesium.DataSource} dataSource - DataSource 实例
-   * @returns {Promise<void>} 返回 Promise，聚焦完成后 resolve
+   * 支持复合 layerInstance { dataSource2D, dataSource3D }，
+   * 会将所有非 null 的 DataSource 的包围球合并后聚焦，保证相机覆盖全部要素范围。
+   * 注：viewer.flyTo([ds1, ds2]) 会触发 Cesium 内部 DeveloperError，故改为手动合并包围球后 flyToBoundingSphere。
+   * @param {{dataSource2D?: GeoJsonDataSource|null, dataSource3D?: GeoJsonDataSource|null}|GeoJsonDataSource} layerInstance
+   * @returns {Promise<void>}
    */
-  async zoomToDataSource(dataSource) {
-    if (!dataSource) {
+  async zoomToDataSource(layerInstance) {
+    if (!layerInstance) {
       throw new Error('DataSource 不存在');
     }
-    await this.#viewer.flyTo(dataSource);
+
+    const isComposite = 'dataSource2D' in layerInstance || 'dataSource3D' in layerInstance;
+    const targets = isComposite
+      ? [layerInstance.dataSource2D, layerInstance.dataSource3D].filter(Boolean)
+      : [layerInstance];
+
+    if (targets.length === 0) {
+      throw new Error('DataSource 不存在');
+    }
+
+    if (targets.length === 1) {
+      await this.#viewer.flyTo(targets[0]);
+      return;
+    }
+
+    // 多个 DataSource：手动合并包围球，避免 viewer.flyTo(array) 触发 Cesium 内部错误。
+    // getBoundingSphere 需要预分配 result 出参，返回 BoundingSphereState；
+    // 初次调用可能返回 PENDING（Cesium 尚未渲染完毕），需要逐帧轮询直到 DONE。
+    const dataSourceDisplay = this.#viewer.dataSourceDisplay;
+
+    const awaitBoundingSphere = (ds) => new Promise((resolve, reject) => {
+      const resultSphere = new BoundingSphere();
+      let attempts = 0;
+      const poll = () => {
+        try {
+          const state = dataSourceDisplay.getBoundingSphere(ds, false, resultSphere);
+          if (state === BoundingSphereState.DONE && resultSphere.radius > 0) {
+            resolve(resultSphere.clone());
+          } else if (state === BoundingSphereState.FAILED || attempts++ > 180) {
+            reject(new Error('包围球不可用'));
+          } else {
+            requestAnimationFrame(poll);
+          }
+        } catch (e) {
+          reject(e);
+        }
+      };
+      requestAnimationFrame(poll);
+    });
+
+    const results = await Promise.all(targets.map(ds => awaitBoundingSphere(ds).catch(() => null)));
+    const spheres = results.filter(Boolean);
+
+    if (spheres.length === 0) {
+      await this.#viewer.flyTo(targets[0]);
+      return;
+    }
+
+    const combined = spheres.length === 1
+      ? spheres[0]
+      : BoundingSphere.fromBoundingSpheres(spheres);
+    await this.#viewer.camera.flyToBoundingSphere(combined, {
+      duration: 1.0,
+      offset: new HeadingPitchRange(
+        CesiumMath.toRadians(0),
+        CesiumMath.toRadians(-45),
+        combined.radius * 2
+      ),
+    });
+  }
+
+  /**
+   * 判断当前是否加载了真实地形
+   * @returns {Boolean}
+   */
+  hasActiveTerrain() {
+    return !(this.#viewer.scene.globe.terrainProvider instanceof EllipsoidTerrainProvider);
   }
 
   /**
@@ -291,7 +400,15 @@ class LayerManager {
       return this.remove3DTilesLayer(layerInstance);
     } else if (layerType === 'file') {
       // GeoJSON DataSource 使用 dataSources.remove
-      return this.#viewer.dataSources.remove(layerInstance, true);
+      const dataSource2D = layerInstance.dataSource2D || null;
+      const dataSource3D = layerInstance.dataSource3D || null;
+      if (dataSource2D) {
+        this.#viewer.dataSources.remove(dataSource2D, true);
+      }
+      if (dataSource3D) {
+        this.#viewer.dataSources.remove(dataSource3D, true);
+      }
+      return true;
     } else {
       // ImageryLayer 使用 imageryLayers.remove
       const result = this.#viewer.imageryLayers.remove(layerInstance, true);
@@ -307,6 +424,15 @@ class LayerManager {
    */
   setLayerVisibility(layerInstance, visible) {
     if (layerInstance) {
+      if (layerInstance.dataSource2D || layerInstance.dataSource3D) {
+        if (layerInstance.dataSource2D) {
+          layerInstance.dataSource2D.show = visible;
+        }
+        if (layerInstance.dataSource3D) {
+          layerInstance.dataSource3D.show = visible;
+        }
+        return true;
+      }
       layerInstance.show = visible;
       return true;
     }

@@ -54,14 +54,6 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="贴地形" :label-width="formLabelWidth">
-          <div class="clamp-row">
-            <el-switch v-model="form4GeoJsonParam.clampToGround" />
-            <span class="clamp-tip">
-              开启后高程数据将被忽略，图形贴合地形表面；关闭后保留坐标高程（WGS84 椭球高）。
-            </span>
-          </div>
-        </el-form-item>
       </el-form>
 
       <el-alert
@@ -94,14 +86,13 @@ import {
   ElInput,
   ElButton,
   ElUpload,
-  ElSwitch,
   ElAlert,
   ElMessage,
 } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { useLayerStore } from '@/stores/map/layerStore'
-import { parseAndValidate } from '@/map/utils/GeoJsonValidator'
+import { parseAndValidate, analyzeGeoJson } from '@/map/utils/GeoJsonValidator'
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogGeoJsonParam } = storeToRefs(panelStatusStore)
@@ -114,13 +105,13 @@ const fileLoading = ref(false)
 const errorMessage = ref('')
 const fileName = ref('')
 const geoJsonData = ref(null)
+const geoJsonAnalysis = ref(null)
 
 const formLabelWidth = '120px'
 
 const form4GeoJsonParam = reactive({
   name: null,
   file: null,
-  clampToGround: false,
 })
 
 const placeholder4Form = {
@@ -163,6 +154,7 @@ async function handleFileChange(uploadFile) {
   try {
     const data = await parseAndValidate(uploadFile.raw)
     geoJsonData.value = data
+    geoJsonAnalysis.value = analyzeGeoJson(data)
     fileName.value = uploadFile.name
     form4GeoJsonParam.file = uploadFile.name
 
@@ -173,6 +165,7 @@ async function handleFileChange(uploadFile) {
     ruleFormRef.value?.validateField('file')
   } catch (error) {
     geoJsonData.value = null
+    geoJsonAnalysis.value = null
     fileName.value = ''
     form4GeoJsonParam.file = null
     errorMessage.value = error.message || 'GeoJSON 校验失败'
@@ -196,13 +189,9 @@ function loadGeoJson(ruleFormRef) {
 
     loading.value = true
     const layerName = form4GeoJsonParam.name?.trim() || placeholder4Form.name
-    const loadOptions = {
-      clampToGround: form4GeoJsonParam.clampToGround,
-    }
-
     const layerStore = useLayerStore()
     layerStore
-      .addGeoJsonLayer(layerName, geoJsonData.value, loadOptions)
+      .addGeoJsonLayer(layerName, geoJsonAnalysis.value, geoJsonData.value)
       .then(layerId => {
         ElMessage({
           type: 'success',
@@ -229,8 +218,8 @@ function resetForm() {
   uploadRef.value?.clearFiles()
   fileName.value = ''
   geoJsonData.value = null
+  geoJsonAnalysis.value = null
   errorMessage.value = ''
-  form4GeoJsonParam.clampToGround = false
 }
 
 function cancel() {
@@ -260,15 +249,4 @@ function handleClose(done) {
   }
 }
 
-.clamp-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  line-height: 1.4;
-
-  .clamp-tip {
-    font-size: 12px;
-    color: #909399;
-  }
-}
 </style>

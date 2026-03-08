@@ -1,5 +1,6 @@
 import { ref, markRaw } from 'vue'
 import { defineStore } from 'pinia'
+import { useLayerStore } from '@/stores/map/layerStore'
 
 /**
  * @typedef {import('@/map/LayerManager').default} LayerManager
@@ -44,6 +45,7 @@ export const useTerrainStore = defineStore('terrain', () => {
     terrainList.value.push(terrain)
     activeTerrainId.value = id
     layerManager.setTerrainProvider(providerInstance)
+    useLayerStore().updateAllGeoJsonClampToGround(true)
 
     return id
   }
@@ -68,6 +70,7 @@ export const useTerrainStore = defineStore('terrain', () => {
       if (layerManager) {
         const defaultProvider = layerManager.getDefaultTerrainProvider()
         layerManager.setTerrainProvider(defaultProvider)
+        useLayerStore().updateAllGeoJsonClampToGround(false)
       }
     }
 
@@ -89,6 +92,7 @@ export const useTerrainStore = defineStore('terrain', () => {
       activeTerrainId.value = 'none'
       const defaultProvider = layerManager.getDefaultTerrainProvider()
       layerManager.setTerrainProvider(defaultProvider)
+      useLayerStore().updateAllGeoJsonClampToGround(false)
       return true
     }
 
@@ -99,6 +103,7 @@ export const useTerrainStore = defineStore('terrain', () => {
 
     activeTerrainId.value = id
     layerManager.setTerrainProvider(terrain.providerInstance)
+    useLayerStore().updateAllGeoJsonClampToGround(true)
     return true
   }
 

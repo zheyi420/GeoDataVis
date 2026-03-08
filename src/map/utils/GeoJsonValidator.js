@@ -44,3 +44,46 @@ export async function parseAndValidate(file) {
     throw new Error(`GeoJSON 解析失败: ${error.message}`)
   }
 }
+
+/**
+ * 分析 GeoJSON 中要素是否包含高程坐标
+ * @param {Object} geoJson
+ * @returns {{features2D: Object[], features3D: Object[], hasMixed: boolean}}
+ */
+export function analyzeGeoJson(geoJson) {
+  if (!geoJson) {
+    return { features2D: [], features3D: [], hasMixed: false }
+  }
+
+  const features = geoJson.type === 'FeatureCollection'
+    ? (geoJson.features || [])
+    : [geoJson]
+
+  const features2D = []
+  const features3D = []
+
+  const hasZInCoordinates = (coords) => {
+    if (!Array.isArray(coords)) return false
+    if (coords.length === 0) return false
+    if (typeof coords[0] === 'number') {
+      return coords.length >= 3 && Number.isFinite(coords[2])
+    }
+    return coords.some(hasZInCoordinates)
+  }
+
+  features.forEach(feature => {
+    const geometry = feature && feature.geometry
+    const is3D = geometry && hasZInCoordinates(geometry.coordinates)
+    if (is3D) {
+      features3D.push(feature)
+    } else {
+      features2D.push(feature)
+    }
+  })
+
+  return {
+    features2D,
+    features3D,
+    hasMixed: features2D.length > 0 && features3D.length > 0
+  }
+}
