@@ -158,6 +158,15 @@ async function handleFileChange(uploadFile) {
     fileName.value = uploadFile.name
     form4GeoJsonParam.file = uploadFile.name
 
+    if (geoJsonAnalysis.value?.warnings?.length > 0) {
+      ElMessage({
+        type: 'warning',
+        message: geoJsonAnalysis.value.warnings.join('\n'),
+        duration: 8000,
+        showClose: true,
+      })
+    }
+
     if (!form4GeoJsonParam.name) {
       form4GeoJsonParam.name = uploadFile.name.replace(/\.[^/.]+$/, '')
     }

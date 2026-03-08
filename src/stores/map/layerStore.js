@@ -196,7 +196,7 @@ export const useLayerStore = defineStore('layers', () => {
       ? { type: 'FeatureCollection', features: features3D }
       : null;
 
-    return layerManager.addGeoJsonDataSource(geoJson2D, geoJson3D)
+    return layerManager.addGeoJsonDataSource(geoJson2D, geoJson3D, geoJsonAnalysis)
       .then(({ dataSource2D, dataSource3D }) => {
         if (dataSource2D || dataSource3D) {
           const layerId = _addLayer({
@@ -209,7 +209,8 @@ export const useLayerStore = defineStore('layers', () => {
             metadata: {
               geoJson2D,
               geoJson3D,
-              geoJsonData
+              geoJsonData,
+              geoJsonAnalysis
             }
           });
           return layerId;

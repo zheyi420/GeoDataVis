@@ -430,7 +430,9 @@ function handleLayerNameClick(layer) {
         console.error('相机聚焦失败:', error);
       });
   } else if (layer.sourceType === 'GeoJSON') {
-    layerManager.zoomToDataSource(layerInstance)
+    layerManager.zoomToDataSource(layerInstance, {
+      geoJsonAnalysis: layer.metadata?.geoJsonAnalysis
+    })
       .then(() => {
         console.log('GeoJSON 相机聚焦成功');
       })

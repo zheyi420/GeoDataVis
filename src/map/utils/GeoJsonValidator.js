@@ -66,9 +66,13 @@ export function analyzeGeoJson(geoJson) {
     if (!Array.isArray(coords)) return false
     if (coords.length === 0) return false
     if (typeof coords[0] === 'number') {
-      return coords.length >= 3 && Number.isFinite(coords[2])
+      return coords.length >= 3
+        && coords[2] !== null
+        && coords[2] !== undefined
+        && Number.isFinite(coords[2])
+        && coords[2] !== 0
     }
-    return coords.some(hasZInCoordinates)
+    return coords.every(hasZInCoordinates)
   }
 
   features.forEach(feature => {
@@ -81,9 +85,161 @@ export function analyzeGeoJson(geoJson) {
     }
   })
 
-  return {
+  const result = {
     features2D,
     features3D,
     hasMixed: features2D.length > 0 && features3D.length > 0
   }
+
+  const { warnings, stats } = validateGeoJsonQuality(geoJson, features2D, features3D)
+
+  console.log('[GeoJSON 分析]', {
+    '2D 要素数': features2D.length,
+    '3D 要素数': features3D.length,
+    '是否混合': result.hasMixed,
+    '地理范围': stats,
+    '警告': warnings
+  })
+
+  return { ...result, warnings, stats }
+}
+
+export function validateGeoJsonQuality(geoJson, features2D, features3D) {
+  const warnings = []
+  const stats = {
+    bounds2D: null,
+    bounds3D: null,
+    heightRange: { min: Infinity, max: -Infinity }
+  }
+
+  if (features2D.length > 0) {
+    stats.bounds2D = calculateBounds(features2D)
+  }
+
+  if (features3D.length > 0) {
+    stats.bounds3D = calculateBounds(features3D)
+    stats.heightRange = calculateHeightRange(features3D)
+
+    if (stats.heightRange.max > 20000) {
+      warnings.push(`3D 要素最大高程 ${stats.heightRange.max}m 超过正常范围（建议 < 20000m）`)
+    }
+    if (stats.heightRange.min < -500) {
+      warnings.push(`3D 要素最小高程 ${stats.heightRange.min}m 低于正常范围（建议 > -500m）`)
+    }
+  }
+
+  if (stats.bounds2D && stats.bounds3D) {
+    const distance = calculateDistance(stats.bounds2D, stats.bounds3D)
+    if (distance > 500000) {
+      warnings.push(
+        `2D 要素与 3D 要素地理位置相距 ${(distance / 1000).toFixed(0)} 公里，` +
+        '定位时可能需要较大的相机视角'
+      )
+    }
+  }
+
+  return { warnings, stats }
+}
+
+/**
+ * 合并 stats 中的 2D/3D 范围，供相机定位使用
+ * @param {{bounds2D: object|null, bounds3D: object|null, heightRange: {min: number, max: number}}} stats
+ * @returns {{west: number, south: number, east: number, north: number, minHeight: number, maxHeight: number}|null}
+ */
+export function computeMergedBounds(stats) {
+  const bounds2D = stats?.bounds2D
+  const bounds3D = stats?.bounds3D
+  const heightRange = stats?.heightRange
+  if (!bounds2D && !bounds3D) {
+    return null
+  }
+
+  const west = Math.min(bounds2D?.west ?? Infinity, bounds3D?.west ?? Infinity)
+  const east = Math.max(bounds2D?.east ?? -Infinity, bounds3D?.east ?? -Infinity)
+  const south = Math.min(bounds2D?.south ?? Infinity, bounds3D?.south ?? Infinity)
+  const north = Math.max(bounds2D?.north ?? -Infinity, bounds3D?.north ?? -Infinity)
+
+  const has3D = Boolean(bounds3D)
+  const minHeight = has3D && Number.isFinite(heightRange?.min) ? heightRange.min : 0
+  const maxHeight = has3D && Number.isFinite(heightRange?.max) ? heightRange.max : 0
+
+  return { west, south, east, north, minHeight, maxHeight }
+}
+
+function calculateBounds(features) {
+  let minLon = Infinity
+  let maxLon = -Infinity
+  let minLat = Infinity
+  let maxLat = -Infinity
+
+  features.forEach(feature => {
+    const coords = feature?.geometry?.coordinates
+    if (coords) {
+      extractCoordinates(coords).forEach(([lon, lat]) => {
+        if (!Number.isFinite(lon) || !Number.isFinite(lat)) return
+        minLon = Math.min(minLon, lon)
+        maxLon = Math.max(maxLon, lon)
+        minLat = Math.min(minLat, lat)
+        maxLat = Math.max(maxLat, lat)
+      })
+    }
+  })
+
+  if (!Number.isFinite(minLon) || !Number.isFinite(minLat)) {
+    return null
+  }
+
+  return {
+    west: minLon,
+    east: maxLon,
+    south: minLat,
+    north: maxLat,
+    center: [(minLon + maxLon) / 2, (minLat + maxLat) / 2]
+  }
+}
+
+function calculateHeightRange(features) {
+  let min = Infinity
+  let max = -Infinity
+
+  features.forEach(feature => {
+    const coords = feature?.geometry?.coordinates
+    if (coords) {
+      extractCoordinates(coords).forEach(coord => {
+        if (coord.length >= 3 && Number.isFinite(coord[2])) {
+          min = Math.min(min, coord[2])
+          max = Math.max(max, coord[2])
+        }
+      })
+    }
+  })
+
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return { min: Infinity, max: -Infinity }
+  }
+
+  return { min, max }
+}
+
+function extractCoordinates(coords) {
+  if (!Array.isArray(coords)) return []
+  if (typeof coords[0] === 'number') return [coords]
+  return coords.flatMap(extractCoordinates)
+}
+
+function calculateDistance(bounds1, bounds2) {
+  const [lon1, lat1] = bounds1.center
+  const [lon2, lat2] = bounds2.center
+  const radius = 6371000
+  const phi1 = lat1 * Math.PI / 180
+  const phi2 = lat2 * Math.PI / 180
+  const deltaPhi = (lat2 - lat1) * Math.PI / 180
+  const deltaLambda = (lon2 - lon1) * Math.PI / 180
+
+  const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2)
+    + Math.cos(phi1) * Math.cos(phi2)
+    * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  return radius * c
 }

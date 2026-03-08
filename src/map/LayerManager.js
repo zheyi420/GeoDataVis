@@ -4,6 +4,7 @@
  */
 
 import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
+import { computeMergedBounds } from './utils/GeoJsonValidator';
 import {
   GeographicTilingScheme,
   WebMercatorTilingScheme,
@@ -12,6 +13,8 @@ import {
   Color,
   Cartesian2,
   Cartesian3,
+  Rectangle,
+  Ellipsoid,
   GeoJsonDataSource,
   Cesium3DTileStyle,
   Cesium3DTileColorBlendMode,
@@ -22,7 +25,6 @@ import {
   Quaternion,
   EllipsoidTerrainProvider,
   BoundingSphere,
-  BoundingSphereState,
 } from 'cesium';
 
 /**
@@ -148,7 +150,7 @@ class LayerManager {
    * @param {Object|null} geoJson3D - 3D GeoJSON 对象
    * @returns {Promise<{dataSource2D: GeoJsonDataSource|null, dataSource3D: GeoJsonDataSource|null}>}
    */
-  async addGeoJsonDataSource(geoJson2D, geoJson3D) {
+  async addGeoJsonDataSource(geoJson2D, geoJson3D, geoJsonAnalysis) {
     console.log('addGeoJsonDataSource');
     try {
       const hasActiveTerrain = this.hasActiveTerrain();
@@ -169,7 +171,12 @@ class LayerManager {
         this.#viewer.dataSources.add(dataSource3D);
       }
 
-      await this.zoomToDataSource({ dataSource2D, dataSource3D });
+      if (dataSource2D || dataSource3D) {
+        await this.zoomToDataSource(
+          { dataSource2D, dataSource3D },
+          { geoJsonAnalysis }
+        );
+      }
       return { dataSource2D, dataSource3D };
     } catch (error) {
       console.error('加载 GeoJSON 失败:', error);
@@ -268,7 +275,7 @@ class LayerManager {
    * @param {{dataSource2D?: GeoJsonDataSource|null, dataSource3D?: GeoJsonDataSource|null}|GeoJsonDataSource} layerInstance
    * @returns {Promise<void>}
    */
-  async zoomToDataSource(layerInstance) {
+  async zoomToDataSource(layerInstance, options = {}) {
     if (!layerInstance) {
       throw new Error('DataSource 不存在');
     }
@@ -282,55 +289,56 @@ class LayerManager {
       throw new Error('DataSource 不存在');
     }
 
-    if (targets.length === 1) {
-      await this.#viewer.flyTo(targets[0]);
-      return;
+    // stats 优先：不依赖 Entity 渲染状态，图层隐藏时仍可定位
+    const stats = options?.geoJsonAnalysis?.stats;
+    if (stats) {
+      const sphere = this.computeBoundingSphereFromStats(stats);
+      if (sphere && sphere.radius > 0) {
+        await this.#viewer.camera.flyToBoundingSphere(sphere, {
+          duration: 2.0,
+          offset: new HeadingPitchRange(0, -Math.PI / 4, sphere.radius * 2.5),
+        });
+        return;
+      }
     }
 
-    // 多个 DataSource：手动合并包围球，避免 viewer.flyTo(array) 触发 Cesium 内部错误。
-    // getBoundingSphere 需要预分配 result 出参，返回 BoundingSphereState；
-    // 初次调用可能返回 PENDING（Cesium 尚未渲染完毕），需要逐帧轮询直到 DONE。
-    const dataSourceDisplay = this.#viewer.dataSourceDisplay;
-
-    const awaitBoundingSphere = (ds) => new Promise((resolve, reject) => {
-      const resultSphere = new BoundingSphere();
-      let attempts = 0;
-      const poll = () => {
-        try {
-          const state = dataSourceDisplay.getBoundingSphere(ds, false, resultSphere);
-          if (state === BoundingSphereState.DONE && resultSphere.radius > 0) {
-            resolve(resultSphere.clone());
-          } else if (state === BoundingSphereState.FAILED || attempts++ > 180) {
-            reject(new Error('包围球不可用'));
-          } else {
-            requestAnimationFrame(poll);
-          }
-        } catch (e) {
-          reject(e);
-        }
-      };
-      requestAnimationFrame(poll);
-    });
-
-    const results = await Promise.all(targets.map(ds => awaitBoundingSphere(ds).catch(() => null)));
-    const spheres = results.filter(Boolean);
-
-    if (spheres.length === 0) {
+    // 无 stats 时仅单 DataSource 可用 viewer.flyTo（多 DataSource 会触发 Cesium 内部错误）
+    /* if (targets.length === 1) {
       await this.#viewer.flyTo(targets[0]);
       return;
+    } */
+
+    throw new Error('无法定位：无有效地理范围');
+  }
+
+  /**
+   * 基于 GeoJSON 分析结果计算包围球
+   * @param {{bounds2D: object|null, bounds3D: object|null, heightRange: {min: number, max: number}}} stats
+   * @returns {BoundingSphere|null}
+   */
+  computeBoundingSphereFromStats(stats) {
+    const merged = computeMergedBounds(stats);
+    if (!merged) {
+      return null;
     }
 
-    const combined = spheres.length === 1
-      ? spheres[0]
-      : BoundingSphere.fromBoundingSpheres(spheres);
-    await this.#viewer.camera.flyToBoundingSphere(combined, {
-      duration: 1.0,
-      offset: new HeadingPitchRange(
-        CesiumMath.toRadians(0),
-        CesiumMath.toRadians(-45),
-        combined.radius * 2
-      ),
-    });
+    const rectangle = Rectangle.fromDegrees(
+      merged.west,
+      merged.south,
+      merged.east,
+      merged.north
+    );
+    const ellipsoid = this.#viewer?.scene?.globe?.ellipsoid || Ellipsoid.default;
+
+    const minHeight = Math.min(0, merged.minHeight);
+    const maxHeight = Math.max(0, merged.maxHeight);
+    if (minHeight === maxHeight) {
+      return BoundingSphere.fromRectangle3D(rectangle, ellipsoid, minHeight);
+    }
+
+    const sphereMin = BoundingSphere.fromRectangle3D(rectangle, ellipsoid, minHeight);
+    const sphereMax = BoundingSphere.fromRectangle3D(rectangle, ellipsoid, maxHeight);
+    return BoundingSphere.fromBoundingSpheres([sphereMin, sphereMax]);
   }
 
   /**
