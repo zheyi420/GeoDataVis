@@ -12,7 +12,7 @@ alwaysApply: false
 
 ## 数据流
 
-- **Dialog 确认成功** → `serviceConfigStore.addServiceConfig(type, layerName, processedOptions, layerId)` → `watch` 自动写入 localStorage
+- **服务型 Dialog 确认成功**（WMS/WMTS/3DTiles/Terrain）→ `serviceConfigStore.addServiceConfig(type, layerName, processedOptions, layerId)` → `watch` 自动写入 localStorage
 - **App.vue** 在 `isViewerReady` 为 true 且有 `serviceConfigs.length > 0` 时，全屏 Loading 并调用 `restoreAll()`
 - **LayerManagerPanel** 在移除、可见性、透明度（3DTiles 除外）、图层顺序、切换地形时，同步调用 `serviceConfigStore` 对应 action（通过 `getConfigIdByLayerId` / `getConfigIdByTerrainId` 反查 configId）
 
@@ -23,4 +23,6 @@ alwaysApply: false
 
 ## 扩展新 Dialog 类型
 
-在确认成功后调用 `addServiceConfig(type, layerName, processedOptions, layerId)`，`options` 必须为可序列化 JSON（与传给 `add*Layer` 的完全一致）。
+**仅限服务型图层**：通过 URL/服务端点加载的图层（WMS、WMTS、Cesium3DTiles、CesiumTerrain）需持久化。在确认成功后调用 `addServiceConfig(type, layerName, processedOptions, layerId)`，`options` 必须为可序列化 JSON（与传给 `add*Layer` 的完全一致）。
+
+**排除文件型图层**：通过「文件」菜单上传的本地文件（GeoJSON、KML 等）**不**需要持久化。刷新后数据不可恢复，且大文件会占用 localStorage。此类 Dialog 无需调用 `addServiceConfig`。
