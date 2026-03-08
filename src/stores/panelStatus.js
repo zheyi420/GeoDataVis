@@ -103,6 +103,26 @@ export const usePanelStatusStore = defineStore('panelStatus', () => {
     visStatus4DialogCesiumTerrainParam.value = false
   }
 
+  /**
+   * 控制"GeoJSON"文件参数对话框的可见状态
+   * @type {import('vue').Ref<boolean>}
+   */
+  const visStatus4DialogGeoJsonParam = ref(false)
+
+  /**
+   * 打开"GeoJSON"文件参数对话框
+   */
+  function openDialogGeoJsonParam() {
+    visStatus4DialogGeoJsonParam.value = true
+  }
+
+  /**
+   * 关闭"GeoJSON"文件参数对话框
+   */
+  function closeDialogGeoJsonParam() {
+    visStatus4DialogGeoJsonParam.value = false
+  }
+
   return {
     visStatus4DialogGeoServerWmsServiceParam,
     switchVisStatus4DialogGeoServerWmsServiceParam,
@@ -119,5 +139,8 @@ export const usePanelStatusStore = defineStore('panelStatus', () => {
     visStatus4DialogCesiumTerrainParam,
     openDialogCesiumTerrainParam,
     closeDialogCesiumTerrainParam,
+    visStatus4DialogGeoJsonParam,
+    openDialogGeoJsonParam,
+    closeDialogGeoJsonParam,
   }
 })

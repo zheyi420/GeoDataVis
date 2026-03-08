@@ -12,6 +12,7 @@ import {
   Color,
   Cartesian2,
   Cartesian3,
+  GeoJsonDataSource,
   Cesium3DTileStyle,
   Cesium3DTileColorBlendMode,
   Matrix3,
@@ -25,6 +26,7 @@ import {
 /**
  * @typedef {import("cesium").Viewer} Viewer
  * @typedef {import("cesium").Cesium3DTileset} Cesium3DTileset
+ * @typedef {import("cesium").GeoJsonDataSource} GeoJsonDataSource
  */
 
 class LayerManager {
@@ -135,6 +137,25 @@ class LayerManager {
     } catch (error) {
       console.error('加载 3DTiles 失败:', error);
       throw new Error(`加载 3DTiles 模型失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 添加 GeoJSON DataSource
+   * @param {Object} geoJsonData - GeoJSON 对象
+   * @param {Object} [options] - GeoJsonDataSource.load 配置
+   * @returns {Promise<GeoJsonDataSource>}
+   */
+  async addGeoJsonDataSource(geoJsonData, options) {
+    console.log('addGeoJsonDataSource', options);
+    try {
+      const dataSource = await GeoJsonDataSource.load(geoJsonData, options);
+      this.#viewer.dataSources.add(dataSource);
+      await this.#viewer.flyTo(dataSource);
+      return dataSource;
+    } catch (error) {
+      console.error('加载 GeoJSON 失败:', error);
+      throw new Error(`加载 GeoJSON 失败: ${error.message}`);
     }
   }
 
@@ -256,6 +277,9 @@ class LayerManager {
     if (layerType === 'model') {
       // 3DTiles 模型使用 primitives.remove
       return this.remove3DTilesLayer(layerInstance);
+    } else if (layerType === 'file') {
+      // GeoJSON DataSource 使用 dataSources.remove
+      return this.#viewer.dataSources.remove(layerInstance, true);
     } else {
       // ImageryLayer 使用 imageryLayers.remove
       const result = this.#viewer.imageryLayers.remove(layerInstance, true);

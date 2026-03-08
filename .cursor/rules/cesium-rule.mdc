@@ -28,7 +28,7 @@ This project uses pnpm as the package manager. Cesium source code is located in 
 `node_modules\.pnpm\@cesium+engine@<version>\node_modules\@cesium\engine\Source\`
 
 Current version path:
-`node_modules\.pnpm\@cesium+engine@19.0.0\node_modules\@cesium\engine\Source\`
+`node_modules\.pnpm\@cesium+engine@23.0.1\node_modules\@cesium\engine\Source\`
 
 ## Source Directory Structure
 
@@ -50,7 +50,7 @@ Current version path:
 
 ## Notes
 
-1. The version number in path (e.g., `@19.0.0`) changes with package updates
+1. The version number in path (e.g., `@23.0.1`) changes with package updates
 2. Check both **JSDoc comments** and **actual implementation code** in source files for complete understanding of API behavior and parameters
 3. APIs marked with `@private` are internal implementations and may change in future versions
 4. **Accessing source code**: Since `node_modules` may be excluded from automatic indexing:

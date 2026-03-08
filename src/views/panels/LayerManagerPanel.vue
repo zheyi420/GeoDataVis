@@ -1,8 +1,8 @@
 <!--
  * @Author: zheyi420
  * @Date: 2025-04-14
- * @LastEditors: zheyi420 37471153+zheyi420@users.noreply.github.com
- * @LastEditTime: 2026-02-27
+ * @LastEditors: zheyi420
+ * @LastEditTime: 2026-03-08
  * @FilePath: \GeoDataVis\src\views\panels\LayerManagerPanel.vue
  * @Description: 图层管理面板，显示加载的地图服务图层及地理数据文件图层
  *
@@ -237,7 +237,7 @@
                     </el-button>
                   </template>
                   <div class="layer-options">
-                    <div class="option-item">
+                    <div v-if="scope.row.sourceType !== 'GeoJSON'" class="option-item">
                       <span>透明度:</span>
                       <el-slider
                         v-model="scope.row.opacity"
@@ -246,6 +246,9 @@
                         :step="0.01"
                         @change="updateLayerOpacity(scope.row)"
                       />
+                    </div>
+                    <div v-if="scope.row.sourceType === 'GeoJSON'" class="option-item option-item-tip">
+                      GeoJSON 图层不支持透明度调节
                     </div>
                     <el-button
                       type="danger"
@@ -478,6 +481,11 @@ function handleLayerNameClick(layer) {
       display: flex;
       flex-direction: column;
       margin-bottom: 12px;
+    }
+
+    .option-item-tip {
+      font-size: 12px;
+      color: #909399;
     }
   }
 

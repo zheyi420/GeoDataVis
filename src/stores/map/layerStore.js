@@ -173,6 +173,39 @@ export const useLayerStore = defineStore('layers', () => {
       });
   }
 
+  /**
+   * 添加 GeoJSON 数据图层
+   * @param {String} layerName - 图层名称
+   * @param {Object} geoJsonData - GeoJSON 对象
+   * @param {Object} [options] - GeoJsonDataSource.load 选项
+   * @param {Object} [initialState] - 可选初始状态 { visible }
+   * @returns {Promise<String>} 返回图层ID的Promise
+   */
+  function addGeoJsonLayer(layerName, geoJsonData, options, initialState) {
+    const layerManager = getLayerManager();
+    if (!layerManager) {
+      return Promise.reject(new Error('LayerManager 未初始化'));
+    }
+
+    return layerManager.addGeoJsonDataSource(geoJsonData, options)
+      .then(dataSource => {
+        if (dataSource) {
+          const layerId = _addLayer({
+            name: layerName,
+            type: 'file',
+            sourceType: 'GeoJSON',
+            visible: initialState?.visible !== undefined ? initialState.visible : true,
+            locatable: true,
+            layerInstance: dataSource,
+            metadata: options || {}
+          });
+          return layerId;
+        } else {
+          throw new Error('GeoJSON 图层创建失败');
+        }
+      });
+  }
+
   // 移除指定ID的图层
   function removeLayer(layerId) {
     console.log('开始移除图层:', layerId);
@@ -477,6 +510,7 @@ export const useLayerStore = defineStore('layers', () => {
     addWmsLayer,
     addWmtsLayer,
     add3DTilesLayer,
+    addGeoJsonLayer,
     removeLayer,
     setLayerVisibility,
     setLayerOpacity,
