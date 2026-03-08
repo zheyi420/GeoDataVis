@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2024-12-15 03:28:42
  * @LastEditors: zheyi420
- * @LastEditTime: 2025-01-06 00:44:53
+ * @LastEditTime: 2026-03-08
  * @FilePath: \GeoDataVis\src\views\panels\ToolBarLoadPanel.vue
  * @Description: 工具栏，用于加载数据的面板，包括加载数据服务、加载本地数据文件等
  *
@@ -233,10 +233,6 @@ const options4FileLoadType = [
     value: 'GeoJSON',
     label: 'GeoJSON',
   },
-  {
-    value: 'Shapefile',
-    label: 'Shapefile',
-  }
 ]
 const props4FileLoadTypeOnCascaderPanel = {
   expandTrigger: 'hover',

@@ -46,7 +46,7 @@
 - [ ] GeoJSON (拖拽 / 选择) — 矢量数据
 - [ ] KML / KMZ — Google Earth 数据
 - [ ] CZML (动态数据) — 实时轨迹
-- [ ] Shapefile — GIS 标准格式
+- [ ] Shapefile — GIS 标准格式（后期可选，建议先转为 GeoJSON 后加载）
 
 ---
 
