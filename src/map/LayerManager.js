@@ -195,12 +195,14 @@ class LayerManager {
     if (!layerInstance || !geoJson2D) {
       throw new Error('GeoJSON 2D 数据不存在');
     }
+    const wasVisible = layerInstance.dataSource2D?.show ?? true;
     if (layerInstance.dataSource2D) {
       this.#viewer.dataSources.remove(layerInstance.dataSource2D, true);
     }
     const newDataSource = await GeoJsonDataSource.load(geoJson2D, {
       clampToGround
     });
+    newDataSource.show = wasVisible;
     this.#viewer.dataSources.add(newDataSource);
     layerInstance.dataSource2D = newDataSource;
     return newDataSource;
