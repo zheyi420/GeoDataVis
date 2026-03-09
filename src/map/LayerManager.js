@@ -6,6 +6,7 @@
 import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
 import { computeMergedBounds } from './utils/GeoJsonValidator';
 import {
+  // ArcType,
   GeographicTilingScheme,
   WebMercatorTilingScheme,
   HeadingPitchRange,
@@ -151,7 +152,7 @@ class LayerManager {
    * @returns {Promise<{dataSource2D: GeoJsonDataSource|null, dataSource3D: GeoJsonDataSource|null}>}
    */
   async addGeoJsonDataSource(geoJson2D, geoJson3D, geoJsonAnalysis) {
-    console.log('addGeoJsonDataSource');
+    console.log('addGeoJsonDataSource-arguments', arguments);
     try {
       const hasActiveTerrain = this.hasActiveTerrain();
       let dataSource2D = null;
@@ -161,6 +162,7 @@ class LayerManager {
         dataSource2D = await GeoJsonDataSource.load(geoJson2D, {
           clampToGround: hasActiveTerrain
         });
+        // this._applyGeodesicArcTypeToPolygons(dataSource2D);
         this.#viewer.dataSources.add(dataSource2D);
       }
 
@@ -202,11 +204,32 @@ class LayerManager {
     const newDataSource = await GeoJsonDataSource.load(geoJson2D, {
       clampToGround
     });
+    // this._applyGeodesicArcTypeToPolygons(newDataSource);
     newDataSource.show = wasVisible;
     this.#viewer.dataSources.add(newDataSource);
     layerInstance.dataSource2D = newDataSource;
     return newDataSource;
   }
+
+  /**
+   * 将 DataSource 中所有 Polygon 实体的 arcType 设为 GEODESIC
+   * 解决 GeoJsonDataSource 默认 RHUMB 在 clampToGround + 地形下三角化失败导致单 Polygon 不显示的问题（Cesium #8042/#8812）
+   * https://github.com/CesiumGS/cesium/issues/8042
+   * https://github.com/CesiumGS/cesium/issues/8812
+   * // NOTE 无效，加载地形时，加载位于海洋（高程约-5600米）中的单面（坐标无高程）的geojson数据，不显示面。
+   * @param {import("cesium").GeoJsonDataSource} dataSource
+   * @private
+   */
+  /*
+  _applyGeodesicArcTypeToPolygons(dataSource) {
+    if (!dataSource?.entities) return;
+    dataSource.entities.values.forEach(entity => {
+      if (entity.polygon) {
+        entity.polygon.arcType = ArcType.GEODESIC;
+      }
+    });
+  }
+  */
 
   /**
    * 聚焦 camera 到 3DTiles 模型
@@ -278,6 +301,8 @@ class LayerManager {
    * @returns {Promise<void>}
    */
   async zoomToDataSource(layerInstance, options = {}) {
+    console.log('zoomToDataSource-arguments', arguments);
+    
     if (!layerInstance) {
       throw new Error('DataSource 不存在');
     }
