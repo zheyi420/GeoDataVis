@@ -18,7 +18,7 @@
     "@mapbox/geojsonhint": "^3.3.0",
     "cesium": "^1.132.0",
     "element-plus": "^2.10.4",
-    "pinia": "^2.2.4",
+    "pinia": "^3.0.4",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"
   },
