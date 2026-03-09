@@ -109,6 +109,14 @@ export default defineConfig(({ mode }) => {
   const resolve = {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      /**
+       * @mapbox/geojsonhint 默认使用 lib/index.js，会 require jsonlint-lines；
+       * jsonlint-lines 内含 require.main === module 的 Node 检查，浏览器中 require 未定义会报错。
+       * 使用 geojsonhint.js（browserify 构建的浏览器包）可绕过该问题。
+       */
+      '@mapbox/geojsonhint': fileURLToPath(
+        new URL('node_modules/@mapbox/geojsonhint/geojsonhint.js', import.meta.url)
+      ),
     },
   }
   const css = {
