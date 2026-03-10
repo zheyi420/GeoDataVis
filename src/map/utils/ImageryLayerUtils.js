@@ -2,7 +2,7 @@
  * @Description: 影像图层工具函数
  *
  */
-import { ImageryLayer, WebMapServiceImageryProvider, WebMapTileServiceImageryProvider, WebMercatorTilingScheme, Cesium3DTileset, CesiumTerrainProvider } from 'cesium'
+import { ImageryLayer, WebMapServiceImageryProvider, WebMapTileServiceImageryProvider, WebMercatorTilingScheme, Cesium3DTileset, CesiumTerrainProvider, ArcGISTiledElevationTerrainProvider } from 'cesium'
 import { ElMessage } from "element-plus";
 
 /**
@@ -228,6 +228,38 @@ export async function createCesiumTerrainProvider(options) {
     } else {
       throw new Error(`加载失败: ${error.message}`)
     }
+  }
+}
+
+/**
+ * 创建 ArcGIS ImageServer 高程地形提供者
+ * @param {Object} options - 配置项
+ * @param {string} options.url - ArcGIS ImageServer REST 端点 URL
+ * @param {string} [options.token] - 可选，授权 token（公开服务通常无需）
+ * @returns {Promise<import("cesium").ArcGISTiledElevationTerrainProvider>} ArcGISTiledElevationTerrainProvider 实例的 Promise
+ */
+export async function createArcGISTerrainProvider(options) {
+  const { url } = options
+
+  if (!url?.trim()) {
+    throw new Error('ArcGIS 地形服务 URL 不能为空')
+  }
+
+  try {
+    const provider = await ArcGISTiledElevationTerrainProvider.fromUrl(url.trim(), {})
+    return provider
+  } catch (error) {
+    console.error('创建 ArcGIS 地形失败:', error)
+    if (error.message?.includes('404')) {
+      throw new Error('服务不存在（404），请检查 URL 是否正确')
+    }
+    if (error.message?.includes('CORS') || error.message?.includes('Failed to fetch')) {
+      throw new Error('跨域请求被阻止，请检查服务器 CORS 配置')
+    }
+    if (error.message?.includes('timeout')) {
+      throw new Error('加载超时，请检查网络连接和服务器状态')
+    }
+    throw new Error(`加载失败: ${error.message || '未知错误'}`)
   }
 }
 

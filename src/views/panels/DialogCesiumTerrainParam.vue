@@ -53,8 +53,9 @@
         <!-- URL 说明 -->
         <div ref="ref4InputUrlTip" class="form-item-tips form-item-tips-url">
           <span>示例：</span>
-          <span>https://data.mars3d.cn/terrain</span>
-          <span>（Cesium 会自动请求 layer.json）</span>
+          <!-- <span>https://data.mars3d.cn/terrain</span> -->
+          <span>http://www.freexgis.com/web-data/terrain</span>
+          <!-- <span>（Cesium 会自动请求 layer.json）</span> -->
         </div>
 
         <!-- 高级参数 -->

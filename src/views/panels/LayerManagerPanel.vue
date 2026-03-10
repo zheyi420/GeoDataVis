@@ -158,7 +158,7 @@
 
           <!-- 当前地形区域 -->
           <div class="current-terrain-row">
-            <div v-if="!hasUserTerrains" class="current-terrain-static">
+            <div v-if="!hasDisplayTerrains" class="current-terrain-static">
               [当前地形] 无地形
             </div>
             <el-select
@@ -173,7 +173,7 @@
               </template>
               <el-option value="none" label="无地形" />
               <el-option
-                v-for="t in terrainList"
+                v-for="t in displayTerrainList"
                 :key="t.id"
                 :value="t.id"
                 :label="t.name"
@@ -181,6 +181,7 @@
                 <div class="terrain-option-row">
                   <span class="terrain-option-name">{{ t.name }}</span>
                   <el-button
+                    v-if="!terrainStore.isBuiltIn(t.id)"
                     type="danger"
                     size="small"
                     circle
@@ -304,7 +305,7 @@ const layerPopovers = ref({});
 const layerStore = useLayerStore();
 const terrainStore = useTerrainStore();
 const serviceConfigStore = useServiceConfigStore();
-const { terrainList, activeTerrainId } = storeToRefs(terrainStore);
+const { displayTerrainList, activeTerrainId } = storeToRefs(terrainStore);
 
 const serviceLayers = computed(() => layerStore.getServiceLayers());
 const fileLayers = computed(() => layerStore.getFileLayers());
@@ -324,7 +325,7 @@ const activeTerrainIdModel = computed({
     }
   },
 });
-const hasUserTerrains = computed(() => terrainList.value.length > 0);
+const hasDisplayTerrains = computed(() => displayTerrainList.value.length > 0);
 
 function removeTerrain(id) {
   terrainStore.removeTerrain(id);
