@@ -105,7 +105,6 @@ export function analyzeGeoJson(geoJson) {
 }
 
 export function validateGeoJsonQuality(geoJson, features2D, features3D) {
-  const warnings = []
   const stats = {
     bounds2D: null,
     bounds3D: null,
@@ -119,26 +118,9 @@ export function validateGeoJsonQuality(geoJson, features2D, features3D) {
   if (features3D.length > 0) {
     stats.bounds3D = calculateBounds(features3D)
     stats.heightRange = calculateHeightRange(features3D)
-
-    if (stats.heightRange.max > 20000) {
-      warnings.push(`3D 要素最大高程 ${stats.heightRange.max}m 超过正常范围（建议 < 20000m）`)
-    }
-    if (stats.heightRange.min < -500) {
-      warnings.push(`3D 要素最小高程 ${stats.heightRange.min}m 低于正常范围（建议 > -500m）`)
-    }
   }
 
-  if (stats.bounds2D && stats.bounds3D) {
-    const distance = calculateDistance(stats.bounds2D, stats.bounds3D)
-    if (distance > 500000) {
-      warnings.push(
-        `2D 要素与 3D 要素地理位置相距 ${(distance / 1000).toFixed(0)} 公里，` +
-        '定位时可能需要较大的相机视角'
-      )
-    }
-  }
-
-  return { warnings, stats }
+  return { warnings: [], stats }
 }
 
 /**
@@ -193,8 +175,7 @@ function calculateBounds(features) {
     west: minLon,
     east: maxLon,
     south: minLat,
-    north: maxLat,
-    center: [(minLon + maxLon) / 2, (minLat + maxLat) / 2]
+    north: maxLat
   }
 }
 
@@ -225,21 +206,4 @@ function extractCoordinates(coords) {
   if (!Array.isArray(coords)) return []
   if (typeof coords[0] === 'number') return [coords]
   return coords.flatMap(extractCoordinates)
-}
-
-function calculateDistance(bounds1, bounds2) {
-  const [lon1, lat1] = bounds1.center
-  const [lon2, lat2] = bounds2.center
-  const radius = 6371000
-  const phi1 = lat1 * Math.PI / 180
-  const phi2 = lat2 * Math.PI / 180
-  const deltaPhi = (lat2 - lat1) * Math.PI / 180
-  const deltaLambda = (lon2 - lon1) * Math.PI / 180
-
-  const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2)
-    + Math.cos(phi1) * Math.cos(phi2)
-    * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-
-  return radius * c
 }
