@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2025-04-14
  * @LastEditors: zheyi420
- * @LastEditTime: 2026-03-08
+ * @LastEditTime: 2026-03-10
  * @FilePath: \GeoDataVis\src\views\panels\LayerManagerPanel.vue
  * @Description: 图层管理面板，显示加载的地图服务图层及地理数据文件图层
  *
@@ -43,6 +43,7 @@
           <el-table
             v-else
             :data="serviceLayers"
+            row-key="id"
             size="small"
             style="width: 100%"
           >
@@ -212,6 +213,7 @@
           <el-table
             v-else
             :data="fileLayers"
+            row-key="id"
             size="small"
             style="width: 100%"
           >
@@ -243,8 +245,9 @@
               <template #default="scope">
                 <el-popover
                   v-model:visible="layerPopovers[scope.row.id]"
-                  placement="left"
-                  :width="200"
+                  placement="right"
+                  width="fit-content"
+                  popper-class="layer-options-popper"
                   trigger="click"
                 >
                   <template #reference>
@@ -263,9 +266,11 @@
                         @change="updateLayerOpacity(scope.row)"
                       />
                     </div>
+                    <!-- 
                     <div v-if="scope.row.sourceType === 'GeoJSON'" class="option-item option-item-tip">
                       GeoJSON 图层不支持透明度调节
                     </div>
+                    -->
                     <el-button
                       type="danger"
                       size="small"
@@ -355,7 +360,10 @@ function updateLayerOpacity(layer) {
   }
 }
 
-// 移除图层
+/**
+ * 移除图层
+ * @param {Object} layer 图层对象
+ */
 function removeLayer(layer) {
   // 先关闭弹框
   layerPopovers.value[layer.id] = false;
@@ -581,5 +589,9 @@ function handleLayerNameClick(layer) {
       margin-left: 8px;
     }
   }
+}
+
+.layer-options-popper.el-popover.el-popper {
+  min-width: unset;
 }
 </style>
