@@ -43,10 +43,10 @@
 - [x] DEM 地形 (CesiumTerrain) — 高程数据
 
 #### 文件加载
-- [ ] GeoJSON (拖拽 / 选择) — 矢量数据
+- [x] GeoJSON (拖拽 / 选择) — 矢量数据（支持 Point/LineString/Polygon，加载后自动定位、可点击要素定位）
 - [ ] KML / KMZ — Google Earth 数据
 - [ ] CZML (动态数据) — 实时轨迹
-- [ ] Shapefile — GIS 标准格式（后期可选，建议先转为 GeoJSON 后加载）
+- [ ] Shapefile — 已移除入口，后期再考虑是否开发此功能
 
 ---
 
@@ -85,8 +85,9 @@
 
 - [x] 图层管理（可见性 / 透明度 / 排序）
 - [x] 3DTiles 调试可视化（包围球 / 包围盒 / 坐标轴）
-- [x] 相机 / 鼠标位置实时显示
-- [x] 地形切换管理
+- [x] 相机 / 鼠标位置实时显示（含高程信息，有地形时相机距地 ≤50km 显示）
+- [x] 服务配置本地持久化（刷新后恢复 WMS/WMTS/3DTiles/Terrain）
+- [x] 地形切换管理（含 ArcGIS 全球高程内置地形）
 
 ---
 

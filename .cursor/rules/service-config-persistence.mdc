@@ -16,6 +16,12 @@ alwaysApply: false
 - **App.vue** 在 `isViewerReady` 为 true 且有 `serviceConfigs.length > 0` 时，全屏 Loading 并调用 `restoreAll()`
 - **LayerManagerPanel** 在移除、可见性、透明度（3DTiles 除外）、图层顺序、切换地形时，同步调用 `serviceConfigStore` 对应 action（通过 `getConfigIdByLayerId` / `getConfigIdByTerrainId` 反查 configId）
 
+## restoreAll 恢复流程
+
+- **按优先级恢复**：Terrain → WMS/WMTS → 3DTiles，确保依赖顺序正确
+- **帧让出**：恢复间插入 `requestAnimationFrame` 避免阻塞主线程
+- **3DTiles 加载优化**：恢复时设置 `immediatelyLoadDesiredLevelOfDetail: true` 加速首帧
+
 ## restoreAll 恢复约束
 
 - WMS/WMTS：调用 `addXxxLayer` 时传入 `initialState: { visible: config.visible, opacity: config.opacity }`，避免 store 先 `visible: true` 再改 `false` 导致勾选框闪烁

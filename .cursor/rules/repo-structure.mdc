@@ -14,9 +14,13 @@ description: This rule describes the project directory structure and file organi
 ```
 GeoDataVis/
 ├── .cursor/              # Cursor 编辑器配置
-│   └── rules/           # 项目规则文件
-├── .github/             # GitHub Actions 配置
+│   ├── rules/           # 项目规则文件
+│   └── skills/          # 项目技能文件
+├── .github/             # GitHub 配置
+│   ├── dependabot.yml   # Dependabot 依赖更新
 │   └── workflows/       # CI/CD 工作流
+├── .vscode/             # VS Code 工作区配置
+│   └── settings.json    # 编辑器设置
 ├── public/              # 静态资源
 ├── src/                 # 源代码目录
 │   ├── assets/         # 静态资源（CSS 等）
@@ -37,17 +41,31 @@ GeoDataVis/
 
 ## 核心目录说明
 
+### `.cursor/` - Cursor 配置
+- **rules/** - 项目规则文件（.mdc）
+- **skills/** - 项目技能文件（工作流、进度追踪等）
+
+### `.github/` - GitHub 配置
+- **dependabot.yml** - Dependabot 依赖安全更新
+- **workflows/** - CI/CD 工作流（如 deploy-github-pages）
+
+### `.vscode/` - VS Code 工作区
+- **settings.json** - 编辑器与格式化配置
+
 ### `src/map/` - Cesium 地图核心
 - **ViewerManager.js** - Cesium Viewer 单例，负责初始化和配置
-- **LayerManager.js** - 图层管理单例，处理 WMS/WMTS/3DTiles 图层
+- **LayerManager.js** - 图层管理单例，处理 WMS/WMTS/3DTiles/GeoJSON 图层
 - **business/** - 地图业务逻辑层（预留扩展）
 - **utils/** - 工具类
   - `CesiumViewInfo.js` - 视图信息获取
-  - `ImageryLayerUtils.js` - 图层创建工具
+  - `ImageryLayerUtils.js` - 图层创建工具（含地形 provider 创建）
+  - `GeoJsonValidator.js` - GeoJSON 校验与边界计算
   - `CoordinateTransformer.js` - 坐标转换（预留）
 
 ### `src/stores/` - 状态管理
 - **map/layerStore.js** - 图层状态管理（图层列表、可见性、透明度等）
+- **map/terrainStore.js** - 地形提供者状态（含 ArcGIS 全球高程内置）
+- **serviceConfigStore.js** - 服务型图层配置本地持久化
 - **panelStatus.js** - UI 面板状态管理（对话框显示/隐藏）
 
 ### `src/views/` - 页面与面板
@@ -59,6 +77,8 @@ GeoDataVis/
   - `DialogWmsServiceParam.vue` - WMS 参数对话框
   - `DialogWmtsServiceParam.vue` - WMTS 参数对话框
   - `DialogCesium3DTilesParam.vue` - 3DTiles 参数对话框
+  - `DialogCesiumTerrainParam.vue` - Cesium Terrain 地形参数对话框
+  - `DialogGeoJsonParam.vue` - GeoJSON 文件加载对话框
 
 ### `src/components/` - 通用组件
 - 预留的通用 Vue 组件目录，当前为空

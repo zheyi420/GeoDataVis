@@ -1,0 +1,28 @@
+---
+description: Windows PowerShell 终端命令兼容性约束，避免 &&、cd /d 等语法错误
+alwaysApply: true
+---
+
+# PowerShell Shell 兼容性
+
+本工作区使用 **PowerShell** 作为默认 Shell。运行终端命令时须使用 PowerShell 兼容语法。
+
+## 命令链
+
+- 使用 `;` 连接多条命令，不要使用 `&&`（PowerShell 5.x 不支持）
+
+## 切换目录
+
+- 使用 `cd <path>` 或 `Set-Location <path>`，不要使用 `cd /d`（CMD 专用）
+
+## 示例
+
+| 错误 | 正确 |
+|------|------|
+| `cd /d d:\foo && pnpm run build` | `cd d:\foo; pnpm run build` |
+| `cd /d d:\foo` | `cd d:\foo` |
+| `cd /d d:\dev\project\GeoDataVis && git log -15 --oneline` | `cd d:\dev\project\GeoDataVis; git log -15 --oneline --no-decorate` |
+
+## 兜底方案
+
+若必须使用 Bash 风格脚本，可显式调用 `cmd /c "..."`，但优先使用原生 PowerShell 语法。

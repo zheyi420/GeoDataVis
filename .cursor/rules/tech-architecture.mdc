@@ -48,6 +48,7 @@ description: This rule describes the technical stack and architecture design of 
 - **核心功能**:
   - WMS/WMTS 图层管理
   - 3D Tiles 模型管理（加载、聚焦、可视化调试）
+  - GeoJSON 数据源管理（贴地、点击要素定位）
   - 图层可见性、透明度控制
   - 3DTiles 包围球/包围盒/坐标轴可视化
 - **位置**: `src/map/LayerManager.js`
@@ -64,8 +65,18 @@ description: This rule describes the technical stack and architecture design of 
 
 #### panelStatusStore
 - **职责**: 管理 UI 面板状态
-- **核心状态**: 三个服务参数对话框的显示/隐藏状态
+- **核心状态**: 服务参数对话框（WMS/WMTS/3DTiles/Terrain）及文件加载对话框（GeoJSON）的显示/隐藏状态
 - **位置**: `src/stores/panelStatus.js`
+
+#### terrainStore
+- **职责**: 管理地形提供者状态
+- **核心状态**: 地形列表（含 ArcGIS 全球高程内置）、当前激活地形
+- **位置**: `src/stores/map/terrainStore.js`
+
+#### serviceConfigStore
+- **职责**: 服务型图层配置本地持久化（WMS/WMTS/3DTiles/Terrain）
+- **说明**: 文件型图层（GeoJSON 等）不持久化
+- **位置**: `src/stores/serviceConfigStore.js`
 
 ### 3. 组件层
 
@@ -75,12 +86,14 @@ description: This rule describes the technical stack and architecture design of 
 #### 面板组件
 - **ToolBarLoadPanel** - 数据加载入口（触发对话框）
 - **LayerManagerPanel** - 图层列表管理（可见性、透明度、删除、3DTiles 调试）
-- **MapParamsPanel** - 实时显示相机和鼠标位置信息
+- **MapParamsPanel** - 实时显示相机和鼠标位置信息（含高程，无地形不显示，距地 >50km 不计算）
 
 #### 对话框组件
 - **DialogWmsServiceParam** - WMS 服务参数配置
 - **DialogWmtsServiceParam** - WMTS 服务参数配置
 - **DialogCesium3DTilesParam** - 3D Tiles 模型参数配置
+- **DialogCesiumTerrainParam** - Cesium Terrain 地形服务参数配置
+- **DialogGeoJsonParam** - GeoJSON 文件加载（拖拽/选择，文件型，不持久化）
 
 ## 架构关系图
 
@@ -92,7 +105,7 @@ graph LR
     User --> LayerPanel[LayerManagerPanel<br/>图层面板]
     
     Toolbar --> PanelStore[panelStatusStore<br/>面板状态]
-    PanelStore --> Dialogs[参数对话框×3]
+    PanelStore --> Dialogs[参数对话框<br/>WMS/WMTS/3DTiles/Terrain/GeoJSON]
     
     Dialogs --> LayerStore[layerStore<br/>图层状态]
     LayerStore --> LayerMgr[LayerManager<br/>图层管理单例]
@@ -138,7 +151,9 @@ flowchart TD
 | **ViewerManager** | Cesium Viewer 生命周期管理 | 单例模式 |
 | **LayerManager** | 图层操作和 Cesium 交互 | 单例模式 |
 | **layerStore** | 图层状态持久化 | Pinia 响应式 |
-| **panelStatusStore** | UI 状态管理 | Pinia 响应式 |
+| **terrainStore** | 地形提供者状态 | Pinia 响应式 |
+| **serviceConfigStore** | 服务配置本地持久化 | Pinia 响应式 |
+| **panelStatusStore** | UI 面板状态管理 | Pinia 响应式 |
 | **MapContainer** | 地图容器初始化 | Vue 组件 |
 | **面板组件** | 用户交互界面 | Vue 组件 |
 | **对话框组件** | 参数输入和验证 | Vue 组件 |
