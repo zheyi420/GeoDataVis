@@ -20,6 +20,7 @@
     <DialogCesium3DTilesParam />
     <DialogCesiumTerrainParam />
     <DialogGeoJsonParam />
+    <DialogKmlParam />
   </div>
 </template>
 
@@ -35,6 +36,7 @@ import DialogWmtsServiceParam from '@/views/panels/DialogWmtsServiceParam.vue'
 import DialogCesium3DTilesParam from '@/views/panels/DialogCesium3DTilesParam.vue'
 import DialogCesiumTerrainParam from '@/views/panels/DialogCesiumTerrainParam.vue'
 import DialogGeoJsonParam from '@/views/panels/DialogGeoJsonParam.vue'
+import DialogKmlParam from '@/views/panels/DialogKmlParam.vue'
 import { useServiceConfigStore } from '@/stores/serviceConfigStore'
 
 const isViewerReady = ref(false)

@@ -256,7 +256,7 @@
                     </el-button>
                   </template>
                   <div class="layer-options">
-                    <div v-if="scope.row.sourceType !== 'GeoJSON'" class="option-item">
+                    <div v-if="scope.row.sourceType !== 'GeoJSON' && scope.row.sourceType !== 'KML'" class="option-item">
                       <span>透明度:</span>
                       <el-slider
                         v-model="scope.row.opacity"
@@ -447,6 +447,14 @@ function handleLayerNameClick(layer) {
       })
       .catch(error => {
         console.error('GeoJSON 相机聚焦失败:', error);
+      });
+  } else if (layer.sourceType === 'KML') {
+    layerManager.zoomToDataSource(layerInstance, {})
+      .then(() => {
+        console.log('KML 相机聚焦成功');
+      })
+      .catch(error => {
+        console.error('KML 相机聚焦失败:', error);
       });
   }
 }

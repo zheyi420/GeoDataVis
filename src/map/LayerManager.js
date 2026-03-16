@@ -17,6 +17,7 @@ import {
   Rectangle,
   Ellipsoid,
   GeoJsonDataSource,
+  KmlDataSource,
   Cesium3DTileStyle,
   Cesium3DTileColorBlendMode,
   Matrix3,
@@ -187,6 +188,30 @@ class LayerManager {
   }
 
   /**
+   * 添加 KML/KMZ DataSource
+   * @param {string|Blob} data - KML/KMZ 的 Blob URL 或 Blob（File 继承 Blob，可直接传 file.raw）
+   * @param {Object} [options] - 可选
+   * @returns {Promise<import("cesium").KmlDataSource>}
+   */
+  async addKmlDataSource(data, options = {}) {
+    console.log('addKmlDataSource', { data: typeof data, hasOptions: !!Object.keys(options).length });
+    try {
+      const clampToGround = options.clampToGround ?? this.hasActiveTerrain();
+      const dataSource = await KmlDataSource.load(data, {
+        clampToGround,
+        camera: this.#viewer.scene.camera,
+        canvas: this.#viewer.scene.canvas,
+      });
+      this.#viewer.dataSources.add(dataSource);
+      await this.zoomToDataSource(dataSource);
+      return dataSource;
+    } catch (error) {
+      console.error('加载 KML/KMZ 失败:', error);
+      throw new Error(`加载 KML/KMZ 失败: ${error.message}`);
+    }
+  }
+
+  /**
    * 重新加载 GeoJSON 2D DataSource（用于地形切换）
    * @param {{dataSource2D: GeoJsonDataSource|null}} layerInstance - 图层实例
    * @param {Object} geoJson2D - 2D GeoJSON 对象
@@ -330,10 +355,10 @@ class LayerManager {
     }
 
     // 无 stats 时仅单 DataSource 可用 viewer.flyTo（多 DataSource 会触发 Cesium 内部错误）
-    /* if (targets.length === 1) {
+    if (targets.length === 1) {
       await this.#viewer.flyTo(targets[0]);
       return;
-    } */
+    }
 
     throw new Error('无法定位：无有效地理范围');
   }
@@ -434,14 +459,17 @@ class LayerManager {
       // 3DTiles 模型使用 primitives.remove
       return this.remove3DTilesLayer(layerInstance);
     } else if (layerType === 'file') {
-      // GeoJSON DataSource 使用 dataSources.remove
-      const dataSource2D = layerInstance.dataSource2D || null;
-      const dataSource3D = layerInstance.dataSource3D || null;
+      // GeoJSON DataSource 使用 dataSources.remove；KML 的 layerInstance 即 KmlDataSource
+      const dataSource2D = layerInstance.dataSource2D ?? null;
+      const dataSource3D = layerInstance.dataSource3D ?? null;
       if (dataSource2D) {
         this.#viewer.dataSources.remove(dataSource2D, true);
       }
       if (dataSource3D) {
         this.#viewer.dataSources.remove(dataSource3D, true);
+      }
+      if (!dataSource2D && !dataSource3D && layerInstance?.entities) {
+        this.#viewer.dataSources.remove(layerInstance, true);
       }
       return true;
     } else {

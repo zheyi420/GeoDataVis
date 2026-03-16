@@ -233,6 +233,10 @@ const options4FileLoadType = [
     value: 'GeoJSON',
     label: 'GeoJSON',
   },
+  {
+    value: 'KML',
+    label: 'KML',
+  },
 ]
 const props4FileLoadTypeOnCascaderPanel = {
   expandTrigger: 'hover',
@@ -262,6 +266,8 @@ function handleChange4FileLoadType(value) {
 
   if (value[0] === 'GeoJSON') {
     usePanelStatusStore().openDialogGeoJsonParam();
+  } else if (value[0] === 'KML') {
+    usePanelStatusStore().openDialogKmlParam();
   }
 }
 

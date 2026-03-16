@@ -220,6 +220,37 @@ export const useLayerStore = defineStore('layers', () => {
   }
 
   /**
+   * 添加 KML/KMZ 数据图层
+   * @param {String} layerName - 图层名称
+   * @param {string|Blob} data - KML/KMZ 的 Blob URL 或 Blob
+   * @param {Object} [initialState] - 可选初始状态 { visible }
+   * @returns {Promise<String>} 返回图层ID的Promise
+   */
+  function addKmlLayer(layerName, data, initialState) {
+    const layerManager = getLayerManager();
+    if (!layerManager) {
+      return Promise.reject(new Error('LayerManager 未初始化'));
+    }
+
+    return layerManager.addKmlDataSource(data)
+      .then((dataSource) => {
+        if (dataSource) {
+          const layerId = _addLayer({
+            name: layerName,
+            type: 'file',
+            sourceType: 'KML',
+            visible: initialState?.visible !== undefined ? initialState.visible : true,
+            locatable: true,
+            layerInstance: dataSource,
+            metadata: {}
+          });
+          return layerId;
+        }
+        throw new Error('KML/KMZ 图层创建失败');
+      });
+  }
+
+  /**
    * 更新所有 GeoJSON 图层的贴地设置
    * @param {Boolean} hasActiveTerrain - 是否有真实地形
    * @returns {Promise<void>}
@@ -543,6 +574,7 @@ export const useLayerStore = defineStore('layers', () => {
     addWmtsLayer,
     add3DTilesLayer,
     addGeoJsonLayer,
+    addKmlLayer,
     updateAllGeoJsonClampToGround,
     removeLayer,
     setLayerVisibility,

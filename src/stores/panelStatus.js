@@ -123,6 +123,26 @@ export const usePanelStatusStore = defineStore('panelStatus', () => {
     visStatus4DialogGeoJsonParam.value = false
   }
 
+  /**
+   * 控制"KML"文件参数对话框的可见状态
+   * @type {import('vue').Ref<boolean>}
+   */
+  const visStatus4DialogKmlParam = ref(false)
+
+  /**
+   * 打开"KML"文件参数对话框
+   */
+  function openDialogKmlParam() {
+    visStatus4DialogKmlParam.value = true
+  }
+
+  /**
+   * 关闭"KML"文件参数对话框
+   */
+  function closeDialogKmlParam() {
+    visStatus4DialogKmlParam.value = false
+  }
+
   return {
     visStatus4DialogGeoServerWmsServiceParam,
     switchVisStatus4DialogGeoServerWmsServiceParam,
@@ -142,5 +162,8 @@ export const usePanelStatusStore = defineStore('panelStatus', () => {
     visStatus4DialogGeoJsonParam,
     openDialogGeoJsonParam,
     closeDialogGeoJsonParam,
+    visStatus4DialogKmlParam,
+    openDialogKmlParam,
+    closeDialogKmlParam,
   }
 })
