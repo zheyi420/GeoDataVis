@@ -235,7 +235,7 @@ const options4FileLoadType = [
   },
   {
     value: 'KML',
-    label: 'KML',
+    label: 'KML/KMZ',
   },
 ]
 const props4FileLoadTypeOnCascaderPanel = {

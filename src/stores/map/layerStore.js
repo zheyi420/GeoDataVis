@@ -222,24 +222,25 @@ export const useLayerStore = defineStore('layers', () => {
   /**
    * 添加 KML/KMZ 数据图层
    * @param {String} layerName - 图层名称
-   * @param {string|Blob} data - KML/KMZ 的 Blob URL 或 Blob
-   * @param {Object} [initialState] - 可选初始状态 { visible }
+   * @param {string|Blob} data - KML/KMZ 的 URL 字符串或 Blob（File）
+   * @param {Object} [options] - 可选，可包含 visible 等，会透传给 LayerManager
    * @returns {Promise<String>} 返回图层ID的Promise
    */
-  function addKmlLayer(layerName, data, initialState) {
+  function addKmlLayer(layerName, data, options) {
     const layerManager = getLayerManager();
     if (!layerManager) {
       return Promise.reject(new Error('LayerManager 未初始化'));
     }
 
-    return layerManager.addKmlDataSource(data)
+    return layerManager.addKmlDataSource(data, options)
       .then((dataSource) => {
         if (dataSource) {
+          const visible = options?.visible !== undefined ? options.visible : true;
           const layerId = _addLayer({
             name: layerName,
             type: 'file',
             sourceType: 'KML',
-            visible: initialState?.visible !== undefined ? initialState.visible : true,
+            visible,
             locatable: true,
             layerInstance: dataSource,
             metadata: {}

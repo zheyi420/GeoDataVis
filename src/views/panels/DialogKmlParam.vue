@@ -39,7 +39,19 @@
           />
         </el-form-item>
 
-        <el-form-item label="KML/KMZ 文件" :label-width="formLabelWidth" prop="file">
+        <el-form-item label="加载方式" :label-width="formLabelWidth">
+          <el-radio-group v-model="loadMode">
+            <el-radio value="file">从文件加载</el-radio>
+            <el-radio value="url">从 URL 加载</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item
+          v-if="loadMode === 'file'"
+          label="KML/KMZ 文件"
+          :label-width="formLabelWidth"
+          prop="file"
+        >
           <div class="file-uploader">
             <el-upload
               ref="uploadRef"
@@ -54,6 +66,19 @@
           </div>
         </el-form-item>
 
+        <el-form-item
+          v-if="loadMode === 'url'"
+          label="KML/KMZ URL"
+          :label-width="formLabelWidth"
+          prop="url"
+        >
+          <el-input
+            v-model="form4KmlParam.url"
+            placeholder="https://raw.githubusercontent.com/CesiumGS/cesium/main/Apps/SampleData/kml/facilities/facilities.kml"
+            clearable
+          />
+        </el-form-item>
+
       </el-form>
 
       <el-alert
@@ -62,6 +87,14 @@
         type="error"
         :closable="true"
         @close="errorMessage = ''"
+        style="margin-top: 12px"
+      />
+
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="若 KML 含相对路径图标，请使用 KMZ 打包后加载。若 KML 引用外部图片（如 GroundOverlay、ScreenOverlay），可能因 CORS 导致贴图无法显示。"
         style="margin-top: 12px"
       />
     </template>
@@ -78,7 +111,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import {
   ElDialog,
   ElForm,
@@ -88,6 +121,8 @@ import {
   ElUpload,
   ElAlert,
   ElMessage,
+  ElRadioGroup,
+  ElRadio,
 } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import { usePanelStatusStore } from '@/stores/panelStatus'
@@ -104,16 +139,18 @@ const fileLoading = ref(false)
 const errorMessage = ref('')
 const fileName = ref('')
 const kmlFile = ref(null)
+const loadMode = ref('file')
 
 const formLabelWidth = '120px'
 
 const form4KmlParam = reactive({
   name: null,
   file: null,
+  url: '',
 })
 
 const placeholder4Form = {
-  name: '例如：本地 KML 图层',
+  name: '例如：本地 KML/KMZ 图层',
 }
 
 function checkName(rule, value, callback) {
@@ -127,6 +164,9 @@ function checkName(rule, value, callback) {
 }
 
 function checkFile(rule, value, callback) {
+  if (loadMode.value !== 'file') {
+    return callback()
+  }
   if (!value) {
     return callback(new Error('请选择 KML/KMZ 文件'))
   }
@@ -136,10 +176,36 @@ function checkFile(rule, value, callback) {
   callback()
 }
 
+function checkUrl(rule, value, callback) {
+  if (loadMode.value !== 'url') {
+    return callback()
+  }
+  if (!value || !value.trim()) {
+    return callback(new Error('请输入 KML/KMZ URL'))
+  }
+  const trimmed = value.trim()
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return callback(new Error('URL 需以 http:// 或 https:// 开头'))
+  }
+  callback()
+}
+
 const rules = {
   name: [{ validator: checkName, trigger: 'blur' }],
   file: [{ validator: checkFile, trigger: 'change' }],
+  url: [{ validator: checkUrl, trigger: 'blur' }],
 }
+
+watch(loadMode, (newMode) => {
+  if (newMode === 'file') {
+    form4KmlParam.url = ''
+  } else {
+    form4KmlParam.file = null
+    kmlFile.value = null
+    fileName.value = ''
+  }
+  ruleFormRef.value?.clearValidate(['file', 'url'])
+})
 
 function handleFileChange(uploadFile) {
   if (!uploadFile || !uploadFile.raw) {
@@ -184,9 +250,10 @@ function loadKml(formRef) {
 
     loading.value = true
     const layerName = form4KmlParam.name?.trim() || placeholder4Form.name
+    const data = loadMode.value === 'file' ? kmlFile.value : form4KmlParam.url?.trim()
     const layerStore = useLayerStore()
     layerStore
-      .addKmlLayer(layerName, kmlFile.value)
+      .addKmlLayer(layerName, data)
       .then(layerId => {
         ElMessage({
           type: 'success',
@@ -213,6 +280,8 @@ function resetForm() {
   uploadRef.value?.clearFiles()
   fileName.value = ''
   kmlFile.value = null
+  form4KmlParam.url = ''
+  loadMode.value = 'file'
   errorMessage.value = ''
 }
 

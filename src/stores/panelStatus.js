@@ -124,20 +124,20 @@ export const usePanelStatusStore = defineStore('panelStatus', () => {
   }
 
   /**
-   * 控制"KML"文件参数对话框的可见状态
+   * 控制"KML/KMZ"文件参数对话框的可见状态
    * @type {import('vue').Ref<boolean>}
    */
   const visStatus4DialogKmlParam = ref(false)
 
   /**
-   * 打开"KML"文件参数对话框
+   * 打开"KML/KMZ"文件参数对话框
    */
   function openDialogKmlParam() {
     visStatus4DialogKmlParam.value = true
   }
 
   /**
-   * 关闭"KML"文件参数对话框
+   * 关闭"KML/KMZ"文件参数对话框
    */
   function closeDialogKmlParam() {
     visStatus4DialogKmlParam.value = false

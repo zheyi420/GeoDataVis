@@ -1,9 +1,8 @@
 ---
 description: GeoDataVis Cesium 架构最佳实践，涵盖单例模式、Pinia 集成、markRaw 使用和新功能扩展规范
-globs: src/map/**/*.js,src/map/**/*.vue,src/stores/**/*.js,src/views/panels/**/*.vue
+globs: src/map/**/*.js,src/stores/**/*.js,src/views/panels/**/*.vue
 alwaysApply: false
 ---
-
 # Cesium 架构最佳实践
 
 ## 单例模式（ViewerManager / LayerManager）
