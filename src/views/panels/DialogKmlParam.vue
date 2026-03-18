@@ -103,6 +103,16 @@
           <div class="kml-tip-item">若 KML 文件内引用外部图片 URL，可能因 CORS 导致贴图无法显示。</div>
         </div>
       </el-alert>
+
+      <el-alert
+        v-if="loadMode === 'url'"
+        type="info"
+        :closable="false"
+        show-icon
+        style="margin-top: 12px"
+      >
+        可能因 CORS 导致加载失败。
+      </el-alert>
     </template>
 
     <template #footer>
