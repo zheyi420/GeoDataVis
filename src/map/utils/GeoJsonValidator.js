@@ -15,16 +15,11 @@ function readFileAsText(file) {
 }
 
 /**
- * 解析并校验 GeoJSON（RFC 7946）
- * @param {File} file
- * @returns {Promise<Object>}
+ * 从文本解析并校验 GeoJSON（RFC 7946）
+ * @param {string} text
+ * @returns {Object}
  */
-export async function parseAndValidate(file) {
-  if (!file) {
-    throw new Error('未选择文件')
-  }
-
-  const text = await readFileAsText(file)
+export function parseAndValidateFromText(text) {
   const errors = geojsonhint.hint(text) || []
   const fatalErrors = errors.filter(err => err.level !== 'message')
 
@@ -43,6 +38,49 @@ export async function parseAndValidate(file) {
   } catch (error) {
     throw new Error(`GeoJSON 解析失败: ${error.message}`)
   }
+}
+
+/**
+ * 解析并校验 GeoJSON（RFC 7946）
+ * @param {File} file
+ * @returns {Promise<Object>}
+ */
+export async function parseAndValidate(file) {
+  if (!file) {
+    throw new Error('未选择文件')
+  }
+
+  const text = await readFileAsText(file)
+  return parseAndValidateFromText(text)
+}
+
+/**
+ * 从 URL 获取并解析校验 GeoJSON
+ * @param {string} url
+ * @returns {Promise<Object>}
+ */
+export async function parseAndValidateFromUrl(url) {
+  if (!url || typeof url !== 'string') {
+    throw new Error('未提供 GeoJSON URL')
+  }
+  const trimmed = url.trim()
+  if (!trimmed) {
+    throw new Error('未提供 GeoJSON URL')
+  }
+
+  let response
+  try {
+    response = await fetch(trimmed)
+  } catch (error) {
+    throw new Error(`GeoJSON 获取失败: ${error.message || '网络错误'}`)
+  }
+
+  if (!response.ok) {
+    throw new Error(`GeoJSON 获取失败: ${response.status}`)
+  }
+
+  const text = await response.text()
+  return parseAndValidateFromText(text)
 }
 
 /**

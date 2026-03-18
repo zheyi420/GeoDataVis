@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2026-03-08
  * @LastEditors: zheyi420
- * @LastEditTime: 2026-03-08
+ * @LastEditTime: 2026-03-18
  * @FilePath: \GeoDataVis\src\views\panels\DialogGeoJsonParam.vue
  * @Description: GeoJSON 文件加载对话框
  *
@@ -20,7 +20,7 @@
   >
     <template v-slot:header>
       <div class="dialog-title">
-        <span>加载 GeoJSON 文件</span>
+        <span>加载 GeoJSON 数据</span>
       </div>
     </template>
 
@@ -39,7 +39,19 @@
           />
         </el-form-item>
 
-        <el-form-item label="GeoJSON 文件" :label-width="formLabelWidth" prop="file">
+        <el-form-item label="加载方式" :label-width="formLabelWidth">
+          <el-radio-group v-model="loadMode">
+            <el-radio value="file">从文件加载</el-radio>
+            <el-radio value="url">从 URL 加载</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item
+          v-if="loadMode === 'file'"
+          label="GeoJSON 文件"
+          :label-width="formLabelWidth"
+          prop="file"
+        >
           <div class="file-uploader">
             <el-upload
               ref="uploadRef"
@@ -54,6 +66,19 @@
           </div>
         </el-form-item>
 
+        <el-form-item
+          v-if="loadMode === 'url'"
+          label="GeoJSON URL"
+          :label-width="formLabelWidth"
+          prop="url"
+        >
+          <el-input
+            v-model="form4GeoJsonParam.url"
+            placeholder="https://example.com/data.geojson"
+            clearable
+          />
+        </el-form-item>
+
       </el-form>
 
       <el-alert
@@ -64,6 +89,16 @@
         @close="errorMessage = ''"
         style="margin-top: 12px"
       />
+
+      <el-alert
+        v-if="loadMode === 'url'"
+        type="info"
+        :closable="false"
+        show-icon
+        style="margin-top: 12px"
+      >
+        若 GeoJSON 来自跨域 URL，可能因 CORS 导致加载失败。
+      </el-alert>
     </template>
 
     <template #footer>
@@ -78,7 +113,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import {
   ElDialog,
   ElForm,
@@ -88,11 +123,14 @@ import {
   ElUpload,
   ElAlert,
   ElMessage,
+  ElRadioGroup,
+  ElRadio,
 } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { useLayerStore } from '@/stores/map/layerStore'
-import { parseAndValidate, analyzeGeoJson } from '@/map/utils/GeoJsonValidator'
+import { parseAndValidate, parseAndValidateFromUrl, analyzeGeoJson } from '@/map/utils/GeoJsonValidator'
+import { parseLayerNameFromUrl } from '@/utils/urlUtils'
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogGeoJsonParam } = storeToRefs(panelStatusStore)
@@ -106,16 +144,18 @@ const errorMessage = ref('')
 const fileName = ref('')
 const geoJsonData = ref(null)
 const geoJsonAnalysis = ref(null)
+const loadMode = ref('file')
 
 const formLabelWidth = '120px'
 
 const form4GeoJsonParam = reactive({
   name: null,
   file: null,
+  url: '',
 })
 
 const placeholder4Form = {
-  name: '例如：本地 GeoJSON 图层',
+  name: 'GeoJSON 图层名称',
 }
 
 function checkName(rule, value, callback) {
@@ -129,6 +169,9 @@ function checkName(rule, value, callback) {
 }
 
 function checkFile(rule, value, callback) {
+  if (loadMode.value !== 'file') {
+    return callback()
+  }
   if (!value) {
     return callback(new Error('请选择 GeoJSON 文件'))
   }
@@ -138,10 +181,49 @@ function checkFile(rule, value, callback) {
   callback()
 }
 
+function checkUrl(rule, value, callback) {
+  if (loadMode.value !== 'url') {
+    return callback()
+  }
+  if (!value || !value.trim()) {
+    return callback(new Error('请输入 GeoJSON URL'))
+  }
+  const trimmed = value.trim()
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return callback(new Error('URL 需以 http:// 或 https:// 开头'))
+  }
+  callback()
+}
+
 const rules = {
   name: [{ validator: checkName, trigger: 'blur' }],
   file: [{ validator: checkFile, trigger: 'change' }],
+  url: [{ validator: checkUrl, trigger: 'blur' }],
 }
+
+watch(loadMode, (newMode) => {
+  if (newMode === 'file') {
+    form4GeoJsonParam.url = ''
+  } else {
+    form4GeoJsonParam.file = null
+    geoJsonData.value = null
+    geoJsonAnalysis.value = null
+    fileName.value = ''
+  }
+  ruleFormRef.value?.clearValidate(['file', 'url'])
+})
+
+watch(
+  () => [form4GeoJsonParam.url, loadMode.value],
+  ([url, mode]) => {
+    if (mode !== 'url') return
+    const parsed = parseLayerNameFromUrl(url)
+    if (parsed && (!form4GeoJsonParam.name || !form4GeoJsonParam.name.trim())) {
+      form4GeoJsonParam.name = parsed
+    }
+  },
+  { immediate: false }
+)
 
 async function handleFileChange(uploadFile) {
   if (!uploadFile || !uploadFile.raw) {
@@ -184,14 +266,14 @@ async function handleFileChange(uploadFile) {
   }
 }
 
-function loadGeoJson(ruleFormRef) {
-  if (!ruleFormRef) {
+function loadGeoJson(formRef) {
+  if (!formRef) {
     return
   }
 
   errorMessage.value = ''
 
-  ruleFormRef.validate((isValid) => {
+  formRef.validate(async (isValid) => {
     if (!isValid) {
       return
     }
@@ -199,8 +281,32 @@ function loadGeoJson(ruleFormRef) {
     loading.value = true
     const layerName = form4GeoJsonParam.name?.trim() || placeholder4Form.name
     const layerStore = useLayerStore()
+
+    let analysis = geoJsonAnalysis.value
+    let data = geoJsonData.value
+
+    if (loadMode.value === 'url') {
+      try {
+        data = await parseAndValidateFromUrl(form4GeoJsonParam.url.trim())
+        analysis = analyzeGeoJson(data)
+        if (analysis?.warnings?.length > 0) {
+          ElMessage({
+            type: 'warning',
+            message: analysis.warnings.join('\n'),
+            duration: 8000,
+            showClose: true,
+          })
+        }
+      } catch (error) {
+        errorMessage.value = error.message || 'GeoJSON 获取或校验失败'
+        console.error('加载 GeoJSON 失败:', error)
+        loading.value = false
+        return
+      }
+    }
+
     layerStore
-      .addGeoJsonLayer(layerName, geoJsonAnalysis.value, geoJsonData.value)
+      .addGeoJsonLayer(layerName, analysis, data)
       .then(layerId => {
         ElMessage({
           type: 'success',
@@ -228,6 +334,8 @@ function resetForm() {
   fileName.value = ''
   geoJsonData.value = null
   geoJsonAnalysis.value = null
+  form4GeoJsonParam.url = ''
+  loadMode.value = 'file'
   errorMessage.value = ''
 }
 

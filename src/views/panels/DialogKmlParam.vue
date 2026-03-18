@@ -20,7 +20,7 @@
   >
     <template v-slot:header>
       <div class="dialog-title">
-        <span>加载 KML/KMZ 文件</span>
+        <span>加载 KML/KMZ 数据</span>
       </div>
     </template>
 
@@ -74,7 +74,7 @@
         >
           <el-input
             v-model="form4KmlParam.url"
-            placeholder="https://raw.githubusercontent.com/CesiumGS/cesium/main/Apps/SampleData/kml/facilities/facilities.kml"
+            placeholder="https://example.com/data.kml"
             clearable
           />
         </el-form-item>
@@ -133,6 +133,7 @@ import {
 import { storeToRefs } from 'pinia'
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { useLayerStore } from '@/stores/map/layerStore'
+import { parseLayerNameFromUrl } from '@/utils/urlUtils'
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogKmlParam } = storeToRefs(panelStatusStore)
@@ -200,21 +201,6 @@ const rules = {
   name: [{ validator: checkName, trigger: 'blur' }],
   file: [{ validator: checkFile, trigger: 'change' }],
   url: [{ validator: checkUrl, trigger: 'blur' }],
-}
-
-function parseLayerNameFromUrl(url) {
-  if (!url || typeof url !== 'string') return null
-  const trimmed = url.trim()
-  if (!trimmed) return null
-  try {
-    const urlWithoutQuery = trimmed.split('?')[0].split('#')[0]
-    const segments = urlWithoutQuery.split('/').filter(Boolean)
-    const lastSegment = segments[segments.length - 1]
-    if (!lastSegment) return null
-    return lastSegment.replace(/\.[^/.]+$/, '') || lastSegment
-  } catch {
-    return null
-  }
 }
 
 watch(loadMode, (newMode) => {
