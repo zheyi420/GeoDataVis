@@ -12,7 +12,7 @@
   >
     <template v-slot:header>
       <div class="dialog-title">
-        <span>创建新的 WMS 连接</span>
+        <span>加载 WMS 服务图层</span>
       </div>
     </template>
     <template v-slot:default>

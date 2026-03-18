@@ -13,7 +13,7 @@
   >
     <template v-slot:header>
       <div class="dialog-title">
-        <span>创建新的 WMTS 连接</span>
+        <span>加载 WMTS 服务图层</span>
       </div>
     </template>
     <template v-slot:default>

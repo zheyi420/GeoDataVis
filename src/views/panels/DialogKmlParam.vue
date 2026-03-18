@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2026-03-16
  * @LastEditors: zheyi420
- * @LastEditTime: 2026-03-16
+ * @LastEditTime: 2026-03-18
  * @FilePath: \GeoDataVis\src\views\panels\DialogKmlParam.vue
  * @Description: KML/KMZ 文件加载对话框
  *
@@ -91,12 +91,18 @@
       />
 
       <el-alert
+        v-if="loadMode === 'file'"
         type="info"
         :closable="false"
         show-icon
-        title="若 KML 含相对路径图标，请使用 KMZ 打包后加载。若 KML 引用外部图片（如 GroundOverlay、ScreenOverlay），可能因 CORS 导致贴图无法显示。"
+        class="kml-tip-alert"
         style="margin-top: 12px"
-      />
+      >
+        <div class="kml-tip-list">
+          <div class="kml-tip-item">若 KML 文件内含相对路径图标，请使用 KMZ 打包后加载。</div>
+          <div class="kml-tip-item">若 KML 文件内引用外部图片 URL，可能因 CORS 导致贴图无法显示。</div>
+        </div>
+      </el-alert>
     </template>
 
     <template #footer>
@@ -150,7 +156,7 @@ const form4KmlParam = reactive({
 })
 
 const placeholder4Form = {
-  name: '例如：本地 KML/KMZ 图层',
+  name: 'KML/KMZ 图层名称',
 }
 
 function checkName(rule, value, callback) {
@@ -196,6 +202,21 @@ const rules = {
   url: [{ validator: checkUrl, trigger: 'blur' }],
 }
 
+function parseLayerNameFromUrl(url) {
+  if (!url || typeof url !== 'string') return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+  try {
+    const urlWithoutQuery = trimmed.split('?')[0].split('#')[0]
+    const segments = urlWithoutQuery.split('/').filter(Boolean)
+    const lastSegment = segments[segments.length - 1]
+    if (!lastSegment) return null
+    return lastSegment.replace(/\.[^/.]+$/, '') || lastSegment
+  } catch {
+    return null
+  }
+}
+
 watch(loadMode, (newMode) => {
   if (newMode === 'file') {
     form4KmlParam.url = ''
@@ -206,6 +227,18 @@ watch(loadMode, (newMode) => {
   }
   ruleFormRef.value?.clearValidate(['file', 'url'])
 })
+
+watch(
+  () => [form4KmlParam.url, loadMode.value],
+  ([url, mode]) => {
+    if (mode !== 'url') return
+    const parsed = parseLayerNameFromUrl(url)
+    if (parsed && (!form4KmlParam.name || !form4KmlParam.name.trim())) {
+      form4KmlParam.name = parsed
+    }
+  },
+  { immediate: false }
+)
 
 function handleFileChange(uploadFile) {
   if (!uploadFile || !uploadFile.raw) {
@@ -312,4 +345,33 @@ function handleClose(done) {
   }
 }
 
+.kml-tip-alert :deep(.el-alert__content),
+.kml-tip-alert :deep(.el-alert__description) {
+  text-align: left;
+}
+
+.kml-tip-list {
+  margin: 0;
+}
+
+.kml-tip-item {
+  padding-left: 1em;
+  position: relative;
+  margin-bottom: 0.25em;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.5em;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
 </style>
