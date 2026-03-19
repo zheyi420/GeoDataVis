@@ -1,6 +1,6 @@
 ---
 name: geodatavis-progress-tracker
-description: GeoDataVis 进度追踪工作流，指导如何在功能完成后更新 README.md 的功能清单和开发路线图。Use when a feature is completed and needs to be marked in README, when updating project progress, when finishing a quarterly milestone, or when the user asks to update project status.
+description: GeoDataVis 进度追踪工作流，指导如何在功能完成后更新 README.md 的功能清单和 ROADMAP.md 的开发路线图。Use when a feature is completed and needs to be marked in README, when updating project progress, when finishing a quarterly milestone, or when the user asks to update project status.
 ---
 
 # GeoDataVis 进度追踪工作流
@@ -35,9 +35,9 @@ description: GeoDataVis 进度追踪工作流，指导如何在功能完成后�
 - [x] GeoJSON (拖拽/选择) — 矢量数据（支持 Point/LineString/Polygon，加载后自动定位、可点击要素定位）
 ```
 
-### 步骤 3：如达到季度里程碑，更新路线图表格状态
+### 步骤 3：如达到季度里程碑，更新 ROADMAP.md 路线图表格状态
 
-将对应行的"状态"列改为 `✅ 已完成`：
+在 `ROADMAP.md` 的「季度里程碑」表格中，将对应行的"状态"列改为 `✅ 已完成`：
 
 ```markdown
 # 修改前

@@ -5,6 +5,8 @@ alwaysApply: true
 
 # GeoDataVis 开发路线图
 
+> 人类可读的完整路线图（含技术栈、学习资源）见项目根目录 [ROADMAP.md](ROADMAP.md)。
+
 ## 产品定位
 
 **作品集 / 技术演示平台** — 向面试官/客户展示 WebGIS 底层开发能力，为低空监控等业务场景做技术储备。

@@ -19,6 +19,8 @@ GeoDataVis/
 ├── .github/             # GitHub 配置
 │   ├── dependabot.yml   # Dependabot 依赖更新
 │   └── workflows/       # CI/CD 工作流
+├── docs/                # 项目文档
+│   └── self-testing.md  # 免费服务测试参数（开发者自测用）
 ├── .vscode/             # VS Code 工作区配置
 │   └── settings.json    # 编辑器设置
 ├── public/              # 静态资源
@@ -34,6 +36,7 @@ GeoDataVis/
 │   │   └── map/        # 地图相关状态
 │   └── views/          # Vue 页面组件
 │       └── panels/     # UI 面板组件
+├── ROADMAP.md          # 开发路线图（技术栈、季度里程碑、学习资源）
 ├── vite.config.js      # Vite 构建配置
 ├── package.json        # 项目依赖配置
 └── pnpm-lock.yaml      # pnpm 依赖锁定文件
@@ -44,6 +47,12 @@ GeoDataVis/
 ### `.cursor/` - Cursor 配置
 - **rules/** - 项目规则文件（.mdc）
 - **skills/** - 项目技能文件（工作流、进度追踪等）
+
+### `docs/` - 项目文档
+- **self-testing.md** - 免费服务测试参数（WMS/WMTS 等），供开发者自测时参考
+
+### `ROADMAP.md` - 开发计划
+- 产品定位与目标、技术栈、季度里程碑、关键文件与扩展点、学习资源
 
 ### `.github/` - GitHub 配置
 - **dependabot.yml** - Dependabot 依赖安全更新
