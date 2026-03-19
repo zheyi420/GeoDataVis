@@ -1,0 +1,32 @@
+---
+description: WFS URL 分批加载规范与扩展点
+globs: src/map/utils/wfsLoader.js, src/views/panels/DialogGeoJsonParam.vue, src/utils/urlUtils.js
+alwaysApply: false
+---
+
+# WFS 分批加载
+
+## 核心能力
+
+- **isWfsUrl**（urlUtils.js）：依据 `service=WFS` 判断 URL 是否为 WFS 服务
+- **loadWfsAsGeoJson**（wfsLoader.js）：主入口，按 count/maxFeatures 与总数决定直接请求或分批
+- **分批规则**：要素 > 5000 时每批 5000，合并为单一 GeoJSON 图层
+- **重试**：失败批次共执行 3 次（含首次），3 次均失败则 ElNotification 提示
+- **空数据**：`isEmpty: true` 时提示用户，不加载图层
+
+## 扩展点
+
+- 新增 WFS 参数或输出格式：在 `wfsLoader.js` 中扩展 `parseWfsUrlParams`、`ensureGeoJsonOutputFormat`
+- 失败提示：使用 `ElNotification.warning`，`duration: 0`（常驻），`position: 'top-right'`，HTML 正文用 `<ul><li>` 逐行展示
+
+## 返回值
+
+loadWfsAsGeoJson 返回 `{ geoJson, isEmpty?, partialFailureMessage? } | null`。null 表示全部批次失败；isEmpty 表示无匹配要素，Dialog 提示用户不加载。
+
+## 边界处理
+
+getWfsTotalCount：优先用 numberMatched/totalFeatures/numberReturned；若无则用 features.length（0/1/>1）作为 fallback。totalCount 为 0 时直接返回 isEmpty，不再请求。
+
+## 不持久化
+
+WFS URL 加载的 GeoJSON 与文件型一致，不调用 `addServiceConfig`。

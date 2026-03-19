@@ -90,6 +90,7 @@ docs(readme): mark GeoJSON file loading as completed
 | 功能 | 验收标准 |
 |------|---------|
 | GeoJSON 文件加载 | 5MB+ 文件 < 1s，Point / Line / Polygon 均可渲染，可点击定位（已达成） |
+| GeoJSON WFS URL | 支持 GeoServer WFS GetFeature，>5000 分批合并，失败批次 ElNotification 提示，空数据提示用户 |
 | KML / KMZ | 加载后图层自动定位到数据范围 |
 | CZML | 动态时序数据可播放，轨迹可见 |
 | PostProcessStage 高程分层 | 高低海拔明显区分颜色，可开关 |

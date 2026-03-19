@@ -93,7 +93,7 @@ description: This rule describes the technical stack and architecture design of 
 - **DialogWmtsServiceParam** - WMTS 服务参数配置
 - **DialogCesium3DTilesParam** - 3D Tiles 模型参数配置
 - **DialogCesiumTerrainParam** - Cesium Terrain 地形服务参数配置
-- **DialogGeoJsonParam** - GeoJSON 文件加载（拖拽/选择，文件型，不持久化）
+- **DialogGeoJsonParam** - GeoJSON 加载（文件拖拽/选择、WFS URL，文件型，不持久化；WFS 超 5000 要素自动分批）
 
 ## 架构关系图
 

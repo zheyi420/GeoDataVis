@@ -69,6 +69,7 @@ GeoDataVis/
   - `CesiumViewInfo.js` - 视图信息获取
   - `ImageryLayerUtils.js` - 图层创建工具（含地形 provider 创建）
   - `GeoJsonValidator.js` - GeoJSON 校验与边界计算
+  - `wfsLoader.js` - WFS URL 分批加载（总数获取、重试、ElNotification 提示）
   - `CoordinateTransformer.js` - 坐标转换（预留）
 
 ### `src/stores/` - 状态管理
@@ -87,7 +88,7 @@ GeoDataVis/
   - `DialogWmtsServiceParam.vue` - WMTS 参数对话框
   - `DialogCesium3DTilesParam.vue` - 3DTiles 参数对话框
   - `DialogCesiumTerrainParam.vue` - Cesium Terrain 地形参数对话框
-  - `DialogGeoJsonParam.vue` - GeoJSON 文件加载对话框
+  - `DialogGeoJsonParam.vue` - GeoJSON 文件/WFS URL 加载对话框
 
 ### `src/components/` - 通用组件
 - 预留的通用 Vue 组件目录，当前为空
