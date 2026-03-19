@@ -130,7 +130,8 @@ import { storeToRefs } from 'pinia'
 import { usePanelStatusStore } from '@/stores/panelStatus'
 import { useLayerStore } from '@/stores/map/layerStore'
 import { parseAndValidate, parseAndValidateFromUrl, analyzeGeoJson } from '@/map/utils/GeoJsonValidator'
-import { parseLayerNameFromUrl } from '@/utils/urlUtils'
+import { parseLayerNameFromUrl, isWfsUrl } from '@/utils/urlUtils'
+import { loadWfsAsGeoJson } from '@/map/utils/wfsLoader'
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogGeoJsonParam } = storeToRefs(panelStatusStore)
@@ -286,8 +287,24 @@ function loadGeoJson(formRef) {
     let data = geoJsonData.value
 
     if (loadMode.value === 'url') {
+      const url = form4GeoJsonParam.url.trim()
       try {
-        data = await parseAndValidateFromUrl(form4GeoJsonParam.url.trim())
+        if (isWfsUrl(url)) {
+          const result = await loadWfsAsGeoJson(url)
+          if (result === null) {
+            errorMessage.value = 'WFS 分批加载全部失败，请检查网络或稍后重试'
+            loading.value = false
+            return
+          }
+          if (result.isEmpty) {
+            errorMessage.value = '无匹配要素，未加载图层'
+            loading.value = false
+            return
+          }
+          data = result.geoJson
+        } else {
+          data = await parseAndValidateFromUrl(url)
+        }
         analysis = analyzeGeoJson(data)
         if (analysis?.warnings?.length > 0) {
           ElMessage({
