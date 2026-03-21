@@ -57,9 +57,10 @@ export async function parseAndValidate(file) {
 /**
  * 从 URL 获取并解析校验 GeoJSON
  * @param {string} url
+ * @param {{ signal?: AbortSignal }} [options]
  * @returns {Promise<Object>}
  */
-export async function parseAndValidateFromUrl(url) {
+export async function parseAndValidateFromUrl(url, options = {}) {
   if (!url || typeof url !== 'string') {
     throw new Error('未提供 GeoJSON URL')
   }
@@ -68,9 +69,12 @@ export async function parseAndValidateFromUrl(url) {
     throw new Error('未提供 GeoJSON URL')
   }
 
+  const { signal } = options
+  const fetchOptions = signal ? { signal } : {}
+
   let response
   try {
-    response = await fetch(trimmed)
+    response = await fetch(trimmed, fetchOptions)
   } catch (error) {
     throw new Error(`GeoJSON 获取失败: ${error.message || '网络错误'}`)
   }

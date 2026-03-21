@@ -84,10 +84,13 @@ export function buildWfsUrlWithParams(baseUrl, { count, startIndex, maxFeatures 
 /**
  * 从 URL 获取 GeoJSON 数据
  * @param {string} url
+ * @param {{ signal?: AbortSignal }} [options]
  * @returns {Promise<Object>}
  */
-export async function fetchWfsGeoJson(url) {
-  const response = await fetch(url)
+export async function fetchWfsGeoJson(url, options = {}) {
+  const { signal } = options
+  const fetchOptions = signal ? { signal } : {}
+  const response = await fetch(url, fetchOptions)
   if (!response.ok) {
     throw new Error(`WFS 请求失败: ${response.status}`)
   }
@@ -98,16 +101,21 @@ export async function fetchWfsGeoJson(url) {
 /**
  * 带重试的 fetch，单次请求最多尝试 maxAttempts 次
  * @param {string} url
- * @param {number} [maxAttempts=3]
+ * @param {{ maxAttempts?: number, signal?: AbortSignal }} [options]
  * @returns {Promise<Object>}
  */
-export async function fetchWfsGeoJsonWithRetry(url, maxAttempts = MAX_RETRY_ATTEMPTS) {
+export async function fetchWfsGeoJsonWithRetry(url, options = {}) {
+  const { maxAttempts = MAX_RETRY_ATTEMPTS, signal } = options
   let lastError
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError')
+    }
     try {
-      return await fetchWfsGeoJson(url)
+      return await fetchWfsGeoJson(url, { signal })
     } catch (error) {
       lastError = error
+      if (error?.name === 'AbortError') throw error
       if (attempt < maxAttempts) {
         await new Promise(r => setTimeout(r, 300 * attempt))
       }
@@ -119,11 +127,13 @@ export async function fetchWfsGeoJsonWithRetry(url, maxAttempts = MAX_RETRY_ATTE
 /**
  * 获取 WFS 匹配的要素总数
  * @param {string} url
+ * @param {{ signal?: AbortSignal }} [options]
  * @returns {Promise<number>}
  */
-export async function getWfsTotalCount(url) {
+export async function getWfsTotalCount(url, options = {}) {
+  const { signal } = options
   const urlWithCount = buildWfsUrlWithParams(ensureGeoJsonOutputFormat(url), { count: 1, maxFeatures: 1 })
-  const data = await fetchWfsGeoJson(urlWithCount)
+  const data = await fetchWfsGeoJson(urlWithCount, { signal })
   const total = data?.numberMatched ?? data?.totalFeatures ?? data?.numberReturned
   if (total != null && Number.isFinite(Number(total))) {
     return Number(total)
@@ -176,9 +186,15 @@ function showFailureNotification(failedBatches) {
  * @param {string} url
  * @param {number} totalCount
  * @param {number} [batchSize=5000]
+ * @param {{ signal?: AbortSignal }} [options]
  * @returns {Promise<{ geoJson: Object, partialFailureMessage?: string }|null>}
  */
-export async function fetchWfsBatch(url, totalCount, batchSize = BATCH_SIZE) {
+export async function fetchWfsBatch(url, totalCount, batchSize = BATCH_SIZE, options = {}) {
+  const { signal } = options
+  if (signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError')
+  }
+
   const baseUrl = ensureGeoJsonOutputFormat(url)
   const batchCount = Math.ceil(totalCount / batchSize)
   const batchInfos = []
@@ -202,8 +218,9 @@ export async function fetchWfsBatch(url, totalCount, batchSize = BATCH_SIZE) {
       maxFeatures: batchSize
     })
     try {
-      return await fetchWfsGeoJsonWithRetry(batchUrl)
-    } catch {
+      return await fetchWfsGeoJsonWithRetry(batchUrl, { signal })
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error
       return null
     }
   }
@@ -218,6 +235,9 @@ export async function fetchWfsBatch(url, totalCount, batchSize = BATCH_SIZE) {
   let { failed, succeeded } = await runBatches(batchInfos)
 
   for (let retry = 1; retry < MAX_RETRY_ATTEMPTS && failed.length > 0; retry++) {
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError')
+    }
     const retryResults = await runBatches(failed)
     succeeded = succeeded.concat(retryResults.succeeded)
     failed = retryResults.failed
@@ -248,9 +268,10 @@ export async function fetchWfsBatch(url, totalCount, batchSize = BATCH_SIZE) {
 /**
  * 主入口：按需求 (1)(2) 分支加载 WFS
  * @param {string} url
+ * @param {{ signal?: AbortSignal }} [options]
  * @returns {Promise<{ geoJson: Object, partialFailureMessage?: string, isEmpty?: boolean }|null>}
  */
-export async function loadWfsAsGeoJson(url) {
+export async function loadWfsAsGeoJson(url, options = {}) {
   if (!url || typeof url !== 'string') {
     throw new Error('未提供 WFS URL')
   }
@@ -259,6 +280,7 @@ export async function loadWfsAsGeoJson(url) {
     throw new Error('未提供 WFS URL')
   }
 
+  const { signal } = options
   const params = parseWfsUrlParams(trimmed)
   const baseUrl = ensureGeoJsonOutputFormat(trimmed)
 
@@ -271,24 +293,24 @@ export async function loadWfsAsGeoJson(url) {
       throw new Error('URL 中的 count/maxFeatures 无效')
     }
     if (limit <= BATCH_SIZE) {
-      const data = await fetchWfsGeoJsonWithRetry(baseUrl)
+      const data = await fetchWfsGeoJsonWithRetry(baseUrl, { signal })
       const isEmpty = !data?.features || data.features.length === 0
       return { geoJson: data, isEmpty }
     }
     totalCount = limit
   } else {
-    totalCount = await getWfsTotalCount(trimmed)
+    totalCount = await getWfsTotalCount(trimmed, { signal })
     if (totalCount === 0) {
       return { geoJson: { type: 'FeatureCollection', features: [] }, isEmpty: true }
     }
     if (totalCount <= BATCH_SIZE) {
-      const data = await fetchWfsGeoJsonWithRetry(baseUrl)
+      const data = await fetchWfsGeoJsonWithRetry(baseUrl, { signal })
       const isEmpty = !data?.features || data.features.length === 0
       return { geoJson: data, isEmpty }
     }
   }
 
-  const batchResult = await fetchWfsBatch(baseUrl, totalCount, BATCH_SIZE)
+  const batchResult = await fetchWfsBatch(baseUrl, totalCount, BATCH_SIZE, { signal })
   if (batchResult === null) return null
   const isEmpty = !batchResult.geoJson?.features || batchResult.geoJson.features.length === 0
   return { ...batchResult, isEmpty }

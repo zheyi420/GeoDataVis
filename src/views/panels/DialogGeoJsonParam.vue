@@ -140,6 +140,7 @@ const { closeDialogGeoJsonParam } = panelStatusStore
 const ruleFormRef = ref(null)
 const uploadRef = ref(null)
 const loading = ref(false)
+const abortControllerRef = ref(null)
 const fileLoading = ref(false)
 const errorMessage = ref('')
 const fileName = ref('')
@@ -287,10 +288,12 @@ function loadGeoJson(formRef) {
     let data = geoJsonData.value
 
     if (loadMode.value === 'url') {
+      const controller = new AbortController()
+      abortControllerRef.value = controller
       const url = form4GeoJsonParam.url.trim()
       try {
         if (isWfsUrl(url)) {
-          const result = await loadWfsAsGeoJson(url)
+          const result = await loadWfsAsGeoJson(url, { signal: controller.signal })
           if (result === null) {
             errorMessage.value = 'WFS 分批加载全部失败，请检查网络或稍后重试'
             loading.value = false
@@ -303,7 +306,7 @@ function loadGeoJson(formRef) {
           }
           data = result.geoJson
         } else {
-          data = await parseAndValidateFromUrl(url)
+          data = await parseAndValidateFromUrl(url, { signal: controller.signal })
         }
         analysis = analyzeGeoJson(data)
         if (analysis?.warnings?.length > 0) {
@@ -315,8 +318,10 @@ function loadGeoJson(formRef) {
           })
         }
       } catch (error) {
-        errorMessage.value = error.message || 'GeoJSON 获取或校验失败'
-        console.error('加载 GeoJSON 失败:', error)
+        if (error?.name !== 'AbortError') {
+          errorMessage.value = error.message || 'GeoJSON 获取或校验失败'
+          console.error('加载 GeoJSON 失败:', error)
+        }
         loading.value = false
         return
       }
@@ -357,11 +362,13 @@ function resetForm() {
 }
 
 function cancel() {
+  abortControllerRef.value?.abort()
   resetForm()
   closeDialogGeoJsonParam()
 }
 
 function handleClose(done) {
+  abortControllerRef.value?.abort()
   resetForm()
   done()
 }
