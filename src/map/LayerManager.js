@@ -236,6 +236,7 @@ class LayerManager {
     const nonPointBuffer = [];
 
     let finalizePromise = null;
+    let finalizeSucceeded = false;
     let minLon = Infinity, maxLon = -Infinity;
     let minLat = Infinity, maxLat = -Infinity;
 
@@ -323,6 +324,7 @@ class LayerManager {
           }
         }
 
+        finalizeSucceeded = true;
         return { layerInstance, nonPointGeoJson2D, stats };
       })();
 
@@ -334,8 +336,11 @@ class LayerManager {
      * finalize 成功后的资源由 layerInstance 持有，无需手动 dispose
      */
     const dispose = () => {
-      if (finalizePromise) return;
-      massPointRenderer.destroy();
+      if (finalizePromise && finalizeSucceeded) return;
+      
+      if (!massPointRenderer.isDestroyed()) {
+        massPointRenderer.destroy();
+      }
     };
 
     return { processBatch, finalize, dispose };

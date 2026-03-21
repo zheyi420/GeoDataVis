@@ -2,7 +2,7 @@
  * @Author: zheyi420
  * @Date: 2025-04-14
  * @LastEditors: zheyi420
- * @LastEditTime: 2026-03-10
+ * @LastEditTime: 2026-03-21
  * @FilePath: \GeoDataVis\src\views\panels\LayerManagerPanel.vue
  * @Description: 图层管理面板，显示加载的地图服务图层及地理数据文件图层
  *
