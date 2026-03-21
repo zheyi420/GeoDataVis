@@ -223,7 +223,8 @@ class LayerManager {
    * 创建 WFS 流式加载接收器。
    * 调用方在 loadWfsAsGeoJsonStreaming 的 onBatch 回调中调用 processBatch(features)，
    * 全部批次完成后调用 finalize() 获取最终 layerInstance 和元数据 GeoJSON。
-   * @returns {{ processBatch: Function, finalize: Function }}
+   * 若流式加载放弃（未成功完成 finalize），调用 dispose() 释放已创建资源。
+   * @returns {{ processBatch: Function, finalize: Function, dispose: Function }}
    */
   createStreamingReceiver() {
     const viewer = this.#viewer;
@@ -234,6 +235,7 @@ class LayerManager {
     /** @type {Object[]} 非 Point 要素缓冲（通常数量少，内存可控） */
     const nonPointBuffer = [];
 
+    let finalized = false;
     let minLon = Infinity, maxLon = -Infinity;
     let minLat = Infinity, maxLat = -Infinity;
 
@@ -310,10 +312,20 @@ class LayerManager {
         }
       }
 
+      finalized = true;
       return { layerInstance, nonPointGeoJson2D };
     };
 
-    return { processBatch, finalize };
+    /**
+     * 释放接收器已创建资源（仅在未成功完成 finalize 时调用）
+     * finalize 成功后的资源由 layerInstance 持有，无需手动 dispose
+     */
+    const dispose = () => {
+      if (finalized) return;
+      massPointRenderer.destroy();
+    };
+
+    return { processBatch, finalize, dispose };
   }
 
   /**

@@ -239,38 +239,49 @@ export const useLayerStore = defineStore('layers', () => {
 
     const { signal } = options;
     const receiver = layerManager.createStreamingReceiver();
+    let layerInstance = null;
 
-    const result = await loadWfsAsGeoJsonStreaming(url, {
-      signal,
-      onBatch: (features) => receiver.processBatch(features),
-    });
+    try {
+      const result = await loadWfsAsGeoJsonStreaming(url, {
+        signal,
+        onBatch: (features) => receiver.processBatch(features),
+      });
 
-    if (result.isEmpty) {
-      const err = new Error('无匹配要素，未加载图层');
-      err.isEmpty = true;
-      throw err;
+      if (result.isEmpty) {
+        const err = new Error('无匹配要素，未加载图层');
+        err.isEmpty = true;
+        throw err;
+      }
+
+      const out = await receiver.finalize();
+      layerInstance = out.layerInstance;
+
+      if (!layerInstance.massPointRenderer && !layerInstance.dataSource2D && !layerInstance.dataSource3D) {
+        throw new Error('WFS 流式加载：图层创建失败');
+      }
+
+      return _addLayer({
+        name: layerName,
+        type: 'file',
+        sourceType: 'GeoJSON',
+        visible: true,
+        locatable: true,
+        layerInstance,
+        metadata: {
+          geoJson2D: out.nonPointGeoJson2D,
+          geoJson3D: null,
+          geoJsonData: null,
+          geoJsonAnalysis: null,
+        },
+      });
+    } catch (e) {
+      if (layerInstance != null) {
+        layerManager.removeLayerFromCesium(layerInstance, 'file');
+      } else {
+        receiver.dispose();
+      }
+      throw e;
     }
-
-    const { layerInstance, nonPointGeoJson2D } = await receiver.finalize();
-
-    if (!layerInstance.massPointRenderer && !layerInstance.dataSource2D && !layerInstance.dataSource3D) {
-      throw new Error('WFS 流式加载：图层创建失败');
-    }
-
-    return _addLayer({
-      name: layerName,
-      type: 'file',
-      sourceType: 'GeoJSON',
-      visible: true,
-      locatable: true,
-      layerInstance,
-      metadata: {
-        geoJson2D: nonPointGeoJson2D,
-        geoJson3D: null,
-        geoJsonData: null,
-        geoJsonAnalysis: null,
-      },
-    });
   }
 
   /**
