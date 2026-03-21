@@ -235,7 +235,7 @@ class LayerManager {
     /** @type {Object[]} 非 Point 要素缓冲（通常数量少，内存可控） */
     const nonPointBuffer = [];
 
-    let finalized = false;
+    let finalizePromise = null;
     let minLon = Infinity, maxLon = -Infinity;
     let minLat = Infinity, maxLat = -Infinity;
 
@@ -271,57 +271,62 @@ class LayerManager {
     /**
      * 完成流式加载：加载非 Point 要素、执行相机定位
      * @returns {Promise<{ layerInstance: Object, nonPointGeoJson2D: Object|null, stats: Object|null }>}
+     * 
+     * 注意：支持幂等调用，多次调用返回相同的 Promise 实例（并发安全）
      */
     const finalize = async () => {
-      if (finalized) {
-        throw new Error('finalize() 已被调用，禁止重复调用');
+      if (finalizePromise) {
+        return finalizePromise;
       }
 
-      let dataSource2D = null;
-      let nonPointGeoJson2D = null;
+      finalizePromise = (async () => {
+        let dataSource2D = null;
+        let nonPointGeoJson2D = null;
 
-      if (nonPointBuffer.length > 0) {
-        nonPointGeoJson2D = { type: 'FeatureCollection', features: nonPointBuffer };
-        dataSource2D = await GeoJsonDataSource.load(nonPointGeoJson2D, {
-          clampToGround: hasActiveTerrain
-        });
-        viewer.dataSources.add(dataSource2D);
-      }
-
-      const layerInstance = { massPointRenderer, dataSource2D, dataSource3D: null };
-
-      // 计算 stats（供持久化到 metadata，用于后续 Locate）
-      const stats = Number.isFinite(minLon)
-        ? {
-            bounds2D: { west: minLon, east: maxLon, south: minLat, north: maxLat },
-            bounds3D: null,
-            heightRange: { min: Infinity, max: -Infinity },
-          }
-        : null;
-
-      // 相机定位：优先使用流式累计的点位包围盒
-      if (stats) {
-        try {
-          const sphere = computeSphere(stats);
-          if (sphere && sphere.radius > 0) {
-            await viewer.camera.flyToBoundingSphere(sphere, {
-              duration: 2.0,
-              offset: new HeadingPitchRange(0, -Math.PI / 4, sphere.radius * 2.5),
-            });
-          }
-        } catch (e) {
-          console.warn('WFS 流式加载定位失败:', e);
+        if (nonPointBuffer.length > 0) {
+          nonPointGeoJson2D = { type: 'FeatureCollection', features: nonPointBuffer };
+          dataSource2D = await GeoJsonDataSource.load(nonPointGeoJson2D, {
+            clampToGround: hasActiveTerrain
+          });
+          viewer.dataSources.add(dataSource2D);
         }
-      } else if (dataSource2D) {
-        try {
-          await viewer.flyTo(dataSource2D);
-        } catch (e) {
-          console.warn('WFS 流式非 Point 要素定位失败:', e);
-        }
-      }
 
-      finalized = true;
-      return { layerInstance, nonPointGeoJson2D, stats };
+        const layerInstance = { massPointRenderer, dataSource2D, dataSource3D: null };
+
+        // 计算 stats（供持久化到 metadata，用于后续 Locate）
+        const stats = Number.isFinite(minLon)
+          ? {
+              bounds2D: { west: minLon, east: maxLon, south: minLat, north: maxLat },
+              bounds3D: null,
+              heightRange: { min: Infinity, max: -Infinity },
+            }
+          : null;
+
+        // 相机定位：优先使用流式累计的点位包围盒
+        if (stats) {
+          try {
+            const sphere = computeSphere(stats);
+            if (sphere && sphere.radius > 0) {
+              await viewer.camera.flyToBoundingSphere(sphere, {
+                duration: 2.0,
+                offset: new HeadingPitchRange(0, -Math.PI / 4, sphere.radius * 2.5),
+              });
+            }
+          } catch (e) {
+            console.warn('WFS 流式加载定位失败:', e);
+          }
+        } else if (dataSource2D) {
+          try {
+            await viewer.flyTo(dataSource2D);
+          } catch (e) {
+            console.warn('WFS 流式非 Point 要素定位失败:', e);
+          }
+        }
+
+        return { layerInstance, nonPointGeoJson2D, stats };
+      })();
+
+      return finalizePromise;
     };
 
     /**
@@ -329,7 +334,7 @@ class LayerManager {
      * finalize 成功后的资源由 layerInstance 持有，无需手动 dispose
      */
     const dispose = () => {
-      if (finalized) return;
+      if (finalizePromise) return;
       massPointRenderer.destroy();
     };
 
