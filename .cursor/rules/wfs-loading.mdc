@@ -1,6 +1,6 @@
 ---
 description: WFS URL 分批加载规范与扩展点
-globs: src/map/utils/wfsLoader.js, src/views/panels/DialogGeoJsonParam.vue, src/utils/urlUtils.js
+globs: src/map/utils/wfsLoader.js, src/views/panels/DialogGeoJsonParam.vue, src/utils/urlUtils.js, src/map/LayerManager.js, src/map/business/MassPointRenderer.js
 alwaysApply: false
 ---
 
@@ -9,10 +9,32 @@ alwaysApply: false
 ## 核心能力
 
 - **isWfsUrl**（urlUtils.js）：依据 `service=WFS` 判断 URL 是否为 WFS 服务
-- **loadWfsAsGeoJson**（wfsLoader.js）：主入口，按 count/maxFeatures 与总数决定直接请求或分批
-- **分批规则**：要素 > 5000 时每批 5000，合并为单一 GeoJSON 图层
+- **loadWfsAsGeoJsonStreaming**（wfsLoader.js）：流式主入口，顺序批次请求，每批通过 `onBatch` 回调传递要素，**不合并全量数据**；配合 `MassPointRenderer` 解决大规模 Point 数据 OOM
+- **loadWfsAsGeoJson**（wfsLoader.js）：合并式入口（保留），供非 Point 或小数据量场景使用
+- **分批规则**：要素 > 5000 时每批 5000；流式模式顺序执行批次（禁止 Promise.all 全并行）
 - **重试**：失败批次共执行 3 次（含首次），3 次均失败则 ElNotification 提示
 - **空数据**：`isEmpty: true` 时提示用户，不加载图层
+
+## 几何类型分流规则
+
+Point/MultiPoint 与非 Point 采用**不同渲染路径**：
+
+| 几何类型 | 渲染方案 | 实现位置 |
+|---------|---------|---------|
+| Point / MultiPoint | `MassPointRenderer`（PointPrimitiveCollection） | `LayerManager.addGeoJsonDataSource` / streaming receiver |
+| LineString / Polygon 等 | `GeoJsonDataSource`（Entity API） | `LayerManager.addGeoJsonDataSource` |
+
+- `classifyByGeometryType(features)` 在 `GeoJsonValidator.js` 中，返回 `{ pointFeatures, nonPointFeatures }`
+- **无阈值**：任意数量的 Point/MultiPoint 均走 MassPointRenderer
+
+## WFS 流式路径（大批量 Point 场景）
+
+1. `DialogGeoJsonParam.vue` 检测到 `isWfsUrl(url)` → 调用 `layerStore.addWfsGeoJsonLayerStreaming`
+2. `layerStore` 调用 `layerManager.createStreamingReceiver()` 获取接收器
+3. `loadWfsAsGeoJsonStreaming` 顺序批次 fetch，每批调用 `receiver.processBatch(features)`
+4. `processBatch` 内部 `classifyByGeometryType` → Point 流式追加 MassPointRenderer，非 Point 累积到 buffer
+5. 全部批次完成 → `receiver.finalize()` → buffer 载入 GeoJsonDataSource、相机定位
+6. `layerStore._addLayer` 注册图层，`layerInstance = { massPointRenderer, dataSource2D, dataSource3D }`
 
 ## WFS 版本与参数
 
@@ -30,7 +52,8 @@ alwaysApply: false
 
 ## 返回值
 
-loadWfsAsGeoJson 返回 `{ geoJson, isEmpty?, partialFailureMessage? } | null`。null 表示全部批次失败；isEmpty 表示无匹配要素，Dialog 提示用户不加载。
+- `loadWfsAsGeoJsonStreaming`：返回 `{ isEmpty: boolean }`；通过 `onBatch` 回调传递每批 features
+- `loadWfsAsGeoJson`：返回 `{ geoJson, isEmpty?, partialFailureMessage? } | null`；null 表示全部批次失败
 
 ## 边界处理
 

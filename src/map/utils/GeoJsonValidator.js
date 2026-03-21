@@ -249,3 +249,23 @@ function extractCoordinates(coords) {
   if (typeof coords[0] === 'number') return [coords]
   return coords.flatMap(extractCoordinates)
 }
+
+/**
+ * 按几何类型将要素数组分为 Point/MultiPoint 与非 Point 两组
+ * @param {Object[]} features
+ * @returns {{ pointFeatures: Object[], nonPointFeatures: Object[] }}
+ */
+export function classifyByGeometryType(features) {
+  const pointFeatures = []
+  const nonPointFeatures = []
+  if (!Array.isArray(features)) return { pointFeatures, nonPointFeatures }
+  for (const f of features) {
+    const type = f?.geometry?.type
+    if (type === 'Point' || type === 'MultiPoint') {
+      pointFeatures.push(f)
+    } else {
+      nonPointFeatures.push(f)
+    }
+  }
+  return { pointFeatures, nonPointFeatures }
+}

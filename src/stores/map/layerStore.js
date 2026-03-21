@@ -1,5 +1,6 @@
 import { ref, markRaw } from 'vue'
 import { defineStore } from 'pinia'
+import { loadWfsAsGeoJsonStreaming } from '@/map/utils/wfsLoader'
 
 /**
  * @typedef {import('@/map/LayerManager').default} LayerManager
@@ -174,10 +175,11 @@ export const useLayerStore = defineStore('layers', () => {
   }
 
   /**
-   * 添加 GeoJSON 数据图层
+   * 添加 GeoJSON 数据图层（文件 / .json URL 路径）
+   * Point/MultiPoint → MassPointRenderer；非 Point → GeoJsonDataSource
    * @param {String} layerName - 图层名称
-   * @param {Object} geoJsonAnalysis - GeoJSON 分析结果
-   * @param {Object} geoJsonData - GeoJSON 原始对象
+   * @param {Object} geoJsonAnalysis - GeoJSON 分析结果（含 features2D / features3D / stats）
+   * @param {Object} geoJsonData - GeoJSON 原始对象（仅供元数据存储，不影响渲染）
    * @param {Object} [initialState] - 可选初始状态 { visible }
    * @returns {Promise<String>} 返回图层ID的Promise
    */
@@ -197,18 +199,19 @@ export const useLayerStore = defineStore('layers', () => {
       : null;
 
     return layerManager.addGeoJsonDataSource(geoJson2D, geoJson3D, geoJsonAnalysis)
-      .then(({ dataSource2D, dataSource3D }) => {
-        if (dataSource2D || dataSource3D) {
+      .then(({ massPointRenderer, dataSource2D, dataSource3D, nonPointGeoJson2D, nonPointGeoJson3D }) => {
+        if (massPointRenderer || dataSource2D || dataSource3D) {
           const layerId = _addLayer({
             name: layerName,
             type: 'file',
             sourceType: 'GeoJSON',
             visible: initialState?.visible !== undefined ? initialState.visible : true,
             locatable: true,
-            layerInstance: { dataSource2D, dataSource3D },
+            layerInstance: { massPointRenderer, dataSource2D, dataSource3D },
             metadata: {
-              geoJson2D,
-              geoJson3D,
+              // 仅存储非 Point 要素的 GeoJSON，供 reloadGeoJson2D（地形切换）使用
+              geoJson2D: nonPointGeoJson2D,
+              geoJson3D: nonPointGeoJson3D,
               geoJsonData,
               geoJsonAnalysis
             }
@@ -217,6 +220,57 @@ export const useLayerStore = defineStore('layers', () => {
         }
         throw new Error('GeoJSON 图层创建失败');
       });
+  }
+
+  /**
+   * 通过 WFS 流式分批加载添加 GeoJSON 图层
+   * 每批 onBatch 后立即消费，内存峰值维持在单批 ~5000 条，不合并全量数据。
+   * @param {String} layerName - 图层名称
+   * @param {String} url - WFS URL
+   * @param {Object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @returns {Promise<String>} 返回图层ID的Promise
+   */
+  async function addWfsGeoJsonLayerStreaming(layerName, url, options = {}) {
+    const layerManager = getLayerManager();
+    if (!layerManager) {
+      throw new Error('LayerManager 未初始化');
+    }
+
+    const { signal } = options;
+    const receiver = layerManager.createStreamingReceiver();
+
+    const result = await loadWfsAsGeoJsonStreaming(url, {
+      signal,
+      onBatch: (features) => receiver.processBatch(features),
+    });
+
+    if (result.isEmpty) {
+      const err = new Error('无匹配要素，未加载图层');
+      err.isEmpty = true;
+      throw err;
+    }
+
+    const { layerInstance, nonPointGeoJson2D } = await receiver.finalize();
+
+    if (!layerInstance.massPointRenderer && !layerInstance.dataSource2D && !layerInstance.dataSource3D) {
+      throw new Error('WFS 流式加载：图层创建失败');
+    }
+
+    return _addLayer({
+      name: layerName,
+      type: 'file',
+      sourceType: 'GeoJSON',
+      visible: true,
+      locatable: true,
+      layerInstance,
+      metadata: {
+        geoJson2D: nonPointGeoJson2D,
+        geoJson3D: null,
+        geoJsonData: null,
+        geoJsonAnalysis: null,
+      },
+    });
   }
 
   /**
@@ -575,6 +629,7 @@ export const useLayerStore = defineStore('layers', () => {
     addWmtsLayer,
     add3DTilesLayer,
     addGeoJsonLayer,
+    addWfsGeoJsonLayerStreaming,
     addKmlLayer,
     updateAllGeoJsonClampToGround,
     removeLayer,

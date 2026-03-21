@@ -266,6 +266,82 @@ export async function fetchWfsBatch(url, totalCount, batchSize = BATCH_SIZE, opt
 }
 
 /**
+ * 流式主入口：顺序按批次请求 WFS，每批通过 onBatch 回调传递要素，不在内存中合并全量数据。
+ * 适用于 Point 为主的大规模 WFS（如 10 万+），配合 MassPointRenderer 逐批消费。
+ * @param {string} url
+ * @param {{ onBatch: (features: Object[]) => void|Promise<void>, signal?: AbortSignal }} options
+ * @returns {Promise<{ isEmpty: boolean }>}
+ */
+export async function loadWfsAsGeoJsonStreaming(url, options = {}) {
+  if (!url || typeof url !== 'string') {
+    throw new Error('未提供 WFS URL')
+  }
+  const trimmed = url.trim()
+  if (!trimmed) {
+    throw new Error('未提供 WFS URL')
+  }
+
+  const { onBatch, signal } = options
+  if (typeof onBatch !== 'function') {
+    throw new Error('loadWfsAsGeoJsonStreaming：需提供 onBatch 回调')
+  }
+
+  const totalCount = await getWfsTotalCount(trimmed, { signal })
+  if (totalCount === 0) {
+    return { isEmpty: true }
+  }
+
+  const baseUrl = ensureGeoJsonOutputFormat(trimmed)
+
+  // 小数据量：单次请求，直接回调一次
+  if (totalCount <= BATCH_SIZE) {
+    const data = await fetchWfsGeoJsonWithRetry(baseUrl, { signal })
+    const features = data?.features ?? []
+    if (features.length === 0) return { isEmpty: true }
+    await onBatch(features)
+    return { isEmpty: false }
+  }
+
+  // 大数据量：顺序批次（禁止全并行，避免全量 features 同时驻留内存）
+  const batchCount = Math.ceil(totalCount / BATCH_SIZE)
+  const failedBatches = []
+
+  for (let i = 0; i < batchCount; i++) {
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError')
+    }
+    const startIndex = i * BATCH_SIZE
+    const endExclusive = Math.min((i + 1) * BATCH_SIZE, totalCount)
+    const batchUrl = buildWfsUrlWithParams(baseUrl, {
+      count: BATCH_SIZE,
+      startIndex,
+      maxFeatures: BATCH_SIZE,
+    })
+
+    let data = null
+    try {
+      data = await fetchWfsGeoJsonWithRetry(batchUrl, { signal })
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error
+      failedBatches.push({ startIndex, endExclusive })
+      continue
+    }
+
+    const features = data?.features ?? []
+    if (features.length > 0) {
+      await onBatch(features)
+      // onBatch 消费完毕后，本批 features 可被 GC 回收
+    }
+  }
+
+  if (failedBatches.length > 0) {
+    showFailureNotification(failedBatches)
+  }
+
+  return { isEmpty: false }
+}
+
+/**
  * 主入口：按需求 (1)(2) 分支加载 WFS
  * @param {string} url
  * @param {{ signal?: AbortSignal }} [options]

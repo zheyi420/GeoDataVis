@@ -123,6 +123,7 @@ import {
   ElUpload,
   ElAlert,
   ElMessage,
+  ElMessageBox,
   ElRadioGroup,
   ElRadio,
 } from 'element-plus'
@@ -131,7 +132,8 @@ import { usePanelStatusStore } from '@/stores/panelStatus'
 import { useLayerStore } from '@/stores/map/layerStore'
 import { parseAndValidate, parseAndValidateFromUrl, analyzeGeoJson } from '@/map/utils/GeoJsonValidator'
 import { parseLayerNameFromUrl, isWfsUrl } from '@/utils/urlUtils'
-import { loadWfsAsGeoJson } from '@/map/utils/wfsLoader'
+
+const FILE_SIZE_WARNING_MB = 50
 
 const panelStatusStore = usePanelStatusStore()
 const { visStatus4DialogGeoJsonParam } = storeToRefs(panelStatusStore)
@@ -235,6 +237,16 @@ async function handleFileChange(uploadFile) {
   errorMessage.value = ''
   fileLoading.value = true
 
+  // 文件大小前置警告（无法阻止 OOM，仅提示用户风险）
+  if (uploadFile.raw.size > FILE_SIZE_WARNING_MB * 1024 * 1024) {
+    ElMessage({
+      type: 'warning',
+      message: `文件较大（${(uploadFile.raw.size / 1024 / 1024).toFixed(1)} MB），加载时可能导致浏览器内存不足，请谨慎操作。`,
+      duration: 8000,
+      showClose: true,
+    })
+  }
+
   try {
     const data = await parseAndValidate(uploadFile.raw)
     geoJsonData.value = data
@@ -284,6 +296,34 @@ function loadGeoJson(formRef) {
     const layerName = form4GeoJsonParam.name?.trim() || placeholder4Form.name
     const layerStore = useLayerStore()
 
+    // --- WFS 流式路径：逐批 fetch + MassPointRenderer，不合并全量数据 ---
+    if (loadMode.value === 'url' && isWfsUrl(form4GeoJsonParam.url.trim())) {
+      const controller = new AbortController()
+      abortControllerRef.value = controller
+      const url = form4GeoJsonParam.url.trim()
+      try {
+        const layerId = await layerStore.addWfsGeoJsonLayerStreaming(layerName, url, {
+          signal: controller.signal,
+        })
+        ElMessage({
+          type: 'success',
+          message: `图层："${layerName}" 加载成功`,
+        })
+        resetForm()
+        closeDialogGeoJsonParam()
+        console.log('WFS 流式图层加载成功，图层 ID:', layerId)
+      } catch (error) {
+        if (error?.name !== 'AbortError') {
+          errorMessage.value = error.message || 'WFS 加载失败'
+          console.error('WFS 流式加载失败:', error)
+        }
+      } finally {
+        loading.value = false
+      }
+      return
+    }
+
+    // --- 标准路径（文件 / .json URL）---
     let analysis = geoJsonAnalysis.value
     let data = geoJsonData.value
 
@@ -291,23 +331,29 @@ function loadGeoJson(formRef) {
       const controller = new AbortController()
       abortControllerRef.value = controller
       const url = form4GeoJsonParam.url.trim()
+
+      // Content-Length 前置风险检测（受 CORS 限制，失败则静默跳过，不阻断加载）
       try {
-        if (isWfsUrl(url)) {
-          const result = await loadWfsAsGeoJson(url, { signal: controller.signal })
-          if (result === null) {
-            errorMessage.value = 'WFS 分批加载全部失败，请检查网络或稍后重试'
-            loading.value = false
-            return
-          }
-          if (result.isEmpty) {
-            errorMessage.value = '无匹配要素，未加载图层'
-            loading.value = false
-            return
-          }
-          data = result.geoJson
-        } else {
-          data = await parseAndValidateFromUrl(url, { signal: controller.signal })
+        const headResponse = await fetch(url, { method: 'HEAD' })
+        const contentLength = parseInt(headResponse.headers.get('content-length') ?? '0')
+        if (!isNaN(contentLength) && contentLength > FILE_SIZE_WARNING_MB * 1024 * 1024) {
+          await ElMessageBox.confirm(
+            `URL 内容约 ${(contentLength / 1024 / 1024).toFixed(1)} MB，超大文件可能导致浏览器崩溃，是否继续加载？`,
+            '大文件警告',
+            { type: 'warning', confirmButtonText: '继续加载', cancelButtonText: '取消' }
+          )
         }
+      } catch (sizeCheckError) {
+        // 用户点击"取消"时 Element Plus 抛出 'cancel'
+        if (sizeCheckError === 'cancel' || sizeCheckError?.action === 'cancel') {
+          loading.value = false
+          return
+        }
+        // CORS / 网络失败等原因导致 HEAD 失败，静默跳过大小检测
+      }
+
+      try {
+        data = await parseAndValidateFromUrl(url, { signal: controller.signal })
         analysis = analyzeGeoJson(data)
         if (analysis?.warnings?.length > 0) {
           ElMessage({

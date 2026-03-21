@@ -51,7 +51,7 @@
 | DataSource | `LayerManager.js` | 新增 `addGeoJsonDataSource` / `addKmlDataSource` / `addCzmlDataSource` |
 | PostProcessStage | `ViewerManager.js` 或新建 `PostProcessManager.js` | `viewer.scene.postProcessStages.add()` |
 | CustomShader | 新建 `src/map/shaders/` | Fabric 材质或 Primitive 自定义材质 |
-| Primitive 大规模点 | 新建 `src/map/business/MassPointRenderer.js` | `Primitive` + `GeometryInstance` + Instancing |
+| Primitive 大规模点 ✅ | `src/map/business/MassPointRenderer.js` | `PointPrimitiveCollection`，所有 Point/MultiPoint 均走此路径；WFS 场景流式分批追加（`loadWfsAsGeoJsonStreaming`） |
 | 航路规划 | 新建 `src/map/business/PathPlanner.js` | 地形采样 API + 3D A* |
 
 ---

@@ -4,7 +4,8 @@
  */
 
 import { createWmsImageryLayer, createWmtsImageryLayer, create3DTilesLayer } from './utils/ImageryLayerUtils';
-import { computeMergedBounds } from './utils/GeoJsonValidator';
+import { computeMergedBounds, classifyByGeometryType } from './utils/GeoJsonValidator';
+import MassPointRenderer from './business/MassPointRenderer.js';
 import {
   // ArcType,
   GeographicTilingScheme,
@@ -148,43 +149,171 @@ class LayerManager {
 
   /**
    * 添加 GeoJSON DataSource
-   * @param {Object|null} geoJson2D - 2D GeoJSON 对象
-   * @param {Object|null} geoJson3D - 3D GeoJSON 对象
-   * @returns {Promise<{dataSource2D: GeoJsonDataSource|null, dataSource3D: GeoJsonDataSource|null}>}
+   * Point/MultiPoint 要素一律走 MassPointRenderer（PointPrimitiveCollection），
+   * 非 Point 要素仍走 GeoJsonDataSource，保留 clampToGround 等现有行为。
+   * @param {Object|null} geoJson2D - 2D GeoJSON（features2D，含所有几何类型）
+   * @param {Object|null} geoJson3D - 3D GeoJSON（features3D，含所有几何类型）
+   * @param {Object} geoJsonAnalysis - GeoJSON 分析结果（用于相机定位）
+   * @returns {Promise<{
+   *   massPointRenderer: MassPointRenderer|null,
+   *   dataSource2D: GeoJsonDataSource|null,
+   *   dataSource3D: GeoJsonDataSource|null,
+   *   nonPointGeoJson2D: Object|null,
+   *   nonPointGeoJson3D: Object|null
+   * }>}
    */
   async addGeoJsonDataSource(geoJson2D, geoJson3D, geoJsonAnalysis) {
     console.log('addGeoJsonDataSource-arguments', arguments);
     try {
       const hasActiveTerrain = this.hasActiveTerrain();
+      let massPointRenderer = null;
       let dataSource2D = null;
       let dataSource3D = null;
+      let nonPointGeoJson2D = null;
+      let nonPointGeoJson3D = null;
 
-      if (geoJson2D && Array.isArray(geoJson2D.features) && geoJson2D.features.length > 0) {
-        dataSource2D = await GeoJsonDataSource.load(geoJson2D, {
+      const features2D = geoJson2D?.features ?? [];
+      const features3D = geoJson3D?.features ?? [];
+
+      const { pointFeatures: pointFeatures2D, nonPointFeatures: nonPointFeatures2D } =
+        classifyByGeometryType(features2D);
+      const { pointFeatures: pointFeatures3D, nonPointFeatures: nonPointFeatures3D } =
+        classifyByGeometryType(features3D);
+
+      // 所有 Point/MultiPoint → MassPointRenderer（分片添加，降低堆压力）
+      const allPointFeatures = [...pointFeatures2D, ...pointFeatures3D];
+      if (allPointFeatures.length > 0) {
+        massPointRenderer = new MassPointRenderer(this.#viewer);
+        massPointRenderer.addPointsInSlices(allPointFeatures);
+      }
+
+      // 非 Point 2D → GeoJsonDataSource（支持 clampToGround）
+      if (nonPointFeatures2D.length > 0) {
+        nonPointGeoJson2D = { type: 'FeatureCollection', features: nonPointFeatures2D };
+        dataSource2D = await GeoJsonDataSource.load(nonPointGeoJson2D, {
           clampToGround: hasActiveTerrain
         });
-        // this._applyGeodesicArcTypeToPolygons(dataSource2D);
         this.#viewer.dataSources.add(dataSource2D);
       }
 
-      if (geoJson3D && Array.isArray(geoJson3D.features) && geoJson3D.features.length > 0) {
-        dataSource3D = await GeoJsonDataSource.load(geoJson3D, {
+      // 非 Point 3D → GeoJsonDataSource（不贴地）
+      if (nonPointFeatures3D.length > 0) {
+        nonPointGeoJson3D = { type: 'FeatureCollection', features: nonPointFeatures3D };
+        dataSource3D = await GeoJsonDataSource.load(nonPointGeoJson3D, {
           clampToGround: false
         });
         this.#viewer.dataSources.add(dataSource3D);
       }
 
-      if (dataSource2D || dataSource3D) {
+      if (massPointRenderer || dataSource2D || dataSource3D) {
         await this.zoomToDataSource(
-          { dataSource2D, dataSource3D },
+          { massPointRenderer, dataSource2D, dataSource3D },
           { geoJsonAnalysis }
         );
       }
-      return { dataSource2D, dataSource3D };
+
+      return { massPointRenderer, dataSource2D, dataSource3D, nonPointGeoJson2D, nonPointGeoJson3D };
     } catch (error) {
       console.error('加载 GeoJSON 失败:', error);
       throw new Error(`加载 GeoJSON 失败: ${error.message}`);
     }
+  }
+
+  /**
+   * 创建 WFS 流式加载接收器。
+   * 调用方在 loadWfsAsGeoJsonStreaming 的 onBatch 回调中调用 processBatch(features)，
+   * 全部批次完成后调用 finalize() 获取最终 layerInstance 和元数据 GeoJSON。
+   * @returns {{ processBatch: Function, finalize: Function }}
+   */
+  createStreamingReceiver() {
+    const viewer = this.#viewer;
+    const hasActiveTerrain = this.hasActiveTerrain();
+    const computeSphere = this.computeBoundingSphereFromStats.bind(this);
+
+    const massPointRenderer = new MassPointRenderer(viewer);
+    /** @type {Object[]} 非 Point 要素缓冲（通常数量少，内存可控） */
+    const nonPointBuffer = [];
+
+    let minLon = Infinity, maxLon = -Infinity;
+    let minLat = Infinity, maxLat = -Infinity;
+
+    /**
+     * 处理单批 features：Point → MassPointRenderer；非 Point → buffer
+     * @param {Object[]} features
+     */
+    const processBatch = (features) => {
+      const { pointFeatures, nonPointFeatures } = classifyByGeometryType(features);
+
+      if (pointFeatures.length > 0) {
+        massPointRenderer.addPointsFromFeatures(pointFeatures);
+        // 增量记录包围盒，供 finalize 后定位
+        for (const f of pointFeatures) {
+          const g = f?.geometry;
+          const coords = g?.type === 'Point' ? [g.coordinates] : (g?.coordinates ?? []);
+          for (const c of coords) {
+            if (Array.isArray(c) && c.length >= 2 && Number.isFinite(c[0]) && Number.isFinite(c[1])) {
+              if (c[0] < minLon) minLon = c[0];
+              if (c[0] > maxLon) maxLon = c[0];
+              if (c[1] < minLat) minLat = c[1];
+              if (c[1] > maxLat) maxLat = c[1];
+            }
+          }
+        }
+      }
+
+      if (nonPointFeatures.length > 0) {
+        nonPointBuffer.push(...nonPointFeatures);
+      }
+    };
+
+    /**
+     * 完成流式加载：加载非 Point 要素、执行相机定位
+     * @returns {Promise<{ layerInstance: Object, nonPointGeoJson2D: Object|null }>}
+     */
+    const finalize = async () => {
+      let dataSource2D = null;
+      let nonPointGeoJson2D = null;
+
+      if (nonPointBuffer.length > 0) {
+        nonPointGeoJson2D = { type: 'FeatureCollection', features: nonPointBuffer };
+        dataSource2D = await GeoJsonDataSource.load(nonPointGeoJson2D, {
+          clampToGround: hasActiveTerrain
+        });
+        viewer.dataSources.add(dataSource2D);
+      }
+
+      const layerInstance = { massPointRenderer, dataSource2D, dataSource3D: null };
+
+      // 相机定位：优先使用流式累计的点位包围盒
+      if (Number.isFinite(minLon)) {
+        const syntheticStats = {
+          bounds2D: { west: minLon, east: maxLon, south: minLat, north: maxLat },
+          bounds3D: null,
+          heightRange: { min: Infinity, max: -Infinity },
+        };
+        try {
+          const sphere = computeSphere(syntheticStats);
+          if (sphere && sphere.radius > 0) {
+            await viewer.camera.flyToBoundingSphere(sphere, {
+              duration: 2.0,
+              offset: new HeadingPitchRange(0, -Math.PI / 4, sphere.radius * 2.5),
+            });
+          }
+        } catch (e) {
+          console.warn('WFS 流式加载定位失败:', e);
+        }
+      } else if (dataSource2D) {
+        try {
+          await viewer.flyTo(dataSource2D);
+        } catch (e) {
+          console.warn('WFS 流式非 Point 要素定位失败:', e);
+        }
+      }
+
+      return { layerInstance, nonPointGeoJson2D };
+    };
+
+    return { processBatch, finalize };
   }
 
   /**
@@ -338,7 +467,12 @@ class LayerManager {
       : [layerInstance];
 
     if (targets.length === 0) {
-      throw new Error('DataSource 不存在');
+      // 全为 Point 走了 MassPointRenderer，无 DataSource 可定位，但 stats 应已覆盖此路径
+      if (layerInstance?.massPointRenderer) {
+        console.warn('zoomToDataSource: 无法定位 MassPointRenderer（缺少 stats），跳过定位');
+        return;
+      }
+      throw new Error('无法定位：无有效地理范围');
     }
 
     // stats 优先：不依赖 Entity 渲染状态，图层隐藏时仍可定位
@@ -460,15 +594,20 @@ class LayerManager {
       return this.remove3DTilesLayer(layerInstance);
     } else if (layerType === 'file') {
       // GeoJSON DataSource 使用 dataSources.remove；KML 的 layerInstance 即 KmlDataSource
+      const massPointRenderer = layerInstance.massPointRenderer ?? null;
       const dataSource2D = layerInstance.dataSource2D ?? null;
       const dataSource3D = layerInstance.dataSource3D ?? null;
+      if (massPointRenderer) {
+        massPointRenderer.destroy();
+      }
       if (dataSource2D) {
         this.#viewer.dataSources.remove(dataSource2D, true);
       }
       if (dataSource3D) {
         this.#viewer.dataSources.remove(dataSource3D, true);
       }
-      if (!dataSource2D && !dataSource3D && layerInstance?.entities) {
+      if (!massPointRenderer && !dataSource2D && !dataSource3D && layerInstance?.entities) {
+        // KML DataSource（单 DataSource，非复合对象）
         this.#viewer.dataSources.remove(layerInstance, true);
       }
       return true;
@@ -486,20 +625,30 @@ class LayerManager {
    * @returns {Boolean} 是否成功设置
    */
   setLayerVisibility(layerInstance, visible) {
-    if (layerInstance) {
-      if (layerInstance.dataSource2D || layerInstance.dataSource3D) {
-        if (layerInstance.dataSource2D) {
-          layerInstance.dataSource2D.show = visible;
-        }
-        if (layerInstance.dataSource3D) {
-          layerInstance.dataSource3D.show = visible;
-        }
-        return true;
-      }
-      layerInstance.show = visible;
-      return true;
+    if (!layerInstance) return false;
+
+    let handled = false;
+
+    // GeoJSON 复合实例（含 MassPointRenderer + DataSource）
+    if (layerInstance.massPointRenderer) {
+      layerInstance.massPointRenderer.show = visible;
+      handled = true;
     }
-    return false;
+    if (layerInstance.dataSource2D) {
+      layerInstance.dataSource2D.show = visible;
+      handled = true;
+    }
+    if (layerInstance.dataSource3D) {
+      layerInstance.dataSource3D.show = visible;
+      handled = true;
+    }
+
+    if (!handled) {
+      // 单 DataSource 情形（KML / 简单 GeoJsonDataSource）
+      layerInstance.show = visible;
+    }
+
+    return true;
   }
 
   /**
