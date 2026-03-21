@@ -57,11 +57,12 @@ export function ensureGeoJsonOutputFormat(url) {
 
 /**
  * 在 URL 上添加或覆盖参数
+ * 分批时需同时设置 count 和 maxFeatures，以覆盖用户 URL 中原有的 maxFeatures，兼容 WFS 1.0/1.1
  * @param {string} baseUrl
- * @param {{ count?: number, startIndex?: number }}
+ * @param {{ count?: number, startIndex?: number, maxFeatures?: number }}
  * @returns {string}
  */
-export function buildWfsUrlWithParams(baseUrl, { count, startIndex }) {
+export function buildWfsUrlWithParams(baseUrl, { count, startIndex, maxFeatures }) {
   if (!baseUrl || typeof baseUrl !== 'string') return baseUrl
   try {
     const urlObj = new URL(baseUrl.trim())
@@ -70,6 +71,9 @@ export function buildWfsUrlWithParams(baseUrl, { count, startIndex }) {
     }
     if (startIndex != null) {
       urlObj.searchParams.set('startIndex', String(startIndex))
+    }
+    if (maxFeatures != null) {
+      urlObj.searchParams.set('maxFeatures', String(maxFeatures))
     }
     return urlObj.toString()
   } catch {
@@ -118,7 +122,7 @@ export async function fetchWfsGeoJsonWithRetry(url, maxAttempts = MAX_RETRY_ATTE
  * @returns {Promise<number>}
  */
 export async function getWfsTotalCount(url) {
-  const urlWithCount = buildWfsUrlWithParams(ensureGeoJsonOutputFormat(url), { count: 1 })
+  const urlWithCount = buildWfsUrlWithParams(ensureGeoJsonOutputFormat(url), { count: 1, maxFeatures: 1 })
   const data = await fetchWfsGeoJson(urlWithCount)
   const total = data?.numberMatched ?? data?.totalFeatures ?? data?.numberReturned
   if (total != null && Number.isFinite(Number(total))) {
@@ -194,7 +198,8 @@ export async function fetchWfsBatch(url, totalCount, batchSize = BATCH_SIZE) {
   const runBatch = async (info) => {
     const batchUrl = buildWfsUrlWithParams(baseUrl, {
       count: batchSize,
-      startIndex: info.startIndex
+      startIndex: info.startIndex,
+      maxFeatures: batchSize
     })
     try {
       return await fetchWfsGeoJsonWithRetry(batchUrl)

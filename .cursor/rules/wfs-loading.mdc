@@ -14,9 +14,18 @@ alwaysApply: false
 - **重试**：失败批次共执行 3 次（含首次），3 次均失败则 ElNotification 提示
 - **空数据**：`isEmpty: true` 时提示用户，不加载图层
 
+## WFS 版本与参数
+
+| 版本 | 限制要素参数 | 分页参数 |
+|------|-------------|----------|
+| 2.0.0 | `count` | `count` + `startIndex` |
+| 1.0.0 / 1.1.0 | `maxFeatures` | GeoServer 扩展支持 count+startIndex |
+
+**分批构建 URL 时**：必须同时设置 `count` 和 `maxFeatures` 为 batchSize，以覆盖用户 URL 中原有的 maxFeatures，避免 WFS 1.0 服务端采纳 maxFeatures 而忽略 count，导致每批返回超限要素。
+
 ## 扩展点
 
-- 新增 WFS 参数或输出格式：在 `wfsLoader.js` 中扩展 `parseWfsUrlParams`、`ensureGeoJsonOutputFormat`
+- 新增 WFS 参数或输出格式：在 `wfsLoader.js` 中扩展 `parseWfsUrlParams`、`ensureGeoJsonOutputFormat`、`buildWfsUrlWithParams`
 - 失败提示：使用 `ElNotification.warning`，`duration: 0`（常驻），`position: 'top-right'`，HTML 正文用 `<ul><li>` 逐行展示
 
 ## 返回值
