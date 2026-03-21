@@ -47,8 +47,8 @@
 
 | 功能 | 涉及文件 | 扩展方式 |
 |------|---------|---------|
-| 文件加载 | `ToolBarLoadPanel.vue`、新增 `DialogGeoJsonParam.vue` | `handleChange4FileLoadType` 分支 + LayerManager |
-| DataSource | `LayerManager.js` | 新增 `addGeoJsonDataSource` / `addKmlDataSource` / `addCzmlDataSource` |
+| 文件加载 | `ToolBarLoadPanel.vue`、`DialogGeoJsonParam.vue`、`DialogKmlParam.vue`、`wfsLoader.js`、`urlUtils.isWfsUrl` | `handleChange4FileLoadType` 分支 + LayerManager；WFS URL 分批加载见 `wfsLoader.js` |
+| DataSource | `LayerManager.js` | 已实现 `addGeoJsonDataSource`（含 MassPointRenderer 分流）、`addKmlDataSource`；待实现 `addCzmlDataSource` |
 | PostProcessStage | `ViewerManager.js` 或新建 `PostProcessManager.js` | `viewer.scene.postProcessStages.add()` |
 | CustomShader | 新建 `src/map/shaders/` | Fabric 材质或 Primitive 自定义材质 |
 | Primitive 大规模点 ✅ | `src/map/business/MassPointRenderer.js` | `PointPrimitiveCollection`，所有 Point/MultiPoint 均走此路径；WFS 场景流式分批追加（`loadWfsAsGeoJsonStreaming`） |

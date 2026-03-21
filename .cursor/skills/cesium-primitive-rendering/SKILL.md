@@ -20,47 +20,57 @@ description: Cesium Primitive API 高性能渲染指南，用于城市级监控�
 
 ## §1 基础：PointPrimitiveCollection（万级点位）
 
-最简单的高性能点集合，适合静态或低频更新的大规模点：
+当前项目已落地 `MassPointRenderer`，核心是将 Point/MultiPoint 从 Entity 路径分流到 `PointPrimitiveCollection`：
 
 ```js
-// src/map/business/MassPointRenderer.js
-import { PointPrimitiveCollection, Color, Cartesian3 } from 'cesium'
+import { PointPrimitiveCollection, Cartesian3, Color, BlendOption } from 'cesium'
 
-export class MassPointRenderer {
+class MassPointRenderer {
   #viewer
   #collection
 
   constructor(viewer) {
     this.#viewer = viewer
-    this.#collection = viewer.scene.primitives.add(new PointPrimitiveCollection())
-  }
-
-  /**
-   * 批量添加点位
-   * @param {Array<{lon, lat, alt, color, id}>} points
-   */
-  addPoints(points) {
-    points.forEach(p => {
-      this.#collection.add({
-        position: Cartesian3.fromDegrees(p.lon, p.lat, p.alt ?? 0),
-        color: p.color ?? Color.CYAN,
-        pixelSize: 8,
-        id: p.id, // 用于后续拾取
+    this.#collection = viewer.scene.primitives.add(
+      new PointPrimitiveCollection({
+        blendOption: BlendOption.OPAQUE,
       })
-    })
+    )
   }
 
   /**
-   * 实时更新点位坐标（模拟监控数据推送）
-   * @param {Map<string, {lon, lat, alt}>} updates - id → 新坐标
+   * 从 GeoJSON features 批量提取 Point / MultiPoint 并添加
+   * @param {Object[]} features
    */
-  updatePositions(updates) {
-    for (let i = 0; i < this.#collection.length; i++) {
-      const point = this.#collection.get(i)
-      const newPos = updates.get(point.id)
-      if (newPos) {
-        point.position = Cartesian3.fromDegrees(newPos.lon, newPos.lat, newPos.alt ?? 0)
+  addPointsFromFeatures(features) {
+    for (const f of features) {
+      const g = f?.geometry
+      const coords =
+        g?.type === 'Point'
+          ? [g.coordinates]
+          : g?.type === 'MultiPoint'
+            ? g.coordinates
+            : []
+
+      for (const c of coords) {
+        if (!Array.isArray(c) || c.length < 2) continue
+        this.#collection.add({
+          position: Cartesian3.fromDegrees(c[0], c[1], c[2] ?? 0),
+          color: Color.CYAN,
+          pixelSize: 6,
+        })
       }
+    }
+  }
+
+  /**
+   * 对已在内存中的大数组做分片添加，降低堆压力
+   * @param {Object[]} features
+   */
+  addPointsInSlices(features) {
+    const sliceSize = 5000
+    for (let i = 0; i < features.length; i += sliceSize) {
+      this.addPointsFromFeatures(features.slice(i, i + sliceSize))
     }
   }
 
@@ -70,33 +80,23 @@ export class MassPointRenderer {
 }
 ```
 
-### 使用示例（模拟 10 万架无人机）
+### WFS 流式接入（当前项目主路径）
 
 ```js
-const renderer = new MassPointRenderer(viewer)
+const receiver = layerManager.createStreamingReceiver()
 
-// 生成模拟数据
-const uavPoints = Array.from({ length: 100000 }, (_, i) => ({
-  id: `uav_${i}`,
-  lon: 113.0 + Math.random() * 2,
-  lat: 22.5 + Math.random() * 1.5,
-  alt: 50 + Math.random() * 500,
-  color: Color.fromHsl(Math.random(), 1.0, 0.5),
-}))
+await loadWfsAsGeoJsonStreaming(url, {
+  onBatch: (features) => receiver.processBatch(features),
+})
 
-renderer.addPoints(uavPoints)
-
-// 模拟实时数据推送（每 100ms 更新一批）
-setInterval(() => {
-  const updates = new Map()
-  uavPoints.forEach(p => {
-    p.lon += (Math.random() - 0.5) * 0.001
-    p.lat += (Math.random() - 0.5) * 0.001
-    updates.set(p.id, { lon: p.lon, lat: p.lat, alt: p.alt })
-  })
-  renderer.updatePositions(updates)
-}, 100)
+const { layerInstance } = await receiver.finalize()
+// layerInstance = { massPointRenderer, dataSource2D, dataSource3D }
 ```
+
+说明：
+- `processBatch` 内部按几何分流：Point/MultiPoint -> `MassPointRenderer`
+- 非 Point 要素进入 buffer，`finalize` 时一次性转 `GeoJsonDataSource`
+- 失败路径需调用 `receiver.dispose()`，避免资源泄漏
 
 ---
 
@@ -189,8 +189,8 @@ viewer.scene.camera.changed.addEventListener(() => {
 
 ```
 src/map/business/
-├── MassPointRenderer.js   # PointPrimitiveCollection 封装
-└── PathPlanner.js         # 低空航路规划（依赖 DEM）
+├── MassPointRenderer.js   # 已实现：PointPrimitiveCollection 封装（Point/MultiPoint 分流）
+└── PathPlanner.js         # 低空航路规划（依赖 DEM，规划中）
 ```
 
 ## 更多示例

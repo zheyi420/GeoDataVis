@@ -16,7 +16,7 @@
 
 #### 文件加载
 - [x] GeoJSON (拖拽 / 选择、WFS URL) — 矢量数据（支持 Point/LineString/Polygon，加载后自动定位、可点击要素定位；WFS URL 支持 >5000 自动分批、失败重试、空数据提示）
-- [ ] KML / KMZ — Google Earth 数据
+- [x] KML / KMZ (拖拽 / 选择、URL) — Google Earth 数据（支持文件加载和 URL 加载，加载后自动定位；URL 可能受 CORS 影响）
 - [ ] CZML (动态数据) — 实时轨迹
 - [ ] Shapefile — 已移除入口，后期再考虑是否开发此功能
 
