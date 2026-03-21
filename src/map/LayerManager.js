@@ -273,6 +273,10 @@ class LayerManager {
      * @returns {Promise<{ layerInstance: Object, nonPointGeoJson2D: Object|null, stats: Object|null }>}
      */
     const finalize = async () => {
+      if (finalized) {
+        throw new Error('finalize() 已被调用，禁止重复调用');
+      }
+
       let dataSource2D = null;
       let nonPointGeoJson2D = null;
 
@@ -316,6 +320,7 @@ class LayerManager {
         }
       }
 
+      finalized = true;
       return { layerInstance, nonPointGeoJson2D, stats };
     };
 
