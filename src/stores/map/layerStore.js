@@ -271,7 +271,7 @@ export const useLayerStore = defineStore('layers', () => {
           geoJson2D: out.nonPointGeoJson2D,
           geoJson3D: null,
           geoJsonData: null,
-          geoJsonAnalysis: null,
+          geoJsonAnalysis: out.stats ? { stats: out.stats } : null,
         },
       });
     } catch (e) {

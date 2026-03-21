@@ -270,7 +270,7 @@ class LayerManager {
 
     /**
      * 完成流式加载：加载非 Point 要素、执行相机定位
-     * @returns {Promise<{ layerInstance: Object, nonPointGeoJson2D: Object|null }>}
+     * @returns {Promise<{ layerInstance: Object, nonPointGeoJson2D: Object|null, stats: Object|null }>}
      */
     const finalize = async () => {
       let dataSource2D = null;
@@ -286,15 +286,19 @@ class LayerManager {
 
       const layerInstance = { massPointRenderer, dataSource2D, dataSource3D: null };
 
+      // 计算 stats（供持久化到 metadata，用于后续 Locate）
+      const stats = Number.isFinite(minLon)
+        ? {
+            bounds2D: { west: minLon, east: maxLon, south: minLat, north: maxLat },
+            bounds3D: null,
+            heightRange: { min: Infinity, max: -Infinity },
+          }
+        : null;
+
       // 相机定位：优先使用流式累计的点位包围盒
-      if (Number.isFinite(minLon)) {
-        const syntheticStats = {
-          bounds2D: { west: minLon, east: maxLon, south: minLat, north: maxLat },
-          bounds3D: null,
-          heightRange: { min: Infinity, max: -Infinity },
-        };
+      if (stats) {
         try {
-          const sphere = computeSphere(syntheticStats);
+          const sphere = computeSphere(stats);
           if (sphere && sphere.radius > 0) {
             await viewer.camera.flyToBoundingSphere(sphere, {
               duration: 2.0,
@@ -312,8 +316,7 @@ class LayerManager {
         }
       }
 
-      finalized = true;
-      return { layerInstance, nonPointGeoJson2D };
+      return { layerInstance, nonPointGeoJson2D, stats };
     };
 
     /**
@@ -460,10 +463,10 @@ class LayerManager {
 
   /**
    * 聚焦 camera 到 DataSource（如 GeoJSON）
-   * 支持复合 layerInstance { dataSource2D, dataSource3D }，
-   * 会将所有非 null 的 DataSource 的包围球合并后聚焦，保证相机覆盖全部要素范围。
+   * 支持复合 layerInstance { massPointRenderer, dataSource2D, dataSource3D }。
+   * 优先使用 stats 定位（适用所有几何类型），其次才依赖 DataSource.
    * 注：viewer.flyTo([ds1, ds2]) 会触发 Cesium 内部 DeveloperError，故改为手动合并包围球后 flyToBoundingSphere。
-   * @param {{dataSource2D?: GeoJsonDataSource|null, dataSource3D?: GeoJsonDataSource|null}|GeoJsonDataSource} layerInstance
+   * @param {{massPointRenderer?: MassPointRenderer|null, dataSource2D?: GeoJsonDataSource|null, dataSource3D?: GeoJsonDataSource|null}|GeoJsonDataSource} layerInstance
    * @returns {Promise<void>}
    */
   async zoomToDataSource(layerInstance, options = {}) {
@@ -473,21 +476,7 @@ class LayerManager {
       throw new Error('DataSource 不存在');
     }
 
-    const isComposite = 'dataSource2D' in layerInstance || 'dataSource3D' in layerInstance;
-    const targets = isComposite
-      ? [layerInstance.dataSource2D, layerInstance.dataSource3D].filter(Boolean)
-      : [layerInstance];
-
-    if (targets.length === 0) {
-      // 全为 Point 走了 MassPointRenderer，无 DataSource 可定位，但 stats 应已覆盖此路径
-      if (layerInstance?.massPointRenderer) {
-        console.warn('zoomToDataSource: 无法定位 MassPointRenderer（缺少 stats），跳过定位');
-        return;
-      }
-      throw new Error('无法定位：无有效地理范围');
-    }
-
-    // stats 优先：不依赖 Entity 渲染状态，图层隐藏时仍可定位
+    // ① stats 最优先：不依赖 Entity 渲染状态，适用所有几何类型（含纯 MassPointRenderer 图层）
     const stats = options?.geoJsonAnalysis?.stats;
     if (stats) {
       const sphere = this.computeBoundingSphereFromStats(stats);
@@ -500,7 +489,21 @@ class LayerManager {
       }
     }
 
-    // 无 stats 时仅单 DataSource 可用 viewer.flyTo（多 DataSource 会触发 Cesium 内部错误）
+    // ② 无 stats 时退回 DataSource targets（KML / 旧版 GeoJSON 图层）
+    const isComposite = 'dataSource2D' in layerInstance || 'dataSource3D' in layerInstance;
+    const targets = isComposite
+      ? [layerInstance.dataSource2D, layerInstance.dataSource3D].filter(Boolean)
+      : [layerInstance];
+
+    if (targets.length === 0) {
+      if (layerInstance?.massPointRenderer) {
+        console.warn('zoomToDataSource: 无法定位 MassPointRenderer（缺少 stats），跳过定位');
+        return;
+      }
+      throw new Error('无法定位：无有效地理范围');
+    }
+
+    // ③ 单 DataSource 可用 viewer.flyTo（多 DataSource 会触发 Cesium 内部错误）
     if (targets.length === 1) {
       await this.#viewer.flyTo(targets[0]);
       return;
