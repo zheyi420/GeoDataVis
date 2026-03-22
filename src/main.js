@@ -23,10 +23,7 @@ import App from './App.vue'
  */
 window.CESIUM_BASE_URL = `${import.meta.env.BASE_URL}libs/cesium/`
 
-import { Ion } from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
-Ion.defaultAccessToken =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI1ZmY2ZWNkYy04ZjI4LTQ1ZjQtYjRhYS0wZjYwMDdmNmUyZTUiLCJpZCI6MTA4NDQ0LCJpYXQiOjE3NTM4MDQyNzV9.9007CkJcf5kmK2odPZVGTrWExOwhOZy6mqs0GD_wo7A'
 
 const app = createApp(App)
 
