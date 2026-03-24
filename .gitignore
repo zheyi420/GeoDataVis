@@ -29,3 +29,6 @@ coverage
 
 # Static directories and files
 .claude/settings.local.json
+
+# Claude Code / Cursor 规则软链接
+.cursor/rules
