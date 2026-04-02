@@ -3,14 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="GeoDataVis" />
-    <title>GeoDataVis</title>
+    <meta
+      name="description"
+      content="个人前端与 Web 图形学习笔记，记录 Vue、WebGL、Canvas 等日常练习与心得。"
+    />
+    <title>个人技术空间 - 前端开发学习记录</title>
     <style>
       :root {
         --bg: #0f1419;
         --surface: #1a2332;
+        --surface-elevated: #222d3f;
         --text: #e8ecf1;
         --muted: #9aa5b5;
+        --accent: #7dd3fc;
         --accent-hover: #60a5fa;
         --border: rgba(255, 255, 255, 0.08);
       }
@@ -26,7 +31,7 @@
           sans-serif;
         background: var(--bg);
         color: var(--text);
-        line-height: 1.6;
+        line-height: 1.65;
         display: flex;
         flex-direction: column;
       }
@@ -36,11 +41,11 @@
         width: 100%;
         max-width: 720px;
         margin: 0 auto;
-        padding: 2.5rem 1.25rem 6rem;
+        padding: 2.5rem 1.25rem 4rem;
       }
 
       header {
-        margin-bottom: 0;
+        margin-bottom: 2rem;
       }
 
       h1 {
@@ -56,6 +61,78 @@
         margin: 0;
       }
 
+      h2 {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin: 0 0 0.75rem;
+        color: var(--text);
+      }
+
+      .about {
+        padding: 1.25rem 1.35rem;
+        margin-bottom: 2.25rem;
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+
+      .about p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.98rem;
+      }
+
+      .section-title {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        margin: 0 0 1rem;
+        font-weight: 600;
+      }
+
+      .posts {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .post {
+        padding: 1.2rem 1.35rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        transition: border-color 0.15s ease;
+      }
+
+      .post:hover {
+        border-color: rgba(125, 211, 252, 0.25);
+      }
+
+      .post time {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .post h3 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+        line-height: 1.4;
+      }
+
+      .post p {
+        margin: 0;
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+
       footer {
         margin-top: auto;
         padding: 1.25rem;
@@ -64,6 +141,16 @@
         color: var(--muted);
         border-top: 1px solid var(--border);
         background: var(--surface);
+      }
+
+      footer p {
+        margin: 0 0 0.35rem;
+      }
+
+      footer .beian-note {
+        margin: 0;
+        font-size: 0.75rem;
+        opacity: 0.85;
       }
 
       footer a {
@@ -80,13 +167,68 @@
   <body>
     <div class="wrap">
       <header>
-        <h1>GeoDataVis</h1>
-        <!-- <p class="lead">敬请期待...</p> -->
+        <h1>个人技术学习记录</h1>
+        <p class="lead">前端与 Web 图形相关练习笔记，随手整理，方便日后回顾。</p>
       </header>
+
+      <section class="about" aria-labelledby="about-heading">
+        <h2 id="about-heading">关于本站</h2>
+        <p>
+          欢迎来到我的个人主页。这里主要是我在学习计算机相关课程期间，记录前端技术栈（如
+          Vue、TypeScript）以及 Web 图形（如 WebGL、Canvas）学习心得的地方。所有内容仅供个人技术积累与复习使用，不涉及商业服务。
+        </p>
+      </section>
+
+      <section aria-labelledby="notes-heading">
+        <p class="section-title" id="notes-heading">学习笔记</p>
+        <ul class="posts">
+          <li class="post">
+            <time datetime="2026-03-15">2026-03-15</time>
+            <h3>开始学习 Cesium.js：环境搭建与首屏调试</h3>
+            <p>
+              记录了本地开发环境配置、依赖安装顺序，以及如何在浏览器里确认库已正确加载。先把跑通流程记下来，后面再慢慢啃 API。
+            </p>
+          </li>
+          <li class="post">
+            <time datetime="2026-03-10">2026-03-10</time>
+            <h3>WebGL 渲染性能优化的几点思考</h3>
+            <p>
+              减少 draw call、合理使用缓冲对象、注意纹理尺寸与格式，对帧率影响很明显。本文只是课堂笔记式的摘要，方便对照官方文档查漏补缺。
+            </p>
+          </li>
+          <li class="post">
+            <time datetime="2026-03-05">2026-03-05</time>
+            <h3>利用 HTML5 Canvas 绘制简单的点、线、面</h3>
+            <p>
+              从 2D 上下文入手，练习路径、填充与描边。把坐标系和像素比的关系理了一遍，避免在高清屏上糊成一团。
+            </p>
+          </li>
+          <li class="post">
+            <time datetime="2026-02-28">2026-02-28</time>
+            <h3>Vue 3 响应式原理学习笔记</h3>
+            <p>
+              粗读 Proxy、依赖收集与触发更新的流程，对照小型 demo 打断点看调用栈。先建立直觉，再深入源码会更轻松。
+            </p>
+          </li>
+          <li class="post">
+            <time datetime="2026-02-20">2026-02-20</time>
+            <h3>前端工程化工具链配置心得</h3>
+            <p>
+              整理了包管理、构建脚本与代码规范工具的日常用法。目标是让新项目能一键装好 lint 与格式化，减少团队协作时的摩擦。
+            </p>
+          </li>
+        </ul>
+      </section>
     </div>
 
     <footer>
-      <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener noreferrer">粤ICP备2026031216号</a>
+      <p>
+        © 2026 个人技术空间 |
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer"
+          >粤ICP备2026031216号</a
+        >
+      </p>
+      <p class="beian-note">公安备案号待审核通过后补充。</p>
     </footer>
   </body>
 </html>
