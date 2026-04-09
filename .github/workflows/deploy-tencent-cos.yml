@@ -31,10 +31,12 @@ jobs:
         run: pnpm run build:tencent-cos
 
       - name: Deploy to Tencent Cloud COS
-        uses: zkqiang/tencent-cos-action@v0.1.0
+        uses: TencentCloud/cos-action@v1
         with:
-          args: upload -rs --delete ./dist/tencent-cos/ /
           secret_id: ${{ secrets.TENCENT_SECRET_ID }}
           secret_key: ${{ secrets.TENCENT_SECRET_KEY }}
-          bucket: ${{ secrets.COS_BUCKET }}
-          region: ${{ secrets.COS_REGION }}
+          cos_bucket: ${{ secrets.COS_BUCKET }}
+          cos_region: ${{ secrets.COS_REGION }}
+          local_path: ./dist/tencent-cos/
+          remote_path: /
+          clean: true
