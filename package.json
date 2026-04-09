@@ -38,7 +38,7 @@
     "vite": "^7",
     "vite-plugin-externals": "^0.6.2",
     "vite-plugin-insert-html": "^1.0.3",
-    "vite-plugin-static-copy": "^3.1.2",
+    "vite-plugin-static-copy": "^4.0.1",
     "vite-plugin-vue-devtools": "^8.1.0"
   },
   "pnpm": {
