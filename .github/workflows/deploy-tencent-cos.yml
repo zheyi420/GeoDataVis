@@ -37,6 +37,7 @@ jobs:
           secret_key: ${{ secrets.TENCENT_SECRET_KEY }}
           cos_bucket: ${{ secrets.COS_BUCKET }}
           cos_region: ${{ secrets.COS_REGION }}
-          local_path: ./dist/tencent-cos/
+          # Avoid "./" prefix to prevent path truncation bug in cos-action.
+          local_path: dist/tencent-cos/
           remote_path: /
           clean: true
