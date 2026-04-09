@@ -25,6 +25,8 @@ export default defineConfig(({ mode }) => {
     outDir = 'dist/github-pages'
   } else if (mode === 'production-local') {
     outDir = 'dist/local'
+  } else if (mode === 'production-tencent-cos') {
+    outDir = 'dist/tencent-cos'
   }
 
   const cesiumLibraryRoot = 'node_modules/cesium/Build/Cesium/'
@@ -81,7 +83,11 @@ export default defineConfig(({ mode }) => {
     })
   ]
   // 如果是构建，引入如下插件
-  if (mode === 'production-github-pages' || mode === 'production-local') {
+  if (
+    mode === 'production-github-pages' ||
+    mode === 'production-local' ||
+    mode === 'production-tencent-cos'
+  ) {
     plugins.push(
       /**
        * 打包后的页面因为外部化 cesium 找不到 CesiumJS 库

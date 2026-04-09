@@ -8,6 +8,7 @@
     "dev": "vite",
     "build:github-pages": "vite build --mode production-github-pages",
     "build:local": "vite build --mode production-local",
+    "build:tencent-cos": "vite build --mode production-tencent-cos",
     "preview:github-pages": "vite preview --mode production-github-pages",
     "preview:local": "vite preview --mode production-local",
     "lint": "eslint . --fix",
