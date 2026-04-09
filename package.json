@@ -27,19 +27,19 @@
     "@eslint/js": "^9",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/eslint-config-prettier": "^10.0.0",
-    "eslint": "^10.1.0",
+    "eslint": "^10.2.0",
     "eslint-plugin-vue": "^10.3.0",
     "globals": "^17",
     "ncp": "^2.0.0",
     "prettier": "^3.6.2",
-    "sass": "^1.98.0",
+    "sass": "^1.99.0",
     "sass-loader": "^16.0.4",
     "unplugin-element-plus": "^0.11.2",
     "vite": "^7",
     "vite-plugin-externals": "^0.6.2",
     "vite-plugin-insert-html": "^1.0.3",
     "vite-plugin-static-copy": "^3.1.2",
-    "vite-plugin-vue-devtools": "^8.1.0"
+    "vite-plugin-vue-devtools": "^8.1.1"
   },
   "pnpm": {
     "overrides": {
