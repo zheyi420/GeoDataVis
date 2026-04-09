@@ -13,7 +13,7 @@
     <MapContainer class="map-container" />
     <ToolBarLoadPanel class="toolbar-load-panel" />
     <LayerManagerPanel class="layer-manager-panel" :style="layerManagerStyle" />
-    <MapParamsPanel class="map-params-panel" @height-change="handleHeightChange" />
+    <MapStatusBar class="map-status-bar" @height-change="handleHeightChange" />
     <!-- TODO 是否需要改为异步组件，调用时再加载 -->
     <DialogWmsServiceParam />
     <DialogWmtsServiceParam />
@@ -28,7 +28,7 @@
 import { ref, computed, provide, watch } from 'vue'
 import { ElLoading } from 'element-plus'
 import MapContainer from '@/views/MapContainer.vue';
-import MapParamsPanel from '@/views/panels/MapParamsPanel.vue'
+import MapStatusBar from '@/views/panels/MapStatusBar.vue'
 import ToolBarLoadPanel from '@/views/panels/ToolBarLoadPanel.vue'
 import LayerManagerPanel from '@/views/panels/LayerManagerPanel.vue'
 import DialogWmsServiceParam from '@/views/panels/DialogWmsServiceParam.vue'
@@ -99,7 +99,7 @@ watch(
     z-index: 10;
   }
 
-  .map-params-panel {
+  .map-status-bar {
     position: fixed;
     bottom: 0;
     left: 0;

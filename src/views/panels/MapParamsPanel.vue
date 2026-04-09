@@ -1,15 +1,15 @@
 <!--
  * @Author: zheyi420
  * @Date: 2025-04-11
- * @LastEditors: zheyi420 37471153+zheyi420@users.noreply.github.com
- * @LastEditTime: 2026-03-03
+ * @LastEditors: zheyi420
+ * @LastEditTime: 2026-04-03
  * @FilePath: \GeoDataVis\src\views\panels\MapParamsPanel.vue
  * @Description: 显示相机、鼠标等信息
  *
 -->
 
 <template>
-  <div class="map-params-panel" ref="panelRef">
+  <div class="map-params-panel">
     <div class="camera-params-panel">
       <span class="panel-name">相机：</span>
       <span>经度 {{ cameraParams.longitude }}°</span>
@@ -29,13 +29,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, watch, onBeforeUnmount, inject } from 'vue'
+import { ref, reactive, watch, onBeforeUnmount, inject } from 'vue'
 import { ScreenSpaceEventHandler, ScreenSpaceEventType, Math as CesiumMath, Cartographic } from 'cesium'
 import { storeToRefs } from 'pinia'
 import { useTerrainStore } from '@/stores/map/terrainStore'
-
-const panelRef = ref(null)
-const emit = defineEmits(['heightChange'])
 
 const cameraParams = reactive({
   longitude: 0,
@@ -107,13 +104,6 @@ function updateMouseParams(movement) {
   }
 }
 
-onMounted(() => {
-  // 发送面板高度
-  if (panelRef.value) {
-    emit('heightChange', panelRef.value.offsetHeight)
-  }
-})
-
 const isViewerReady = inject('isViewerReady')
 let cleanupCallbacks = null
 
@@ -151,9 +141,6 @@ onBeforeUnmount(() => {
   flex-direction: row;
   justify-content: flex-end;
   gap: 20px;
-  padding: 0px 10px;
-  box-sizing: border-box; /* 包含内边距在内 */
-  background-color: rgba(0, 0, 0, 0.8);
 
   span {
     color: rgb(255, 255, 255);
