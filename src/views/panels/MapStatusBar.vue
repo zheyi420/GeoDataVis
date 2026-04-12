@@ -1,6 +1,6 @@
 <template>
   <div class="map-status-bar" ref="panelRef">
-    <div class="left-section">
+    <div v-if="showBeianInfo" class="left-section">
       <BeianInfo />
     </div>
     <div class="right-section">
@@ -13,6 +13,8 @@
 import { onMounted, ref } from 'vue'
 import BeianInfo from '@/views/panels/BeianInfo.vue'
 import MapParamsPanel from '@/views/panels/MapParamsPanel.vue'
+
+const showBeianInfo = import.meta.env.MODE === 'production-tencent-cos'
 
 const panelRef = ref(null)
 const emit = defineEmits(['heightChange'])
