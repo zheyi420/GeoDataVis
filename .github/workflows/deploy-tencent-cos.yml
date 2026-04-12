@@ -46,4 +46,4 @@ jobs:
           coscmd config -a ${{ secrets.TENCENT_SECRET_ID }} -s ${{ secrets.TENCENT_SECRET_KEY }} -b ${{ secrets.COS_BUCKET }} -r ${{ secrets.COS_REGION }}
           
           # 3. 执行严格增量同步并彻底删除云端多余旧文件 (-r 递归, -s 跳过相同文件, --delete 同步删除)
-          coscmd upload -rs --delete dist/tencent-cos/ /
+          coscmd upload -rs --delete -y dist/tencent-cos/ /
