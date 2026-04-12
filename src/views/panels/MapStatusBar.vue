@@ -14,7 +14,7 @@ import { onMounted, ref } from 'vue'
 import BeianInfo from '@/views/panels/BeianInfo.vue'
 import MapParamsPanel from '@/views/panels/MapParamsPanel.vue'
 
-const showBeianInfo = import.meta.env.MODE === 'production-tencent-cos'
+const showBeianInfo = import.meta.env.MODE === 'production-tencent-cos' || import.meta.env.DEV
 
 const panelRef = ref(null)
 const emit = defineEmits(['heightChange'])
@@ -42,6 +42,7 @@ onMounted(() => {
   }
 
   .right-section {
+    margin-left: auto;
     min-width: 0;
     flex-shrink: 0;
   }
