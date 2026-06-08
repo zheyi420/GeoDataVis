@@ -17,7 +17,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
     "@mapbox/geojsonhint": "^3.3.0",
-    "cesium": "^1.132.0",
+    "cesium": "^1.142.0",
     "element-plus": "^2.13.6",
     "pinia": "^2",
     "vue": "^3.5.30",
